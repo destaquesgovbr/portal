@@ -224,3 +224,13 @@ body:has(.not-found-page) .layout-footer {
   font-family: inherit;
   padding-right: 0.05em;
 }
+
+/* Hide scrollbar utility for widget carousel */
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
