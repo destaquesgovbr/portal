@@ -7,6 +7,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { ArticleFilters } from '@/components/articles/ArticleFilters'
 import NewsCard from '@/components/articles/NewsCard'
+import { FeedLink } from '@/components/common/FeedLink'
 import { MarkdownRenderer } from '@/components/common/MarkdownRenderer'
 import type { AgencyOption } from '@/data/agencies-utils'
 import THEME_ICONS from '@/data/themes'
@@ -15,11 +16,13 @@ import { getArticles } from './actions'
 
 type ThemePageClientProps = {
   themeLabel: string
+  themeCode?: string
   agencies: AgencyOption[]
 }
 
 export default function ThemePageClient({
   themeLabel,
+  themeCode,
   agencies,
 }: ThemePageClientProps) {
   const searchParams = useSearchParams()
@@ -159,6 +162,12 @@ export default function ThemePageClient({
           <div className="mx-auto mt-3 w-40">
             <img src="/underscore.svg" alt="" />
           </div>
+
+          {themeCode && (
+            <div className="mt-4">
+              <FeedLink params={{ temas: [themeCode] }} />
+            </div>
+          )}
 
           {/* Descrição do tema */}
           {themeData?.description && (

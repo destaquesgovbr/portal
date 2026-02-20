@@ -7,6 +7,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { ArticleFilters } from '@/components/articles/ArticleFilters'
 import NewsCard from '@/components/articles/NewsCard'
+import { FeedLink } from '@/components/common/FeedLink'
 import type { ThemeOption } from '@/data/themes-utils'
 import { getExcerpt } from '@/lib/utils'
 import { getArticles } from './actions'
@@ -164,6 +165,10 @@ export default function AgencyPageClient({
         <p className="mt-4 text-base text-primary/80">
           Acompanhe as notícias e publicações oficiais deste órgão.
         </p>
+
+        <div className="mt-4">
+          <FeedLink params={{ agencias: [agencyKey] }} />
+        </div>
       </div>
 
       {/* Main Content with Sidebar */}

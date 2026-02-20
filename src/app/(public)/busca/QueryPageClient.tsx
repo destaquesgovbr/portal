@@ -8,6 +8,7 @@ import { useInView } from 'react-intersection-observer'
 import { useUmamiTrack } from '@/components/analytics/useUmamiTrack'
 import { ArticleFilters } from '@/components/articles/ArticleFilters'
 import NewsCard from '@/components/articles/NewsCard'
+import { FeedLink } from '@/components/common/FeedLink'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
 import { getExcerpt } from '@/lib/utils'
@@ -243,6 +244,17 @@ export default function QueryPageClient({
         <p className="mt-4 text-base text-primary/80">
           Veja os artigos e publicações que correspondem à sua busca no portal.
         </p>
+
+        <div className="mt-4">
+          <FeedLink
+            params={{
+              q: query,
+              agencias:
+                selectedAgencies.length > 0 ? selectedAgencies : undefined,
+              temas: selectedThemes.length > 0 ? selectedThemes : undefined,
+            }}
+          />
+        </div>
       </div>
 
       {/* Main Content with Sidebar */}

@@ -1,4 +1,4 @@
-import { ExternalLink, MapPin, Phone } from 'lucide-react'
+import { ExternalLink, MapPin, Phone, Rss } from 'lucide-react'
 import Image from 'next/image'
 
 const Footer = () => {
@@ -81,6 +81,15 @@ const Footer = () => {
                 >
                   Ouvidoria
                   <ExternalLink className="w-3 h-3 ml-1" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/feeds"
+                  className="hover:text-orange-600 hover:underline transition-colors flex items-center"
+                >
+                  <Rss className="w-3 h-3 mr-1" />
+                  Feeds RSS
                 </a>
               </li>
             </ul>
