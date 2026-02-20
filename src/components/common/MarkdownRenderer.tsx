@@ -1,6 +1,10 @@
+'use client'
+
 import ReactMarkdown, { type Components } from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
+import { ImageCarousel } from '@/components/articles/ImageCarousel'
+import { preprocessImageCarousels } from '@/lib/markdown-carousel'
 import { cn } from '@/lib/utils'
 
 interface MarkdownRendererProps {
@@ -17,7 +21,10 @@ export function MarkdownRenderer({
   content,
   className,
 }: MarkdownRendererProps) {
-  const components: Components = {
+  const processedContent = preprocessImageCarousels(content)
+
+  // biome-ignore lint/suspicious/noExplicitAny: react-markdown Components type does not support custom HTML elements
+  const components: Components & Record<string, React.ComponentType<any>> = {
     // Parágrafos
     p: ({ node, children, ...props }) => (
       <p className="my-4 leading-relaxed text-primary/90" {...props}>
@@ -127,6 +134,15 @@ export function MarkdownRenderer({
 
     // Linhas horizontais
     hr: () => <hr className="my-8 border-t border-border" />,
+
+    // Carrossel de imagens (gerado pelo preprocessamento)
+    'image-carousel': (props: Record<string, string>) => {
+      const imagesAttr = props['data-images'] ?? ''
+      const altsAttr = props['data-alts'] ?? ''
+      const images = imagesAttr ? imagesAttr.split('||') : []
+      const alts = altsAttr ? altsAttr.split('||') : []
+      return <ImageCarousel images={images} alts={alts} />
+    },
   }
 
   return (
@@ -136,7 +152,7 @@ export function MarkdownRenderer({
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   )

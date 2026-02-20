@@ -73,5 +73,6 @@ export default async function ArticlePage({ params }: Props) {
   const baseUrl = articleUrl.hostname.replace('www.', '')
   const pageUrl = `${process.env.NEXT_PUBLIC_SITE_URL!}/artigos/${article.unique_id}`
 
+  console.log('article', article)
   return <ClientArticle article={article} baseUrl={baseUrl} pageUrl={pageUrl} />
 }
