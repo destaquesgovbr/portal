@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exemplo de Integração - Widget DGB</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #f5f5f5;
+    }
+
+    header {
+      background: #0D4C92;
+      color: white;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      opacity: 0.9;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .examples {
+      display: grid;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .example {
+      background: white;
+      border-radius: 8px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .example h2 {
+      color: #0D4C92;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+
+    .example p {
+      color: #666;
+      margin-bottom: 1.5rem;
+    }
+
+    .widget-container {
+      display: flex;
+      justify-content: center;
+      padding: 1rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    footer {
+      background: #333;
+      color: white;
+      text-align: center;
+      padding: 2rem;
+      margin-top: 4rem;
+    }
+
+    footer a {
+      color: #4CAF50;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .widget-container iframe {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🏛️ Widget DGB - Exemplos de Integração</h1>
+    <p>Demonstração de diferentes layouts e configurações do Widget Embarcável</p>
+  </header>
+
+  <div class="container">
+    <!-- Exemplo 1: Lista -->
+    <section class="example">
+      <h2>1. Layout Lista - Sidebar</h2>
+      <p>
+        Ideal para sidebars e espaços estreitos. Exibe notícias em uma coluna vertical.
+      </p>
+      <div class="widget-container">
+        <iframe
+          src="http://localhost:3000/embed?c=eyJhZ2VuY2llcyI6W10sInRoZW1lcyI6W10sImxheW91dCI6Imxpc3QiLCJzaXplIjoibWVkaXVtIiwic2hvd0xvZ28iOnRydWUsInNob3dMaW5rIjp0cnVlLCJzaG93VG9vbHRpcCI6dHJ1ZSwiYXJ0aWNsZXNQZXJQYWdlIjoxMH0"
+          width="400"
+          height="600"
+          frameborder="0"
+          scrolling="auto"
+          title="Widget DGB - Lista"
+        ></iframe>
+      </div>
+    </section>
+
+    <!-- Exemplo 2: Grade 2 Colunas -->
+    <section class="example">
+      <h2>2. Layout Grade 2 Colunas</h2>
+      <p>
+        Perfeito para seções de conteúdo principal. Exibe notícias em 2 colunas responsivas.
+      </p>
+      <div class="widget-container">
+        <iframe
+          src="http://localhost:3000/embed?c=eyJhZ2VuY2llcyI6W10sInRoZW1lcyI6W10sImxheW91dCI6ImdyaWQtMiIsInNpemUiOiJtZWRpdW0iLCJzaG93TG9nbyI6dHJ1ZSwic2hvd0xpbmsiOnRydWUsInNob3dUb29sdGlwIjp0cnVlLCJhcnRpY2xlc1BlclBhZ2UiOjEwfQ"
+          width="700"
+          height="600"
+          frameborder="0"
+          scrolling="auto"
+          title="Widget DGB - Grade 2 Colunas"
+        ></iframe>
+      </div>
+    </section>
+
+    <!-- Exemplo 3: Grade 3 Colunas -->
+    <section class="example">
+      <h2>3. Layout Grade 3 Colunas</h2>
+      <p>
+        Ótimo para hero sections e áreas full-width. Exibe notícias em 3 colunas.
+      </p>
+      <div class="widget-container">
+        <iframe
+          src="http://localhost:3000/embed?c=eyJhZ2VuY2llcyI6W10sInRoZW1lcyI6W10sImxheW91dCI6ImdyaWQtMyIsInNpemUiOiJtZWRpdW0iLCJzaG93TG9nbyI6dHJ1ZSwic2hvd0xpbmsiOnRydWUsInNob3dUb29sdGlwIjp0cnVlLCJhcnRpY2xlc1BlclBhZ2UiOjEyfQ"
+          width="1000"
+          height="600"
+          frameborder="0"
+          scrolling="auto"
+          title="Widget DGB - Grade 3 Colunas"
+        ></iframe>
+      </div>
+    </section>
+
+    <!-- Exemplo 4: Carrossel -->
+    <section class="example">
+      <h2>4. Layout Carrossel</h2>
+      <p>
+        Ideal para destaques rotativos. Navegação automática a cada 5 segundos.
+      </p>
+      <div class="widget-container">
+        <iframe
+          src="http://localhost:3000/embed?c=eyJhZ2VuY2llcyI6W10sInRoZW1lcyI6W10sImxheW91dCI6ImNhcm91c2VsIiwic2l6ZSI6Im1lZGl1bSIsInNob3dMb2dvIjp0cnVlLCJzaG93TGluayI6dHJ1ZSwic2hvd1Rvb2x0aXAiOnRydWUsImFydGljbGVzUGVyUGFnZSI6MTB9"
+          width="700"
+          height="400"
+          frameborder="0"
+          scrolling="auto"
+          title="Widget DGB - Carrossel"
+        ></iframe>
+      </div>
+    </section>
+
+    <!-- Exemplo 5: Filtrado por Órgão -->
+    <section class="example">
+      <h2>5. Filtrado - Ministério da Cultura</h2>
+      <p>
+        Exemplo de widget filtrado para exibir apenas notícias do Ministério da Cultura.
+      </p>
+      <div class="widget-container">
+        <iframe
+          src="http://localhost:3000/embed?c=eyJhZ2VuY2llcyI6WyJtaW5jIl0sInRoZW1lcyI6W10sImxheW91dCI6ImdyaWQtMiIsInNpemUiOiJtZWRpdW0iLCJzaG93TG9nbyI6dHJ1ZSwic2hvd0xpbmsiOnRydWUsInNob3dUb29sdGlwIjp0cnVlLCJhcnRpY2xlc1BlclBhZ2UiOjEwfQ"
+          width="700"
+          height="600"
+          frameborder="0"
+          scrolling="auto"
+          title="Widget DGB - Ministério da Cultura"
+        ></iframe>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <p><strong>Widget DGB</strong> - Destaques Gov.br</p>
+    <p>
+      <a href="http://localhost:3000/widgets/configurador" target="_blank">Configurar Seu Widget</a> |
+      <a href="https://destaques.gov.br" target="_blank">Portal DGB</a>
+    </p>
+    <p style="margin-top: 1rem; opacity: 0.7; font-size: 0.9rem;">
+      Desenvolvido por Ministério da Gestão e da Inovação (MGI)
+    </p>
+  </footer>
+</body>
+</html>
