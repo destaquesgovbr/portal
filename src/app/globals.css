@@ -1,3 +1,4 @@
+@layer govbr;
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -97,6 +98,10 @@
   --government-gray: hsl(210 10% 95%);
   --government-red: hsl(5, 80%, 55%);
 
+  /* GovBR Design System tokens */
+  --govbr-blue-warm-vivid-90: #071d41;
+  --govbr-blue-700: #2e6276;
+
   /* Gradients */
   --gradient-government: linear-gradient(
     135deg,
@@ -137,21 +142,24 @@
 .header-banner {
   width: 100%;
   height: 36px;
-  background-color: #f7f3eb; /* cor central */
+  background-color: #f7f3eb;
+  /* cor central */
 }
 
 /* Show SVGs only on medium screens and up */
 @media (min-width: 768px) {
   .header-banner {
-    background-image:
-      url("/ribbon-tile.svg"), url("/ribbon-tile.svg"); /* duas instâncias do mesmo SVG */
+    background-image: url("/ribbon-tile.svg"), url("/ribbon-tile.svg");
+    /* duas instâncias do mesmo SVG */
     background-repeat: no-repeat, no-repeat;
     background-size:
       auto 36px,
-      auto 36px; /* mantém proporção original */
+      auto 36px;
+    /* mantém proporção original */
     background-position:
       left center,
-      right center; /* uma à esquerda, outra à direita */
+      right center;
+    /* uma à esquerda, outra à direita */
   }
 }
 
@@ -177,6 +185,11 @@
 
 .theme-banner-3 {
   background: url("/theme-tile-3.svg") no-repeat center / cover;
+}
+
+/* Hide the layout footer when the not-found page is rendered */
+body:has(.not-found-page) .layout-footer {
+  display: none;
 }
 
 @layer base {

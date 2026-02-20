@@ -222,6 +222,32 @@ Quando o código é enviado para `main`:
 
 Veja [.github/workflows/deploy-production.yml](.github/workflows/deploy-production.yml) para detalhes.
 
+### Preview Deploy
+
+Qualquer branch pode ser testada em Cloud Run usando o workflow de preview. O serviço reutiliza a infraestrutura do staging e custa **$0 quando ocioso**.
+
+**Criar um preview:**
+
+No GitHub Actions, execute o workflow `Preview Deploy (Cloud Run)` com:
+- **action**: `deploy`
+- **branch**: nome da branch (ex: `feature/minha-feature`)
+
+A URL do preview aparece no Summary do workflow.
+
+**Atualização automática:**
+
+Após criar o preview, qualquer push na branch atualiza o deploy automaticamente (via `deploy-preview-update.yml`). Para que funcione, a branch precisa conter o arquivo do workflow — branches criadas a partir de `development` já o incluem.
+
+**Listar previews ativos:**
+
+Execute o workflow com **action**: `list`.
+
+**Destruir um preview:**
+
+Execute o workflow com **action**: `destroy` e o nome da branch. Isso deleta o serviço Cloud Run e limpa as imagens do Artifact Registry.
+
+Veja [.github/workflows/deploy-preview.yml](.github/workflows/deploy-preview.yml) e [.github/workflows/deploy-preview-update.yml](.github/workflows/deploy-preview-update.yml) para detalhes.
+
 ### Infraestrutura
 
 A infraestrutura (VM do Typesense, secrets, bindings de IAM) é gerenciada via Terraform no repositório [infra](https://github.com/destaquesgovbr/infra).
