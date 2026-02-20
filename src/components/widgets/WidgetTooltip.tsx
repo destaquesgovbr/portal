@@ -71,9 +71,7 @@ export function WidgetTooltip({
                 </p>
                 <ul className="text-xs space-y-0.5 mt-1">
                   {filters.agencies.map((agency) => (
-                    <li key={agency}>
-                      • {agencyNames[agency] || agency}
-                    </li>
+                    <li key={agency}>• {agencyNames[agency] || agency}</li>
                   ))}
                 </ul>
               </div>
@@ -86,9 +84,7 @@ export function WidgetTooltip({
                 </p>
                 <ul className="text-xs space-y-0.5 mt-1">
                   {filters.themes.map((theme) => (
-                    <li key={theme}>
-                      • {themeNames[theme] || theme}
-                    </li>
+                    <li key={theme}>• {themeNames[theme] || theme}</li>
                   ))}
                 </ul>
               </div>

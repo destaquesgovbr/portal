@@ -4,7 +4,8 @@ import { WidgetError } from '@/components/widgets/WidgetError'
 import { WidgetFooter } from '@/components/widgets/WidgetFooter'
 import { WidgetNewsCard } from '@/components/widgets/WidgetNewsCard'
 import { decodeWidgetConfig } from '@/lib/widget-utils'
-import { fetchWidgetArticles } from './actions'
+import type { WidgetConfig } from '@/types/widget'
+import { type FetchWidgetArticlesResult, fetchWidgetArticles } from './actions'
 
 // Cache ISR de 5 minutos
 export const revalidate = 300
@@ -29,7 +30,7 @@ export default async function WidgetEmbedPage({
   }
 
   // Decodifica e valida config
-  let config
+  let config: WidgetConfig
   try {
     config = decodeWidgetConfig(configParam)
   } catch (error) {
@@ -47,10 +48,10 @@ export default async function WidgetEmbedPage({
   }
 
   // Busca artigos
-  let result
+  let result: FetchWidgetArticlesResult
   try {
     result = await fetchWidgetArticles(config)
-  } catch (error) {
+  } catch (_error) {
     return (
       <div className="p-4">
         <WidgetError

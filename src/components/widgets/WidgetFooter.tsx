@@ -13,12 +13,19 @@ import {
 import type { WidgetConfig } from '@/types/widget'
 
 interface WidgetFooterProps {
-  config: Pick<WidgetConfig, 'agencies' | 'themes' | 'showLogo' | 'showLink' | 'showTooltip'>
+  config: Pick<
+    WidgetConfig,
+    'agencies' | 'themes' | 'showLogo' | 'showLink' | 'showTooltip'
+  >
   agencyNames?: Record<string, string>
   themeNames?: Record<string, string>
 }
 
-export function WidgetFooter({ config, agencyNames = {}, themeNames = {} }: WidgetFooterProps) {
+export function WidgetFooter({
+  config,
+  agencyNames = {},
+  themeNames = {},
+}: WidgetFooterProps) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
 
   // Gera URL de busca com filtros aplicados
@@ -124,9 +131,7 @@ export function WidgetFooter({ config, agencyNames = {}, themeNames = {} }: Widg
                         </p>
                         <ul className="text-xs space-y-0.5 mt-1">
                           {config.themes.map((theme) => (
-                            <li key={theme}>
-                              • {themeNames[theme] || theme}
-                            </li>
+                            <li key={theme}>• {themeNames[theme] || theme}</li>
                           ))}
                         </ul>
                       </div>

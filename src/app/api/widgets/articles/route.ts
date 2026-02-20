@@ -1,7 +1,7 @@
+import { type NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { queryArticles } from '@/app/(public)/busca/actions'
 import { WidgetArticlesResponseSchema } from '@/types/widget'
-import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
 
 // Cache ISR de 5 minutos
 export const revalidate = 300

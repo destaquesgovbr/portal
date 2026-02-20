@@ -36,8 +36,8 @@ export function WidgetSkeleton({ layout, count = 6 }: WidgetSkeletonProps) {
   return (
     <div className="widget-content flex-1 p-4">
       <div className={getLayoutClasses()}>
-        {Array.from({ length: count }).map((_, i) => (
-          <SkeletonCard key={i} />
+        {Array.from({ length: count }, (_, i) => `skeleton-${i}`).map((id) => (
+          <SkeletonCard key={id} />
         ))}
       </div>
     </div>

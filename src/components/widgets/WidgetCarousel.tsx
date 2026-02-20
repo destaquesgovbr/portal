@@ -1,9 +1,9 @@
 'use client'
 
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 import useEmblaCarousel from 'embla-carousel-react'
-import { useCallback, useEffect, useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface WidgetCarouselProps {
   children: ReactNode[]
@@ -57,15 +57,17 @@ export function WidgetCarousel({
       {/* Carousel viewport */}
       <div ref={emblaRef} className="overflow-hidden">
         <div className="flex gap-4">
-          {children.map((child, index) => (
-            <div
-              key={index}
-              className="flex-[0_0_100%] min-w-0"
-              style={{ flex: '0 0 100%' }}
-            >
-              {child}
-            </div>
-          ))}
+          {children
+            .map((child, i) => ({ child, id: `slide-${i}` }))
+            .map(({ child, id }) => (
+              <div
+                key={id}
+                className="flex-[0_0_100%] min-w-0"
+                style={{ flex: '0 0 100%' }}
+              >
+                {child}
+              </div>
+            ))}
         </div>
       </div>
 

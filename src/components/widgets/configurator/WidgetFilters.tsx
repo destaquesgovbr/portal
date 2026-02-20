@@ -37,7 +37,7 @@ export function WidgetFilters({
 }: WidgetFiltersProps) {
   const [agencies, setAgencies] = useState<Agency[]>([])
   const [themes, setThemes] = useState<Theme[]>([])
-  const [themeHierarchy, setThemeHierarchy] = useState<ThemeNode[]>([])
+  const [themeHierarchy, _setThemeHierarchy] = useState<ThemeNode[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

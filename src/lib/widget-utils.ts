@@ -1,4 +1,4 @@
-import { WidgetConfig, WidgetConfigSchema } from '@/types/widget'
+import { type WidgetConfig, WidgetConfigSchema } from '@/types/widget'
 
 /**
  * Encoda a configuração do widget em base64 URL-safe
@@ -55,14 +55,20 @@ export function validateAgencies(
 /**
  * Valida se uma lista de temas existe
  */
-export function validateThemes(themes: string[], validThemes: string[]): boolean {
+export function validateThemes(
+  themes: string[],
+  validThemes: string[],
+): boolean {
   return themes.every((theme) => validThemes.includes(theme))
 }
 
 /**
  * Gera o código iframe para embedding
  */
-export function generateIframeCode(config: WidgetConfig, baseUrl: string): string {
+export function generateIframeCode(
+  config: WidgetConfig,
+  baseUrl: string,
+): string {
   const encoded = encodeWidgetConfig(config)
   const width = config.size === 'custom' ? config.width : undefined
   const height = config.size === 'custom' ? config.height : undefined

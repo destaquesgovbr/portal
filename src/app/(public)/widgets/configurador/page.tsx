@@ -1,5 +1,7 @@
 'use client'
 
+import { Check, Copy } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,6 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { WidgetCodeDisplay } from '@/components/widgets/configurator/WidgetCodeDisplay'
+import { WidgetFilters } from '@/components/widgets/configurator/WidgetFilters'
+import { WidgetPreview } from '@/components/widgets/configurator/WidgetPreview'
 import {
   WIDGET_LAYOUT_DESCRIPTIONS,
   WIDGET_LAYOUT_LABELS,
@@ -19,11 +24,6 @@ import {
 } from '@/config/widget-presets'
 import { generateIframeCode } from '@/lib/widget-utils'
 import type { WidgetConfig, WidgetLayout, WidgetSize } from '@/types/widget'
-import { Check, Copy } from 'lucide-react'
-import { useState } from 'react'
-import { WidgetCodeDisplay } from '@/components/widgets/configurator/WidgetCodeDisplay'
-import { WidgetFilters } from '@/components/widgets/configurator/WidgetFilters'
-import { WidgetPreview } from '@/components/widgets/configurator/WidgetPreview'
 
 export default function WidgetConfiguratorPage() {
   const [config, setConfig] = useState<WidgetConfig>({
@@ -79,9 +79,7 @@ export default function WidgetConfiguratorPage() {
                 <WidgetFilters
                   selectedAgencies={config.agencies}
                   selectedThemes={config.themes}
-                  onAgenciesChange={(agencies) =>
-                    updateConfig({ agencies })
-                  }
+                  onAgenciesChange={(agencies) => updateConfig({ agencies })}
                   onThemesChange={(themes) => updateConfig({ themes })}
                 />
               </CardContent>
@@ -97,7 +95,9 @@ export default function WidgetConfiguratorPage() {
                 <div className="space-y-3">
                   <Label>Layout</Label>
                   <div className="grid grid-cols-2 gap-3">
-                    {(['list', 'grid-2', 'grid-3', 'carousel'] as WidgetLayout[]).map((layout) => (
+                    {(
+                      ['list', 'grid-2', 'grid-3', 'carousel'] as WidgetLayout[]
+                    ).map((layout) => (
                       <button
                         key={layout}
                         type="button"
@@ -141,9 +141,7 @@ export default function WidgetConfiguratorPage() {
                         </div>
                         {size !== 'custom' && (
                           <div className="text-xs text-muted-foreground mt-1">
-                            {
-                              WIDGET_PRESETS[config.layout][size].width
-                            }×
+                            {WIDGET_PRESETS[config.layout][size].width}×
                             {WIDGET_PRESETS[config.layout][size].height}px
                           </div>
                         )}

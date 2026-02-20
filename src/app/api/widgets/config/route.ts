@@ -1,7 +1,7 @@
+import { NextResponse } from 'next/server'
 import { getAgenciesList } from '@/data/agencies-utils'
 import { getThemesWithHierarchy } from '@/data/themes-utils'
 import { WidgetConfigResponseSchema } from '@/types/widget'
-import { NextResponse } from 'next/server'
 
 // Cache ISR de 1 hora (dados mudam raramente)
 export const revalidate = 3600
