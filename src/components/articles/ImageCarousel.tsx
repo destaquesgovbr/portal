@@ -38,7 +38,13 @@ export function ImageCarousel({ images, alts }: ImageCarouselProps) {
 
   return (
     <div className="my-6">
-      <Carousel setApi={setApi} opts={{ loop: true }} className="w-full">
+      <Carousel
+        setApi={setApi}
+        opts={{ loop: true }}
+        autoplay
+        autoplayInterval={3000}
+        className="w-full"
+      >
         <CarouselContent>
           {images.map((src, index) => (
             <CarouselItem key={src}>
