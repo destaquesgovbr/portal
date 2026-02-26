@@ -1,8 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 
-export default auth((request: NextRequest) => {
+export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-pathname', request.nextUrl.pathname)
 
@@ -11,7 +10,7 @@ export default auth((request: NextRequest) => {
       headers: requestHeaders,
     },
   })
-})
+}
 
 export const config = {
   matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico).*)'],
