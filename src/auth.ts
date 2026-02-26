@@ -38,6 +38,7 @@ if (process.env.AUTH_GOVBR_ID) {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   providers,
   callbacks: {
     async jwt({ token, account }) {
