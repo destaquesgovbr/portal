@@ -62,7 +62,7 @@ jobs:
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=production" \
+            --set-env-vars "NODE_ENV=production,AUTH_SECRET=${{ secrets.AUTH_SECRET }}" \
             --quiet
 
       - name: Show deployment URL
