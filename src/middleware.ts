@@ -1,8 +1,8 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
 
-export function middleware(request: NextRequest) {
-  // Adiciona pathname aos headers para detecção no root layout
+export default auth((request: NextRequest) => {
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-pathname', request.nextUrl.pathname)
 
@@ -11,17 +11,8 @@ export function middleware(request: NextRequest) {
       headers: requestHeaders,
     },
   })
-}
+})
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico).*)'],
 }
