@@ -58,7 +58,9 @@ jobs:
         run: |
           SERVICE="${{ steps.slug.outputs.service }}"
           if gcloud run services describe "$SERVICE" --region ${{ env.REGION }} --quiet 2>/dev/null; then
+            URL=$(gcloud run services describe "$SERVICE" --region ${{ env.REGION }} --format 'value(status.url)')
             echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "url=$URL" >> "$GITHUB_OUTPUT"
             echo "Preview service \`$SERVICE\` found — will update." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -112,7 +114,7 @@ jobs:
             --platform managed \
             --service-account ${{ env.STAGING_SA }} \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=preview,AUTH_SECRET=${{ secrets.AUTH_SECRET }},AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }},AUTH_GOOGLE_SECRET=${{ secrets.AUTH_GOOGLE_SECRET }}" \
+            --set-env-vars "NODE_ENV=preview,AUTH_URL=${{ steps.check.outputs.url }},AUTH_SECRET=${{ secrets.AUTH_SECRET }},AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }},AUTH_GOOGLE_SECRET=${{ secrets.AUTH_GOOGLE_SECRET }}" \
             --port 3000 \
             --memory 512Mi \
             --cpu 1 \

@@ -114,6 +114,16 @@ jobs:
             --cpu-throttling \
             --quiet
 
+      - name: Set AUTH_URL
+        run: |
+          URL=$(gcloud run services describe ${{ steps.slug.outputs.service }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          gcloud run services update ${{ steps.slug.outputs.service }} \
+            --region ${{ env.REGION }} \
+            --update-env-vars "AUTH_URL=$URL" \
+            --quiet
+
       - name: Show deployment URL
         run: |
           URL=$(gcloud run services describe ${{ steps.slug.outputs.service }} \
