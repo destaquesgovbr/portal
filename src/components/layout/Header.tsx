@@ -4,6 +4,7 @@ import { Search, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense, useEffect, useRef, useState } from 'react'
+import PushSubscriber from '@/components/push/PushSubscriber'
 import SearchBar from '@/components/search/SearchBar'
 import { Button } from '@/components/ui/button'
 
@@ -82,8 +83,14 @@ const Header = () => {
             </Suspense>
           </div>
 
-          {/* Mobile search icon - right side */}
-          <div className="flex md:hidden ml-auto">
+          {/* Desktop push notifications bell */}
+          <div className="hidden md:flex shrink-0">
+            <PushSubscriber />
+          </div>
+
+          {/* Mobile icons - right side */}
+          <div className="flex md:hidden ml-auto items-center gap-1">
+            <PushSubscriber />
             <Button
               variant="ghost"
               size="icon"
