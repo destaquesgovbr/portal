@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { AuthButton } from '@/components/auth/AuthButton'
+import PushSubscriber from '@/components/push/PushSubscriber'
 import SearchBar from '@/components/search/SearchBar'
 import { Button } from '@/components/ui/button'
 
@@ -83,13 +84,15 @@ const Header = () => {
             </Suspense>
           </div>
 
-          {/* Auth button - desktop */}
-          <div className="hidden md:flex shrink-0">
+          {/* Desktop icons - right side */}
+          <div className="hidden md:flex shrink-0 items-center gap-1">
+            <PushSubscriber />
             <AuthButton />
           </div>
 
-          {/* Mobile search icon + auth - right side */}
-          <div className="flex md:hidden ml-auto gap-1">
+          {/* Mobile icons - right side */}
+          <div className="flex md:hidden ml-auto items-center gap-1">
+            <PushSubscriber />
             <AuthButton />
             <Button
               variant="ghost"
