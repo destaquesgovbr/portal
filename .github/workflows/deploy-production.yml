@@ -45,6 +45,10 @@ jobs:
             --build-arg NEXT_PUBLIC_TYPESENSE_PROTOCOL="${{ steps.typesense.outputs.protocol }}" \
             --build-arg NEXT_PUBLIC_TYPESENSE_SEARCH_ONLY_API_KEY="${{ steps.typesense.outputs.api_key }}" \
             --build-arg NEXT_PUBLIC_CLARITY_PROJECT_ID="${{ secrets.CLARITY_PROJECT_ID }}" \
+            --build-arg NEXT_PUBLIC_UMAMI_WEBSITE_ID="${{ secrets.UMAMI_WEBSITE_ID }}" \
+            --build-arg NEXT_PUBLIC_UMAMI_SCRIPT_URL="${{ secrets.UMAMI_SCRIPT_URL }}" \
+            --build-arg NEXT_PUBLIC_GROWTHBOOK_API_HOST="${{ secrets.GROWTHBOOK_API_HOST }}" \
+            --build-arg NEXT_PUBLIC_GROWTHBOOK_CLIENT_KEY="${{ secrets.GROWTHBOOK_CLIENT_KEY }}" \
             -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:${{ github.sha }} \
             -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:latest \
             --load \
