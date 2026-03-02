@@ -1,0 +1,253 @@
+name: Preview Deploy (Cloud Run)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        type: choice
+        options:
+          - deploy
+          - destroy
+          - list
+      branch:
+        description: "Branch name (required for deploy/destroy)"
+        required: false
+        type: string
+
+env:
+  PROJECT_ID: inspire-7-finep
+  REGION: southamerica-east1
+  REGISTRY: southamerica-east1-docker.pkg.dev
+  REPOSITORY: destaquesgovbr-portal
+  STAGING_SA: destaquesgovbr-portal-staging@inspire-7-finep.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    if: inputs.action == 'deploy'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Validate inputs
+        run: |
+          if [ -z "${{ inputs.branch }}" ]; then
+            echo "::error::Branch name is required for deploy"
+            exit 1
+          fi
+
+      - name: Sanitize branch name
+        id: slug
+        run: |
+          RAW="${{ inputs.branch }}"
+          # Strip prefix up to last /
+          SLUG="${RAW##*/}"
+          # Lowercase
+          SLUG=$(echo "$SLUG" | tr '[:upper:]' '[:lower:]')
+          # Replace non-alphanumeric with hyphens
+          SLUG=$(echo "$SLUG" | sed 's/[^a-z0-9-]/-/g')
+          # Collapse consecutive hyphens
+          SLUG=$(echo "$SLUG" | sed 's/-\+/-/g')
+          # Remove leading/trailing hyphens
+          SLUG=$(echo "$SLUG" | sed 's/^-//;s/-$//')
+          # Truncate to 48 chars
+          SLUG=$(echo "$SLUG" | cut -c1-48)
+          # Remove trailing hyphen after truncation
+          SLUG=$(echo "$SLUG" | sed 's/-$//')
+
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "service=portal-preview-$SLUG" >> "$GITHUB_OUTPUT"
+          echo "tag=preview-$SLUG-$(echo '${{ github.sha }}' | cut -c1-7)" >> "$GITHUB_OUTPUT"
+          echo "### Preview slug: \`$SLUG\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Fetch Typesense Config
+        id: typesense
+        uses: destaquesgovbr/reusable-workflows/actions/fetch-typesense-config@v1
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGISTRY }}
+
+      - name: Build Docker image
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --build-arg NEXT_PUBLIC_TYPESENSE_HOST="${{ steps.typesense.outputs.host }}" \
+            --build-arg NEXT_PUBLIC_TYPESENSE_PORT="${{ steps.typesense.outputs.port }}" \
+            --build-arg NEXT_PUBLIC_TYPESENSE_PROTOCOL="${{ steps.typesense.outputs.protocol }}" \
+            --build-arg NEXT_PUBLIC_TYPESENSE_SEARCH_ONLY_API_KEY="${{ steps.typesense.outputs.api_key }}" \
+            --build-arg NEXT_PUBLIC_UMAMI_WEBSITE_ID="${{ secrets.UMAMI_WEBSITE_ID }}" \
+            --build-arg NEXT_PUBLIC_UMAMI_SCRIPT_URL="${{ secrets.UMAMI_SCRIPT_URL }}" \
+            --build-arg NEXT_PUBLIC_GROWTHBOOK_API_HOST="${{ secrets.GROWTHBOOK_API_HOST }}" \
+            --build-arg NEXT_PUBLIC_GROWTHBOOK_CLIENT_KEY="${{ secrets.GROWTHBOOK_CLIENT_KEY }}" \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:${{ steps.slug.outputs.tag }} \
+            --load \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:${{ steps.slug.outputs.tag }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ steps.slug.outputs.service }} \
+            --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:${{ steps.slug.outputs.tag }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --service-account ${{ env.STAGING_SA }} \
+            --allow-unauthenticated \
+            --set-env-vars "NODE_ENV=preview" \
+            --port 3000 \
+            --memory 512Mi \
+            --cpu 1 \
+            --min-instances 0 \
+            --max-instances 3 \
+            --cpu-throttling \
+            --quiet
+
+      - name: Show deployment URL
+        run: |
+          URL=$(gcloud run services describe ${{ steps.slug.outputs.service }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "## Preview Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Branch** | \`${{ inputs.branch }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Service** | \`${{ steps.slug.outputs.service }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **URL** | $URL |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image** | \`${{ steps.slug.outputs.tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+
+  destroy:
+    if: inputs.action == 'destroy'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Validate inputs
+        run: |
+          if [ -z "${{ inputs.branch }}" ]; then
+            echo "::error::Branch name is required for destroy"
+            exit 1
+          fi
+
+      - name: Sanitize branch name
+        id: slug
+        run: |
+          RAW="${{ inputs.branch }}"
+          SLUG="${RAW##*/}"
+          SLUG=$(echo "$SLUG" | tr '[:upper:]' '[:lower:]')
+          SLUG=$(echo "$SLUG" | sed 's/[^a-z0-9-]/-/g')
+          SLUG=$(echo "$SLUG" | sed 's/-\+/-/g')
+          SLUG=$(echo "$SLUG" | sed 's/^-//;s/-$//')
+          SLUG=$(echo "$SLUG" | cut -c1-48)
+          SLUG=$(echo "$SLUG" | sed 's/-$//')
+
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "service=portal-preview-$SLUG" >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Delete Cloud Run service
+        run: |
+          SERVICE="${{ steps.slug.outputs.service }}"
+          if gcloud run services describe "$SERVICE" --region ${{ env.REGION }} --quiet 2>/dev/null; then
+            gcloud run services delete "$SERVICE" --region ${{ env.REGION }} --quiet
+            echo "Service \`$SERVICE\` deleted." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Service $SERVICE not found — nothing to delete."
+            echo "Service \`$SERVICE\` not found — nothing to delete." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Clean up preview images
+        run: |
+          SLUG="${{ steps.slug.outputs.slug }}"
+          echo "Cleaning images with tag prefix preview-$SLUG-..."
+
+          IMAGES=$(gcloud artifacts docker images list \
+            "${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal" \
+            --include-tags \
+            --filter="tags~^preview-$SLUG-" \
+            --format="value(version)" 2>/dev/null || true)
+
+          if [ -z "$IMAGES" ]; then
+            echo "No preview images found for slug $SLUG."
+            echo "No preview images to clean." >> "$GITHUB_STEP_SUMMARY"
+          else
+            COUNT=0
+            for DIGEST in $IMAGES; do
+              gcloud artifacts docker images delete \
+                "${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal@$DIGEST" \
+                --quiet --delete-tags 2>/dev/null || true
+              COUNT=$((COUNT + 1))
+            done
+            echo "Deleted $COUNT preview image(s)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Preview Destroyed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Branch** | \`${{ inputs.branch }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Slug** | \`${{ steps.slug.outputs.slug }}\` |" >> "$GITHUB_STEP_SUMMARY"
+
+  list:
+    if: inputs.action == 'list'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: List preview services
+        run: |
+          echo "## Active Preview Deploys" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          SERVICES=$(gcloud run services list \
+            --region ${{ env.REGION }} \
+            --filter="metadata.name~^portal-preview-" \
+            --format="table[box](metadata.name,status.url,metadata.creationTimestamp.date())" \
+            2>/dev/null || true)
+
+          if [ -z "$SERVICES" ]; then
+            echo "No active preview services found." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "$SERVICES" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
