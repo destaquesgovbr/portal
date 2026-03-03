@@ -4,14 +4,28 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**.gov.br',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.ebc.com.br',
-      },
+      // gov.br e ebc (96.4% das imagens)
+      { hostname: '**.gov.br' },
+      { hostname: '**.ebc.com.br' },
+      // Flickr (419 imagens)
+      { hostname: '**.flickr.com' },
+      { hostname: '**.staticflickr.com' },
+      // Google (docs, user content)
+      { hostname: '**.googleusercontent.com' },
+      // YouTube thumbnails
+      { hostname: 'i.ytimg.com' },
+      // Facebook CDN
+      { hostname: '**.fbcdn.net' },
+      // Domínios .br não-gov
+      { hostname: '**.cnpq.br' },
+      { hostname: '**.inpe.br' },
+      { hostname: '**.on.br' },
+      { hostname: '**.embrapa.br' },
+      { hostname: '**.confap.org.br' },
+      { hostname: '**.cta.br' },
+      { hostname: '**.mast.br' },
+      { hostname: '**.bigmidia.com' },
+      { hostname: '**.agenciasebrae.com.br' },
     ],
   },
   async headers() {
