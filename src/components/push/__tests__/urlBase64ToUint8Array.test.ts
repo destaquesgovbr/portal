@@ -1,21 +1,11 @@
-import { describe, it, expect } from 'vitest'
-
-// Re-implement the function for unit testing (since it's not exported)
-function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = atob(base64)
-  const outputArray = new Uint8Array(rawData.length)
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i)
-  }
-  return outputArray.buffer as ArrayBuffer
-}
+import { describe, expect, it } from 'vitest'
+import { urlBase64ToUint8Array } from '@/lib/push-utils'
 
 describe('urlBase64ToUint8Array', () => {
   it('converts a valid base64url-encoded VAPID key to ArrayBuffer', () => {
     // A known VAPID public key (65 bytes when decoded)
-    const vapidKey = 'BPU4n-Jd_eZ4qpyV8ezmXGQa5jp_0_okHtT9Egec9Vus2uSbn5vNji_iqTn_icXCWCnUjPH8fTlUBDUyeZIs4t4'
+    const vapidKey =
+      'BPU4n-Jd_eZ4qpyV8ezmXGQa5jp_0_okHtT9Egec9Vus2uSbn5vNji_iqTn_icXCWCnUjPH8fTlUBDUyeZIs4t4'
 
     const result = urlBase64ToUint8Array(vapidKey)
 

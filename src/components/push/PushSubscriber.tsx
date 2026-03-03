@@ -1,7 +1,7 @@
 'use client'
 
 import { Bell, BellOff, Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { urlBase64ToUint8Array } from '@/lib/push-utils'
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
 const PUSH_WORKER_URL = process.env.NEXT_PUBLIC_PUSH_WORKER_URL || ''
@@ -50,17 +51,6 @@ type FilterState = {
   themes: string[]
 }
 
-function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = window.atob(base64)
-  const outputArray = new Uint8Array(rawData.length)
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i)
-  }
-  return outputArray.buffer as ArrayBuffer
-}
-
 function loadFilters(): FilterState {
   try {
     const stored = localStorage.getItem(LS_KEY)
@@ -79,6 +69,7 @@ export default function PushSubscriber() {
   const [loading, setLoading] = useState(false)
   const [selectedThemes, setSelectedThemes] = useState<string[]>([])
   const [supported, setSupported] = useState(true)
+  const processingRef = useRef(false)
 
   // Check if push is supported and if already subscribed
   useEffect(() => {
@@ -99,18 +90,18 @@ export default function PushSubscriber() {
 
   const toggleTheme = useCallback((theme: string) => {
     setSelectedThemes((prev) =>
-      prev.includes(theme)
-        ? prev.filter((t) => t !== theme)
-        : [...prev, theme],
+      prev.includes(theme) ? prev.filter((t) => t !== theme) : [...prev, theme],
     )
   }, [])
 
   const handleSubscribe = useCallback(async () => {
+    if (processingRef.current) return
     if (!VAPID_PUBLIC_KEY || !PUSH_WORKER_URL) {
       toast.error('Notificações push não estão configuradas.')
       return
     }
 
+    processingRef.current = true
     setLoading(true)
     try {
       const permission = await Notification.requestPermission()
@@ -153,20 +144,31 @@ export default function PushSubscriber() {
       toast.error('Erro ao ativar notificações.')
     } finally {
       setLoading(false)
+      processingRef.current = false
     }
   }, [selectedThemes])
 
   const handleUnsubscribe = useCallback(async () => {
+    if (processingRef.current) return
+
+    processingRef.current = true
     setLoading(true)
     try {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
       if (subscription) {
-        await fetch(`${PUSH_WORKER_URL}/unsubscribe`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint: subscription.endpoint }),
-        })
+        if (PUSH_WORKER_URL) {
+          const response = await fetch(`${PUSH_WORKER_URL}/unsubscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: subscription.endpoint }),
+          })
+          if (!response.ok) {
+            console.warn(
+              'Server unsubscribe failed — removing local subscription anyway',
+            )
+          }
+        }
         await subscription.unsubscribe()
       }
 
@@ -180,6 +182,7 @@ export default function PushSubscriber() {
       toast.error('Erro ao desativar notificações.')
     } finally {
       setLoading(false)
+      processingRef.current = false
     }
   }, [])
 
@@ -192,18 +195,24 @@ export default function PushSubscriber() {
           variant="ghost"
           size="icon"
           className="h-10 w-10"
-          title={
-            subscribed ? 'Gerenciar notificações' : 'Ativar notificações'
+          aria-pressed={subscribed}
+          aria-label={
+            subscribed
+              ? 'Gerenciar notificações (ativas)'
+              : 'Ativar notificações'
           }
         >
           {subscribed ? (
             <Bell className="h-5 w-5 text-primary" />
           ) : (
-            <Bell className="h-5 w-5" />
+            <BellOff className="h-5 w-5" />
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[360px] sm:w-[400px] overflow-y-auto">
+      <SheetContent
+        side="right"
+        className="w-[360px] sm:w-[400px] overflow-y-auto"
+      >
         <SheetHeader>
           <SheetTitle>Notificações Push</SheetTitle>
           <SheetDescription>
