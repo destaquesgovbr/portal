@@ -269,6 +269,7 @@ export default function PushSubscriber() {
             <Button
               onClick={handleSubscribe}
               disabled={loading || selectedThemes.length === 0}
+              className="cursor-pointer"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
