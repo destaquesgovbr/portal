@@ -194,7 +194,7 @@ export default function PushSubscriber() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-10"
+          className="h-10 w-10 cursor-pointer"
           aria-pressed={subscribed}
           aria-label={
             subscribed
