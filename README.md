@@ -25,6 +25,22 @@ NEXT_PUBLIC_TYPESENSE_HOST=localhost
 NEXT_PUBLIC_TYPESENSE_SEARCH_ONLY_API_KEY=govbrnews_api_key_change_in_production
 ```
 
+#### Autenticação (opcional)
+
+Para habilitar o login no desenvolvimento local, adicione também ao `.env.local`:
+
+```env
+# Gerar com: openssl rand -base64 32
+AUTH_SECRET=sua-chave-secreta
+
+# Google OAuth — criar em https://console.cloud.google.com/apis/credentials
+# Redirect URI: http://localhost:3000/api/auth/callback/google
+AUTH_GOOGLE_ID=seu-client-id
+AUTH_GOOGLE_SECRET=seu-client-secret
+```
+
+Se nenhuma variável de auth for configurada, o botão de login simplesmente não aparece — o portal continua funcionando normalmente.
+
 ### 3. Executar o servidor de desenvolvimento
 
 ```bash
@@ -152,6 +168,20 @@ Resposta esperada: `{"ok":true}`
 curl -H "X-TYPESENSE-API-KEY: sua-api-key" http://localhost:8108/collections
 ```
 
+### Problemas de Autenticação
+
+**Botão "Entrar" não aparece:**
+- Verifique se `AUTH_GOOGLE_ID` (dev) ou `AUTH_GOVBR_ID` (prod) está definido no `.env.local`
+- O componente se oculta automaticamente quando nenhum provedor está configurado
+
+**Erro `AUTH_SECRET` ausente:**
+- Gere uma chave segura: `openssl rand -base64 32`
+- Adicione ao `.env.local` como `AUTH_SECRET=<valor>`
+
+**Redirect incorreto após login:**
+- Em desenvolvimento: confirme que o Redirect URI no Google Cloud Console é `http://localhost:3000/api/auth/callback/google`
+- Em produção (Cloud Run): verifique se `AUTH_URL` está definida com a URL pública do serviço
+
 ## Saiba Mais
 
 Para aprender mais sobre Next.js, confira os seguintes recursos:
@@ -198,6 +228,10 @@ O deploy de produção busca a chave de API do Typesense **diretamente do GCP Se
 - `GCP_WORKLOAD_IDENTITY_PROVIDER` - Provider do Workload Identity Federation
 - `GCP_SERVICE_ACCOUNT` - Email da service account do GitHub Actions
 - `NEXT_PUBLIC_TYPESENSE_HOST` - Endereço IP do servidor Typesense
+- `AUTH_SECRET` - Segredo do NextAuth (gerar com `openssl rand -base64 32`)
+- `AUTH_GOVBR_ID` - Client ID do Gov.Br (produção)
+- `AUTH_GOVBR_SECRET` - Client Secret do Gov.Br (produção)
+- `AUTH_URL` - URL pública do Cloud Run (ex: `https://portal.exemplo.gov.br`)
 
 **GCP Secret Manager:**
 

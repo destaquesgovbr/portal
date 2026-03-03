@@ -64,6 +64,7 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --set-env-vars "NODE_ENV=staging" \
+            --set-secrets "AUTH_SECRET=auth-secret:latest" \
             --quiet
 
       - name: Show deployment URL
