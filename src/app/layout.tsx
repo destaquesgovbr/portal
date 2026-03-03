@@ -4,9 +4,11 @@ import './govbr.css'
 import './globals.css'
 import { headers } from 'next/headers'
 import { Suspense } from 'react'
+import { Toaster } from 'sonner'
 import { Providers } from '@/components/common/Providers'
 import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
+import ServiceWorkerRegistrar from '@/components/push/ServiceWorkerRegistrar'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -66,6 +68,8 @@ export default async function RootLayout({
         ) : (
           // Portal principal: com Header, Footer, Providers
           <Providers>
+            <ServiceWorkerRegistrar />
+            <Toaster position="top-right" />
             <Header />
             <div className="pt-[110px] md:pt-[130px]">
               <Suspense>{children}</Suspense>
