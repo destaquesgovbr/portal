@@ -2,7 +2,6 @@
 
 import { LogIn, LogOut } from 'lucide-react'
 import { signIn, signOut, useSession } from 'next-auth/react'
-import { useEffect, useState } from 'react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,18 +13,9 @@ import {
 
 export function AuthButton() {
   const { data: session, status } = useSession()
-  const [authAvailable, setAuthAvailable] = useState<boolean | null>(null)
 
-  useEffect(() => {
-    fetch('/api/auth/providers')
-      .then((res) => res.json())
-      .then((providers) => setAuthAvailable(Object.keys(providers).length > 0))
-      .catch(() => setAuthAvailable(false))
-  }, [])
-
-  // Hide button entirely when auth is not configured or still checking
-  if (!authAvailable) return null
-
+  // SessionProvider returns status "unauthenticated" with no session
+  // when no providers are configured — no need for an extra fetch
   if (status === 'loading') {
     return <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
   }
