@@ -4,7 +4,7 @@
 
 Portal de notícias do Governo Federal brasileiro, desenvolvido com Next.js 15, que agrega e exibe conteúdo de diversos ministérios e órgãos governamentais. O projeto utiliza Typesense para busca e indexação de artigos.
 
-**Nome do projeto**: portal-brasil
+**Nome do projeto**: portal
 **Tecnologia principal**: Next.js 15.5.3 com App Router
 **Deploy**: Standalone mode (configurado para containers)
 
@@ -18,6 +18,7 @@ Portal de notícias do Governo Federal brasileiro, desenvolvido com Next.js 15, 
 - **Styling**: Tailwind CSS 4 + tailwindcss-animate
 - **Animações**: Framer Motion
 - **Gerenciamento de estado**: TanStack React Query (v5)
+- **Autenticação**: NextAuth.js v5 (beta 30)
 - **Formulários**: React Hook Form + Zod
 - **Markdown**: react-markdown + remark-gfm + rehype-raw
 - **Temas**: next-themes
@@ -39,15 +40,21 @@ Portal de notícias do Governo Federal brasileiro, desenvolvido com Next.js 15, 
 ```
 /portal
 ├── src/
+│   ├── auth.ts                 # Configuração central do NextAuth
+│   ├── middleware.ts           # Middleware (pathname header)
 │   ├── app/                    # App Router (Next.js 15)
 │   │   ├── page.tsx           # Homepage principal
 │   │   ├── layout.tsx         # Layout raiz
 │   │   ├── globals.css        # Estilos globais
 │   │   ├── actions.ts         # Server actions da homepage
+│   │   ├── api/
+│   │   │   └── auth/
+│   │   │       └── [...nextauth]/
+│   │   │           └── route.ts  # NextAuth route handler
 │   │   ├── artigos/           # Rota de artigos
-│   │   │   ├── page.tsx       # Lista de artigos
-│   │   │   ├── actions.ts     # Server actions de artigos
-│   │   │   └── [articleId]/   # Página individual do artigo
+│   │   │   ├── page.tsx
+│   │   │   ├── actions.ts
+│   │   │   └── [articleId]/
 │   │   │       ├── page.tsx
 │   │   │       ├── actions.ts
 │   │   │       ├── loading.tsx
@@ -65,16 +72,20 @@ Portal de notícias do Governo Federal brasileiro, desenvolvido com Next.js 15, 
 │   │       └── actions.ts
 │   ├── components/            # Componentes React
 │   │   ├── ui/               # Componentes shadcn/ui
-│   │   ├── Header.tsx
-│   │   ├── Footer.tsx
+│   │   ├── auth/
+│   │   │   └── AuthButton.tsx # Botão de login/logout
+│   │   ├── layout/
+│   │   │   ├── Header.tsx
+│   │   │   └── Footer.tsx
+│   │   ├── common/
+│   │   │   └── Providers.tsx  # SessionProvider + QueryClient
 │   │   ├── NewsCard.tsx
 │   │   ├── SearchBar.tsx
 │   │   ├── MarkdownRenderer.tsx
 │   │   ├── ClientArticle.tsx
 │   │   ├── DashboardClient.tsx
 │   │   ├── ChartTooltip.tsx
-│   │   ├── KpiCard.tsx
-│   │   └── Providers.tsx
+│   │   └── KpiCard.tsx
 │   └── lib/                   # Utilitários e helpers
 │       ├── typesense-client.ts
 │       ├── themes.ts
@@ -161,6 +172,42 @@ A página inicial (`app/page.tsx`) tem 5 seções principais:
 - Páginas são regeneradas em background
 - Garante conteúdo atualizado sem rebuild completo
 
+### 7. Autenticação (NextAuth v5)
+
+O portal usa **NextAuth.js v5 (beta 30)** com suporte a dois provedores:
+
+- **Google OAuth** — para desenvolvimento local
+- **Gov.Br (OpenID Connect)** — para produção, via `sso.acesso.gov.br`
+
+A autenticação é **opcional**: o portal é público e nenhuma rota exige login. O botão de acesso é exibido apenas quando ao menos um provedor está configurado.
+
+**Arquivos principais:**
+
+| Arquivo | Responsabilidade |
+|---------|-----------------|
+| `src/auth.ts` | Configuração central (providers, callbacks JWT/session, refresh token) |
+| `src/app/api/auth/[...nextauth]/route.ts` | Route handler que expõe os endpoints do NextAuth |
+| `src/components/auth/AuthButton.tsx` | Botão de login/logout no Header |
+| `src/components/common/Providers.tsx` | `SessionProvider` que envolve o app |
+
+**Fluxo de autenticação (Gov.Br):**
+
+```
+Usuário → "Entrar" → /api/auth/signin → sso.acesso.gov.br → callback → JWT criado → sessão ativa
+```
+
+O JWT armazena `accessToken`, `refreshToken` e `expiresAt`. O refresh automático é feito apenas para Gov.Br (Google gerencia sessões por conta própria).
+
+**Escopos Gov.Br solicitados:** `openid email profile govbr_confiabilidades`
+
+**Rota futura via Keycloak DGB:**
+
+Quando o Keycloak interno estiver disponível, basta alterar `AUTH_GOVBR_ISSUER` para a URL do Keycloak — nenhuma mudança de código é necessária.
+
+```
+Usuário → NextAuth → Keycloak DGB (SSO) → Gov.Br (IdP externo)
+```
+
 ## Comandos Principais
 
 ```bash
@@ -180,22 +227,45 @@ pnpm format       # Formata código com Biome
 
 ## Variáveis de Ambiente
 
-O projeto requer configuração do Typesense. Crie um arquivo `.env.local`:
+Copie `.env.example` para `.env.local` e preencha os valores:
+
+```bash
+cp .env.example .env.local
+```
+
+### Typesense (obrigatório)
 
 ```env
 NEXT_PUBLIC_TYPESENSE_HOST=localhost
 NEXT_PUBLIC_TYPESENSE_SEARCH_ONLY_API_KEY=sua-api-key
 ```
 
-**Para desenvolvimento local:**
-
-O container `govbrnews-typesense` busca a chave da API do GCP Secret Manager na inicialização. Para obter a chave correta, execute:
+**Para desenvolvimento local:** o container `govbrnews-typesense` busca a chave do GCP Secret Manager na inicialização:
 
 ```bash
 docker logs govbrnews-typesense | grep "API Key:"
 ```
 
-Copie a chave exibida e configure no seu `.env.local`.
+### Autenticação (opcional)
+
+```env
+# Gerar com: openssl rand -base64 32
+AUTH_SECRET=sua-chave-secreta
+
+# Google OAuth (desenvolvimento)
+# Redirect URI: http://localhost:3000/api/auth/callback/google
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
+
+# Gov.Br OpenID Connect (produção)
+# AUTH_GOVBR_ID=
+# AUTH_GOVBR_SECRET=
+# AUTH_GOVBR_ISSUER=https://sso.acesso.gov.br
+```
+
+- Se nenhum provedor for configurado, o `AuthButton` fica oculto automaticamente.
+- `AUTH_SECRET` é obrigatório sempre que qualquer provedor for ativado.
+- Em Cloud Run, adicione também `AUTH_URL=https://seu-dominio.com` para que os redirects funcionem corretamente.
 
 ## Padrões de Código
 
@@ -340,6 +410,17 @@ Barra de busca com:
 - Navegação para `/busca?q=termo`
 - Ícone de busca (Lucide React)
 
+### AuthButton
+
+Botão de autenticação em `components/auth/AuthButton.tsx`:
+
+- Consulta `/api/auth/providers` ao montar para verificar se há provedores configurados
+- Se nenhum provedor estiver ativo, **não renderiza nada** (graceful degradation)
+- Estado de loading: skeleton animado enquanto verifica sessão
+- Não autenticado: botão "Entrar" com ícone `LogIn`
+- Autenticado: avatar com iniciais do nome + dropdown com opção "Sair"
+- Presente no Header tanto em desktop quanto em mobile
+
 ## Dicas para Desenvolvimento
 
 ### Adicionar Nova Página
@@ -402,6 +483,9 @@ Certifique-se de configurar:
 
 - `NEXT_PUBLIC_TYPESENSE_HOST`
 - `NEXT_PUBLIC_TYPESENSE_SEARCH_ONLY_API_KEY`
+- `AUTH_SECRET` (obrigatório se qualquer provedor de auth estiver ativo)
+- `AUTH_URL` (URL pública do app, ex: `https://portal.exemplo.gov.br`) — necessário para Cloud Run pois o `trustHost: true` não infere a URL base automaticamente em todos os cenários
+- `AUTH_GOVBR_ID`, `AUTH_GOVBR_SECRET`, `AUTH_GOVBR_ISSUER` (para Gov.Br em produção)
 
 ## Troubleshooting Comum
 
@@ -429,6 +513,23 @@ Certifique-se de configurar:
 - Verifique tipos em `lib/article-row.ts`
 - Use `Result<T>` consistentemente
 
+### Erros de Autenticação
+
+**Sessão não persiste / redirect incorreto em produção:**
+- Confirme que `AUTH_URL` está definida com a URL pública do Cloud Run
+- Confirme que `AUTH_SECRET` está configurado como secret no workflow de deploy
+
+**`AUTH_SECRET` ausente:**
+- NextAuth lança erro na inicialização; gere com `openssl rand -base64 32`
+
+**Gov.Br: erro de redirect_uri:**
+- O redirect URI registrado no Gov.Br deve ser `https://seu-dominio/api/auth/callback/govbr`
+- Em preview deploys, cada URL de preview precisa ser adicionada ao Gov.Br ou usada com Google OAuth
+
+**AuthButton não aparece:**
+- Verifique se `AUTH_GOOGLE_ID` ou `AUTH_GOVBR_ID` está definido no `.env.local`
+- O componente se oculta quando `/api/auth/providers` retorna objeto vazio
+
 ## Links Úteis
 
 - [Next.js 15 Docs](https://nextjs.org/docs)
@@ -436,6 +537,8 @@ Certifique-se de configurar:
 - [shadcn/ui](https://ui.shadcn.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [Radix UI](https://www.radix-ui.com/)
+- [NextAuth.js v5 Docs](https://authjs.dev/)
+- [Gov.Br SSO — Documentação](https://manual-roteiro-integracao-login-unico.servicos.gov.br/)
 
 ## Convenções do Projeto
 
@@ -478,6 +581,24 @@ Use comentários descritivos para seções da página:
 }
 ```
 
+### Git Commits
+
+- **Idioma**: Português
+- **Prefixos**: `feature:`, `fix:`, `refactor:`, `docs:`, `chore:`
+- **NÃO incluir** `Co-Authored-By` nas mensagens de commit
+- Usar descrição concisa na primeira linha
+- Detalhar mudanças em bullet points quando necessário
+
+Exemplo:
+```
+feature: implementa analytics tracking com Umami
+
+- Adiciona integração com Umami Analytics
+- Cria hook useUmamiTrack para eventos customizados
+- Rastreia cliques em artigos com origem
+
+```
+
 ## Contribuindo
 
 Este projeto utiliza Biome para linting e formatação. Antes de commitar:
@@ -489,5 +610,5 @@ pnpm format  # Formata código
 
 ---
 
-**Última atualização**: Novembro 2024
+**Última atualização**: Março 2026
 **Mantido por**: Equipe MGI/Governo Federal

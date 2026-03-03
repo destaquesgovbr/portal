@@ -71,6 +71,7 @@ export default async function Home() {
               summary={getExcerpt(featuredMain.content || '', 250)}
               title={featuredMain.title || ''}
               isMain
+              trackingOrigin="home"
             />
             {/* Duas notícias secundárias sem imagem */}
             <div className="flex gap-6">
@@ -83,6 +84,7 @@ export default async function Home() {
                   imageUrl=""
                   summary={getExcerpt(article.content || '', 150)}
                   title={article.title || ''}
+                  trackingOrigin="home"
                 />
               ))}
             </div>
@@ -101,6 +103,7 @@ export default async function Home() {
                     imageUrl={article.image || ''}
                     summary={getExcerpt(article.content || '', 150)}
                     title={article.title || ''}
+                    trackingOrigin="home"
                   />
                 ),
             )}
@@ -143,6 +146,7 @@ export default async function Home() {
                 summary={getExcerpt(article.content || '', 200)}
                 title={article.title || ''}
                 imageUrl={article.image || ''}
+                trackingOrigin="home"
               />
             ))}
           </div>
@@ -212,6 +216,9 @@ export default async function Home() {
                         <Link
                           href={`/artigos/${a.unique_id}`}
                           className="text-primary hover:underline"
+                          data-umami-event="article_click"
+                          data-umami-event-article-id={a.unique_id}
+                          data-umami-event-origin="home"
                         >
                           {a.title}
                         </Link>

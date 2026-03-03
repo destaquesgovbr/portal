@@ -1,0 +1,1 @@
+Analyze Github issue #$ARGUMENTS, Read the issue, understand and create a plan for implementation

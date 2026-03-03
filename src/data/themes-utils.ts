@@ -123,6 +123,19 @@ export async function getTopLevelThemes(): Promise<Theme[]> {
 }
 
 /**
+ * Retorna o código de um tema a partir de sua label (nível 1)
+ */
+export async function getThemeCodeByLabel(
+  themeLabel: string | null | undefined,
+): Promise<string | undefined> {
+  if (!themeLabel) return undefined
+  const themes = await getThemesByLabel()
+  const allThemes = flattenThemes(themes)
+  const theme = allThemes.find((t) => t.label === themeLabel)
+  return theme?.code
+}
+
+/**
  * Retorna o nome de um tema a partir de sua label
  */
 export async function getThemeName(

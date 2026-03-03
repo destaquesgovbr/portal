@@ -12,6 +12,7 @@ export type QueryArticlesArgs = {
 export type QueryArticlesResult = {
   articles: ArticleRow[]
   page: number
+  found: number
 }
 
 export type SearchSuggestion = {

@@ -280,5 +280,6 @@ export async function queryArticles(
   return {
     articles: result.hits?.map((hit) => hit.document) ?? [],
     page: page + 1,
+    found: result.found ?? 0,
   }
 }

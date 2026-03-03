@@ -5,6 +5,7 @@ import type { Ref } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { formatDateTime } from '@/lib/utils'
+import type { TrackingOrigin } from '@/types/analytics'
 
 export interface NewsCardProps {
   title: string
@@ -15,6 +16,8 @@ export interface NewsCardProps {
   imageUrl?: string
   isMain?: boolean
   ref?: Ref<HTMLAnchorElement>
+  /** Origin of the click for analytics tracking */
+  trackingOrigin?: TrackingOrigin
 }
 
 const NewsCard = ({
@@ -26,11 +29,21 @@ const NewsCard = ({
   imageUrl,
   ref,
   isMain = false,
+  trackingOrigin,
 }: NewsCardProps) => {
   const hasTheme = Boolean(theme && theme.trim() !== '')
+  // Extract article ID from URL (e.g., /artigos/123 -> 123)
+  const articleId = internalUrl.split('/').pop() || ''
 
   return (
-    <Link href={internalUrl} className="h-full" ref={ref}>
+    <Link
+      href={internalUrl}
+      className="h-full"
+      ref={ref}
+      data-umami-event="article_click"
+      data-umami-event-article-id={articleId}
+      data-umami-event-origin={trackingOrigin}
+    >
       <Card
         className={`transition-all overflow-hidden duration-300 h-full cursor-pointer group
         hover:shadow-lg hover:shadow-[#0D4C92]/10 hover:scale-[1.01] bg-white/90
@@ -45,6 +58,7 @@ const NewsCard = ({
               src={imageUrl}
               alt={title}
               fill
+              unoptimized
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
             />

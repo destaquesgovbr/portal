@@ -3,10 +3,12 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
+import { useUmamiTrack } from '@/components/analytics/useUmamiTrack'
 import { ArticleFilters } from '@/components/articles/ArticleFilters'
 import NewsCard from '@/components/articles/NewsCard'
+import { FeedLink } from '@/components/common/FeedLink'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
 import { getExcerpt } from '@/lib/utils'
@@ -47,6 +49,10 @@ export default function QueryPageClient({
     return temas ? temas.split(',') : []
   })
 
+  // Analytics tracking
+  const { track } = useUmamiTrack()
+  const hasTrackedSearch = useRef(false)
+
   // Function to update URL params
   const updateUrlParams = useCallback(
     (updates: {
@@ -76,15 +82,20 @@ export default function QueryPageClient({
     [searchParams, query, pathname, router],
   )
 
-  // Wrapped setters that update URL
+  // Wrapped setters that update URL and track filter changes
   const handleStartDateChange = useCallback(
     (date: Date | undefined) => {
       setStartDate(date)
       updateUrlParams({
         dataInicio: date ? date.toISOString().split('T')[0] : null,
       })
+      track('filter_changed', {
+        filter_type: 'start_date',
+        action: date ? 'set' : 'clear',
+        value: date ? date.toISOString().split('T')[0] : null,
+      })
     },
-    [updateUrlParams],
+    [updateUrlParams, track],
   )
 
   const handleEndDateChange = useCallback(
@@ -93,8 +104,13 @@ export default function QueryPageClient({
       updateUrlParams({
         dataFim: date ? date.toISOString().split('T')[0] : null,
       })
+      track('filter_changed', {
+        filter_type: 'end_date',
+        action: date ? 'set' : 'clear',
+        value: date ? date.toISOString().split('T')[0] : null,
+      })
     },
-    [updateUrlParams],
+    [updateUrlParams, track],
   )
 
   const handleAgenciesChange = useCallback(
@@ -103,8 +119,13 @@ export default function QueryPageClient({
       updateUrlParams({
         agencias: agenciesList.length > 0 ? agenciesList.join(',') : null,
       })
+      track('filter_changed', {
+        filter_type: 'agencies',
+        action: agenciesList.length > 0 ? 'set' : 'clear',
+        value: agenciesList.length > 0 ? agenciesList.join(',') : null,
+      })
     },
-    [updateUrlParams],
+    [updateUrlParams, track],
   )
 
   const handleThemesChange = useCallback(
@@ -113,8 +134,13 @@ export default function QueryPageClient({
       updateUrlParams({
         temas: themesList.length > 0 ? themesList.join(',') : null,
       })
+      track('filter_changed', {
+        filter_type: 'themes',
+        action: themesList.length > 0 ? 'set' : 'clear',
+        value: themesList.length > 0 ? themesList.join(',') : null,
+      })
     },
-    [updateUrlParams],
+    [updateUrlParams, track],
   )
 
   const articlesQ = useInfiniteQuery({
@@ -148,6 +174,24 @@ export default function QueryPageClient({
   })
 
   const articles = articlesQ.data?.pages.flatMap((page) => page.articles) ?? []
+  const totalResults = articlesQ.data?.pages[0]?.found ?? 0
+
+  // Track search event when results are first loaded
+  useEffect(() => {
+    if (query && articlesQ.isSuccess && !hasTrackedSearch.current) {
+      track('search', {
+        query,
+        results_count: totalResults,
+      })
+      hasTrackedSearch.current = true
+    }
+  }, [query, articlesQ.isSuccess, totalResults, track])
+
+  // Reset tracking flag when query changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally run on query change
+  useEffect(() => {
+    hasTrackedSearch.current = false
+  }, [query])
 
   const getAgencyName = useMemo(
     () => (key: string) => {
@@ -200,6 +244,17 @@ export default function QueryPageClient({
         <p className="mt-4 text-base text-primary/80">
           Veja os artigos e publicações que correspondem à sua busca no portal.
         </p>
+
+        <div className="mt-4">
+          <FeedLink
+            params={{
+              q: query,
+              agencias:
+                selectedAgencies.length > 0 ? selectedAgencies : undefined,
+              temas: selectedThemes.length > 0 ? selectedThemes : undefined,
+            }}
+          />
+        </div>
       </div>
 
       {/* Main Content with Sidebar */}
@@ -240,6 +295,7 @@ export default function QueryPageClient({
                   summary={getExcerpt(article.content || '', 150)}
                   title={article.title || ''}
                   imageUrl={article.image || ''}
+                  trackingOrigin="search"
                 />
               ))}
             </motion.div>

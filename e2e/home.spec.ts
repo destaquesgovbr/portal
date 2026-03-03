@@ -8,7 +8,7 @@ test.describe('Home Page', () => {
     await expect(page).toHaveTitle(/Destaques/)
 
     // Check that the main content area exists
-    const main = page.locator('main')
+    const main = page.locator('main').first()
     await expect(main).toBeVisible()
   })
 
@@ -64,7 +64,7 @@ test.describe('Articles Page', () => {
     await expect(page).toHaveURL(/artigos/)
 
     // Wait for some content to load
-    const main = page.locator('main')
+    const main = page.locator('main').first()
     await expect(main).toBeVisible()
   })
 })

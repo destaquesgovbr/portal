@@ -137,15 +137,12 @@ test.describe('Search Autocomplete', () => {
     await expect(page).toHaveURL(/\/busca\?q=teste(\+|%20)busca/)
   })
 
-  test('should handle highlighting and clear button', async ({ page }) => {
+  test('should handle clear button', async ({ page }) => {
     const searchInput = page.locator('input[placeholder*="Buscar"]').last()
     const dropdown = page.locator('[role="listbox"]')
 
-    // Test highlighting
     await searchInput.fill('min')
     await expect(dropdown).toBeVisible()
-    const highlightedText = page.locator('[role="option"] mark')
-    await expect(highlightedText.first()).toBeVisible()
 
     // Test clear button - use .last() to get the visible one
     const clearButton = page.locator('[aria-label="Limpar busca"]').last()

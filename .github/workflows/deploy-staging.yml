@@ -44,6 +44,8 @@ jobs:
             --build-arg NEXT_PUBLIC_TYPESENSE_PORT="${{ steps.typesense.outputs.port }}" \
             --build-arg NEXT_PUBLIC_TYPESENSE_PROTOCOL="${{ steps.typesense.outputs.protocol }}" \
             --build-arg NEXT_PUBLIC_TYPESENSE_SEARCH_ONLY_API_KEY="${{ steps.typesense.outputs.api_key }}" \
+            --build-arg NEXT_PUBLIC_VAPID_PUBLIC_KEY="${{ secrets.VAPID_PUBLIC_KEY }}" \
+            --build-arg NEXT_PUBLIC_PUSH_WORKER_URL="${{ secrets.PUSH_WORKER_URL }}" \
             -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:staging-${{ github.sha }} \
             -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:staging-latest \
             --load \
@@ -62,6 +64,7 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --set-env-vars "NODE_ENV=staging" \
+            --set-secrets "AUTH_SECRET=auth-secret:latest" \
             --quiet
 
       - name: Show deployment URL
