@@ -4,6 +4,7 @@ import { Search, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense, useEffect, useRef, useState } from 'react'
+import { AuthButton } from '@/components/auth/AuthButton'
 import SearchBar from '@/components/search/SearchBar'
 import { Button } from '@/components/ui/button'
 
@@ -82,8 +83,14 @@ const Header = () => {
             </Suspense>
           </div>
 
-          {/* Mobile search icon - right side */}
-          <div className="flex md:hidden ml-auto">
+          {/* Auth button - desktop */}
+          <div className="hidden md:flex shrink-0">
+            <AuthButton />
+          </div>
+
+          {/* Mobile search icon + auth - right side */}
+          <div className="flex md:hidden ml-auto gap-1">
+            <AuthButton />
             <Button
               variant="ghost"
               size="icon"

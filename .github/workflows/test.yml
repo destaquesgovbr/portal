@@ -82,6 +82,7 @@ jobs:
         env:
           NEXT_PUBLIC_TYPESENSE_HOST: ${{ steps.typesense.outputs.host }}
           NEXT_PUBLIC_TYPESENSE_PORT: ${{ steps.typesense.outputs.port }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
