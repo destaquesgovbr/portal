@@ -89,6 +89,9 @@ jobs:
             --build-arg NEXT_PUBLIC_TYPESENSE_PORT="${{ steps.typesense.outputs.port }}" \
             --build-arg NEXT_PUBLIC_TYPESENSE_PROTOCOL="${{ steps.typesense.outputs.protocol }}" \
             --build-arg NEXT_PUBLIC_TYPESENSE_SEARCH_ONLY_API_KEY="${{ steps.typesense.outputs.api_key }}" \
+            --build-arg NEXT_PUBLIC_VAPID_PUBLIC_KEY="${{ secrets.VAPID_PUBLIC_KEY }}" \
+            --build-arg NEXT_PUBLIC_PUSH_WORKER_URL="${{ secrets.PUSH_WORKER_URL }}" \
+            --build-arg NEXT_PUBLIC_CLARITY_PROJECT_ID="${{ secrets.CLARITY_PROJECT_ID }}" \
             -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:${{ steps.slug.outputs.tag }} \
             --load \
             .
