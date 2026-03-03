@@ -4,11 +4,11 @@ import './govbr.css'
 import './globals.css'
 import { headers } from 'next/headers'
 import { Suspense } from 'react'
+import { Toaster } from 'sonner'
 import { Providers } from '@/components/common/Providers'
 import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
 import ServiceWorkerRegistrar from '@/components/push/ServiceWorkerRegistrar'
-import { Toaster } from 'sonner'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

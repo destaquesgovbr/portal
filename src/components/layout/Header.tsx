@@ -84,7 +84,7 @@ const Header = () => {
             </Suspense>
           </div>
 
-          {/* Desktop push + auth - right side */}
+          {/* Desktop icons - right side */}
           <div className="hidden md:flex shrink-0 items-center gap-1">
             <PushSubscriber />
             <AuthButton />
