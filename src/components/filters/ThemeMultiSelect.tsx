@@ -116,7 +116,7 @@ function ThemeTreeItem({
 
         <label
           htmlFor={`theme-checkbox-${node.code}`}
-          className={`flex-1 cursor-pointer text-sm font-medium ${isInherited ? 'text-muted-foreground' : ''}`}
+          className={`flex-1 text-left cursor-pointer text-sm font-medium ${isInherited ? 'text-muted-foreground' : ''}`}
         >
           {node.code} - {node.label}
         </label>
