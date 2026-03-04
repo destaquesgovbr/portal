@@ -64,8 +64,18 @@ jobs:
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=production" \
+            --set-env-vars "NODE_ENV=production,AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }},AUTH_GOOGLE_SECRET=${{ secrets.AUTH_GOOGLE_SECRET }}" \
             --set-secrets "AUTH_SECRET=auth-secret:latest" \
+            --quiet
+
+      - name: Set AUTH_URL
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          gcloud run services update ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --update-env-vars "AUTH_URL=$URL" \
             --quiet
 
       - name: Show deployment URL
