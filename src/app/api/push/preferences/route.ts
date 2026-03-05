@@ -46,9 +46,42 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   }
 
+  const MAX_ITEMS = 100
+  const MAX_KEYWORD_LENGTH = 100
+
+  function isStringArray(val: unknown): val is string[] {
+    return Array.isArray(val) && val.every((v) => typeof v === 'string')
+  }
+
   try {
     const body = await request.json()
     const { themes = [], agencies = [], keywords = [] } = body
+
+    if (
+      !isStringArray(themes) ||
+      !isStringArray(agencies) ||
+      !isStringArray(keywords)
+    ) {
+      return NextResponse.json({ error: 'Formato inválido' }, { status: 400 })
+    }
+
+    if (
+      themes.length > MAX_ITEMS ||
+      agencies.length > MAX_ITEMS ||
+      keywords.length > MAX_ITEMS
+    ) {
+      return NextResponse.json(
+        { error: 'Limite de itens excedido' },
+        { status: 400 },
+      )
+    }
+
+    if (keywords.some((kw) => kw.length > MAX_KEYWORD_LENGTH)) {
+      return NextResponse.json(
+        { error: 'Palavra-chave muito longa' },
+        { status: 400 },
+      )
+    }
 
     const db = getFirestoreDb()
     await db

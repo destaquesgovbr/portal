@@ -1,9 +1,11 @@
 'use client'
 
 import { Bell, BellOff, Loader2, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { AgencyMultiSelect } from '@/components/filters/AgencyMultiSelect'
+import { ThemeMultiSelect } from '@/components/filters/ThemeMultiSelect'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -14,8 +16,6 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ThemeMultiSelect } from '@/components/filters/ThemeMultiSelect'
-import { AgencyMultiSelect } from '@/components/filters/AgencyMultiSelect'
 import { urlBase64ToUint8Array } from '@/lib/push-utils'
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
@@ -150,7 +150,8 @@ export default function PushSubscriber() {
       })
   }, [session?.user?.id, subscribed])
 
-  // Load preferences from Firestore when session is available
+  // Load preferences from Firestore when session is available.
+  // Always apply Firestore values (even empty arrays) to override stale localStorage.
   useEffect(() => {
     if (!session?.user?.id) return
 
@@ -158,9 +159,9 @@ export default function PushSubscriber() {
       .then((res) => (res.ok ? res.json() : null))
       .then((prefs) => {
         if (!prefs) return
-        if (prefs.themes?.length) setSelectedThemes(prefs.themes)
-        if (prefs.agencies?.length) setSelectedAgencies(prefs.agencies)
-        if (prefs.keywords?.length) setKeywords(prefs.keywords)
+        setSelectedThemes(prefs.themes ?? [])
+        setSelectedAgencies(prefs.agencies ?? [])
+        setKeywords(prefs.keywords ?? [])
       })
       .catch((err) => console.error('Failed to load preferences:', err))
   }, [session?.user?.id])
@@ -203,11 +204,10 @@ export default function PushSubscriber() {
     [addKeyword],
   )
 
-  const currentFilterState: FilterState = {
-    themes: selectedThemes,
-    agencies: selectedAgencies,
-    keywords,
-  }
+  const currentFilterState = useMemo<FilterState>(
+    () => ({ themes: selectedThemes, agencies: selectedAgencies, keywords }),
+    [selectedThemes, selectedAgencies, keywords],
+  )
 
   const handleSubscribe = useCallback(async () => {
     if (processingRef.current) return
@@ -270,7 +270,7 @@ export default function PushSubscriber() {
       setLoading(false)
       processingRef.current = false
     }
-  }, [currentFilterState])
+  }, [currentFilterState, session?.user?.id])
 
   const handleUnsubscribe = useCallback(async () => {
     if (processingRef.current) return
@@ -301,6 +301,7 @@ export default function PushSubscriber() {
       setSelectedThemes([])
       setSelectedAgencies([])
       setKeywords([])
+      syncedRef.current = false
       setOpen(false)
       toast.success('Notificações desativadas.')
     } catch (err) {
@@ -312,10 +313,13 @@ export default function PushSubscriber() {
     }
   }, [])
 
-  if (!supported || !VAPID_PUBLIC_KEY) return null
-
   // Build themes list for ThemeMultiSelect (needs {key, name} format)
-  const themesFlat = flattenThemeNodes(themeHierarchy)
+  const themesFlat = useMemo(
+    () => flattenThemeNodes(themeHierarchy),
+    [themeHierarchy],
+  )
+
+  if (!supported || !VAPID_PUBLIC_KEY) return null
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
