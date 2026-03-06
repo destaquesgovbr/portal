@@ -27,6 +27,7 @@ export default function ClientArticle({
   pageUrl: string
 }) {
   const [copied, setCopied] = useState(false)
+  const [coverImageBroken, setCoverImageBroken] = useState(false)
 
   // Check if the cover image appears in the article body
   const isImageInBody = useMemo(() => {
@@ -149,7 +150,8 @@ export default function ClientArticle({
         ) : (
           /* Imagem de capa - only show if image is NOT repeated in body */
           article.image &&
-          !isImageInBody && (
+          !isImageInBody &&
+          !coverImageBroken && (
             <div className="mb-12">
               <img
                 src={article.image}
@@ -157,6 +159,7 @@ export default function ClientArticle({
                 width={992}
                 height={384}
                 className="w-full h-64 md:h-96 object-cover rounded-lg shadow-md"
+                onError={() => setCoverImageBroken(true)}
               />
             </div>
           )
