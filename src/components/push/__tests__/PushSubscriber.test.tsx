@@ -48,7 +48,7 @@ function setupBrowserAPIs(
   })
 
   Object.defineProperty(window, 'PushManager', {
-    value: class {},
+    value: class { },
     configurable: true,
   })
 
@@ -115,7 +115,7 @@ describe('PushSubscriber', () => {
     await user.click(screen.getByRole('button'))
 
     await waitFor(() => {
-      expect(screen.getByText('Notificações Push')).toBeInTheDocument()
+      expect(screen.getByText('Notificações WebPush')).toBeInTheDocument()
     })
   })
 

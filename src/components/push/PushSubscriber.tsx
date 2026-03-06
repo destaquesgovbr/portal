@@ -52,7 +52,7 @@ function loadFilters(): FilterState {
         keywords: parsed.keywords || [],
       }
     }
-  } catch {}
+  } catch { }
   return { themes: [], agencies: [], keywords: [] }
 }
 
@@ -212,7 +212,7 @@ export default function PushSubscriber() {
   const handleSubscribe = useCallback(async () => {
     if (processingRef.current) return
     if (!VAPID_PUBLIC_KEY || !PUSH_WORKER_URL) {
-      toast.error('Notificações push não estão configuradas.')
+      toast.error('Notificações WebPush não estão configuradas.')
       return
     }
 
@@ -347,7 +347,7 @@ export default function PushSubscriber() {
         className="w-[360px] sm:w-[420px] overflow-y-auto"
       >
         <SheetHeader>
-          <SheetTitle>Notificações Push</SheetTitle>
+          <SheetTitle>Notificações WebPush</SheetTitle>
           <SheetDescription>
             Configure seus filtros para receber notificações quando novas
             notícias forem publicadas.

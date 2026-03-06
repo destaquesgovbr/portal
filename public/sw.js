@@ -11,9 +11,11 @@ self.addEventListener('push', (event) => {
     data = { title: 'Destaques Gov.br', body: event.data?.text() || '' }
   }
 
+  const bodyParts = [data.body, data.summary].filter(Boolean)
+
   event.waitUntil(
     self.registration.showNotification(data.title || 'Destaques Gov.br', {
-      body: data.body,
+      body: bodyParts.join('\n'),
       icon: data.icon || '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       data: { url: data.url },
