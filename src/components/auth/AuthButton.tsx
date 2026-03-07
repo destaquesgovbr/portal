@@ -25,7 +25,7 @@ export function AuthButton() {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => signIn()}
+        onClick={() => signIn('govbr')}
         className="gap-2 cursor-pointer"
       >
         <LogIn className="h-4 w-4" />
