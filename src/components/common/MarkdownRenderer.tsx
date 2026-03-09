@@ -109,7 +109,9 @@ export function MarkdownRenderer({
     li: ({ children }) => <li className="leading-relaxed">{children}</li>,
 
     // Imagens
-    img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} />,
+    img: ({ src, alt }) => (
+      <MarkdownImage src={src as string | undefined} alt={alt} />
+    ),
 
     // Citações
     blockquote: ({ children }) => (
