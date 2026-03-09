@@ -52,7 +52,7 @@ function loadFilters(): FilterState {
         keywords: parsed.keywords || [],
       }
     }
-  } catch { }
+  } catch {}
   return { themes: [], agencies: [], keywords: [] }
 }
 

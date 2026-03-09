@@ -1,6 +1,12 @@
 import { screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from '@/__tests__/test-utils'
+
+// Mock next-auth/react
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ data: null, status: 'unauthenticated' }),
+}))
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -48,7 +54,7 @@ function setupBrowserAPIs(
   })
 
   Object.defineProperty(window, 'PushManager', {
-    value: class { },
+    value: class {},
     configurable: true,
   })
 
@@ -83,10 +89,27 @@ describe('PushSubscriber', () => {
       delete store[key]
     })
 
-    // Mock fetch
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ ok: true }), { status: 200 }),
-    )
+    // Mock fetch — return theme data for filters-data endpoint
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      if (typeof url === 'string' && url.includes('/api/push/filters-data')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              themes: [
+                { code: '01', label: 'Educação' },
+                { code: '02', label: 'Saúde' },
+                { code: '03', label: 'Turismo' },
+              ],
+              agencies: [],
+            }),
+            { status: 200 },
+          ),
+        )
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ ok: true }), { status: 200 }),
+      )
+    })
   })
 
   afterEach(() => {
@@ -129,10 +152,16 @@ describe('PushSubscriber', () => {
 
     await user.click(screen.getByRole('button'))
 
+    // Open ThemeMultiSelect modal
     await waitFor(() => {
-      expect(screen.getByText('Educação')).toBeInTheDocument()
-      expect(screen.getByText('Saúde')).toBeInTheDocument()
-      expect(screen.getByText('Turismo')).toBeInTheDocument()
+      expect(screen.getByText('Selecione temas...')).toBeInTheDocument()
+    })
+    await user.click(screen.getByText('Selecione temas...'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Educação/)).toBeInTheDocument()
+      expect(screen.getByText(/Saúde/)).toBeInTheDocument()
+      expect(screen.getByText(/Turismo/)).toBeInTheDocument()
     })
   })
 
@@ -155,8 +184,9 @@ describe('PushSubscriber', () => {
   })
 
   it('enables subscribe button when a theme is selected', async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 })
     const PushSubscriber = (await import('../PushSubscriber')).default
-    const { user } = render(<PushSubscriber />)
+    render(<PushSubscriber />)
 
     await waitFor(() => {
       expect(screen.getByRole('button')).toBeInTheDocument()
@@ -164,11 +194,20 @@ describe('PushSubscriber', () => {
 
     await user.click(screen.getByRole('button'))
 
+    // Open ThemeMultiSelect modal
     await waitFor(() => {
-      expect(screen.getByText('Educação')).toBeInTheDocument()
+      expect(screen.getByText('Selecione temas...')).toBeInTheDocument()
+    })
+    await user.click(screen.getByText('Selecione temas...'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Educação/)).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('Educação'))
+    await user.click(screen.getByRole('checkbox', { name: /Educação/ }))
+
+    // Close modal via Confirmar button
+    await user.click(screen.getByRole('button', { name: /confirmar/i }))
 
     const subscribeBtn = screen.getByRole('button', {
       name: /ativar notificações/i,
@@ -177,8 +216,9 @@ describe('PushSubscriber', () => {
   })
 
   it('calls subscribe endpoint with selected filters', async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 })
     const PushSubscriber = (await import('../PushSubscriber')).default
-    const { user } = render(<PushSubscriber />)
+    render(<PushSubscriber />)
 
     await waitFor(() => {
       expect(screen.getByRole('button')).toBeInTheDocument()
@@ -186,11 +226,21 @@ describe('PushSubscriber', () => {
 
     await user.click(screen.getByRole('button'))
 
+    // Open ThemeMultiSelect modal
     await waitFor(() => {
-      expect(screen.getByText('Educação')).toBeInTheDocument()
+      expect(screen.getByText('Selecione temas...')).toBeInTheDocument()
+    })
+    await user.click(screen.getByText('Selecione temas...'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Educação/)).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('Educação'))
+    await user.click(screen.getByRole('checkbox', { name: /Educação/ }))
+
+    // Close modal via Confirmar button
+    await user.click(screen.getByRole('button', { name: /confirmar/i }))
+
     await user.click(
       screen.getByRole('button', { name: /ativar notificações/i }),
     )
@@ -218,7 +268,7 @@ describe('PushSubscriber', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/selecione ao menos um tema/i),
+        screen.getByText(/selecione ao menos um filtro/i),
       ).toBeInTheDocument()
     })
   })
