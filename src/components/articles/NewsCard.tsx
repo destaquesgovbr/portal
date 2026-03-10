@@ -1,7 +1,10 @@
+'use client'
+
 import { Calendar, Tag } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Ref } from 'react'
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { formatDateTime } from '@/lib/utils'
@@ -31,6 +34,7 @@ const NewsCard = ({
   isMain = false,
   trackingOrigin,
 }: NewsCardProps) => {
+  const [imageError, setImageError] = useState(false)
   const hasTheme = Boolean(theme && theme.trim() !== '')
   // Extract article ID from URL (e.g., /artigos/123 -> 123)
   const articleId = internalUrl.split('/').pop() || ''
@@ -50,7 +54,7 @@ const NewsCard = ({
         ${isMain ? 'col-span-2 row-span-2' : ''}`}
       >
         {/* Imagem de capa */}
-        {imageUrl && (
+        {imageUrl && !imageError && (
           <div
             className={`relative overflow-hidden ${isMain ? 'h-64' : 'h-40'}`}
           >
@@ -61,6 +65,7 @@ const NewsCard = ({
               unoptimized
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+              onError={() => setImageError(true)}
             />
 
             {/* Overlay sutil */}
@@ -81,7 +86,7 @@ const NewsCard = ({
         {/* Cabeçalho */}
         <CardHeader className={isMain ? 'p-6' : 'p-4'}>
           {/* Badge caso não haja imagem */}
-          {!imageUrl && hasTheme && (
+          {(!imageUrl || imageError) && hasTheme && (
             <Badge className="mb-2 bg-white text-primary/90 font-medium">
               <Tag className="w-3 h-3 mr-1 text-primary/70" />
               {theme}
