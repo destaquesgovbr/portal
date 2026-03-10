@@ -82,7 +82,7 @@ jobs:
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=production,AUTH_GOVBR_ID=portal,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=govbr" \
+            --set-env-vars "NODE_ENV=production,AUTH_GOVBR_ID=portal,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=google" \
             --set-secrets "AUTH_SECRET=auth-secret:latest,AUTH_GOVBR_SECRET=keycloak-portal-client-secret:latest" \
             --quiet
 
