@@ -24,7 +24,7 @@ if (process.env.AUTH_GOVBR_ID) {
     issuer: process.env.AUTH_GOVBR_ISSUER,
     authorization: {
       params: {
-        scope: 'openid email profile govbr_confiabilidades',
+        scope: 'openid email profile',
       },
     },
     profile(profile: Record<string, string>) {
