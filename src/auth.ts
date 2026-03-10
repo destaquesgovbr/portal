@@ -25,6 +25,11 @@ if (process.env.AUTH_GOVBR_ID) {
     authorization: {
       params: {
         scope: 'openid email profile',
+        // Pula a tela de login do Keycloak e vai direto ao IdP
+        // Valor controlado por env: 'google' (agora) ou 'govbr' (produção futura)
+        ...(process.env.AUTH_GOVBR_IDP_HINT && {
+          kc_idp_hint: process.env.AUTH_GOVBR_IDP_HINT,
+        }),
       },
     },
     profile(profile: Record<string, string>) {
