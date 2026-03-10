@@ -1,11 +1,28 @@
 'use client'
 
+import { useState } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import { ImageCarousel } from '@/components/articles/ImageCarousel'
 import { preprocessImageCarousels } from '@/lib/markdown-carousel'
 import { cn } from '@/lib/utils'
+
+function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
+  const [broken, setBroken] = useState(false)
+  if (broken) return null
+  return (
+    <span className="block my-6 text-center">
+      <img
+        src={src ?? ''}
+        alt={alt ?? ''}
+        className="inline-block max-w-full rounded-md shadow-sm"
+        loading="lazy"
+        onError={() => setBroken(true)}
+      />
+    </span>
+  )
+}
 
 interface MarkdownRendererProps {
   content: string
@@ -93,14 +110,7 @@ export function MarkdownRenderer({
 
     // Imagens
     img: ({ src, alt }) => (
-      <span className="block my-6 text-center">
-        <img
-          src={src ?? ''}
-          alt={alt ?? ''}
-          className="inline-block max-w-full rounded-md shadow-sm"
-          loading="lazy"
-        />
-      </span>
+      <MarkdownImage src={src as string | undefined} alt={alt} />
     ),
 
     // Citações

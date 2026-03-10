@@ -20,6 +20,10 @@ export function ImageCarousel({ images, alts }: ImageCarouselProps) {
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set())
+
+  const validImages = images.filter((_, i) => !failedImages.has(i))
+  const validAlts = alts.filter((_, i) => !failedImages.has(i))
 
   useEffect(() => {
     if (!api) return
@@ -34,7 +38,7 @@ export function ImageCarousel({ images, alts }: ImageCarouselProps) {
 
   const scrollTo = useCallback((index: number) => api?.scrollTo(index), [api])
 
-  if (images.length === 0) return null
+  if (images.length === 0 || validImages.length === 0) return null
 
   return (
     <div className="my-6">
@@ -46,14 +50,21 @@ export function ImageCarousel({ images, alts }: ImageCarouselProps) {
         className="w-full"
       >
         <CarouselContent>
-          {images.map((src, index) => (
+          {validImages.map((src, index) => (
             <CarouselItem key={src}>
               <div className="flex items-center justify-center">
                 <img
                   src={src}
-                  alt={alts[index] || `Imagem ${index + 1} de ${images.length}`}
+                  alt={
+                    validAlts[index] ||
+                    `Imagem ${index + 1} de ${validImages.length}`
+                  }
                   className="max-w-full max-h-[500px] object-contain rounded-md shadow-sm"
                   loading={index === 0 ? 'eager' : 'lazy'}
+                  onError={() => {
+                    const originalIndex = images.indexOf(src)
+                    setFailedImages((prev) => new Set(prev).add(originalIndex))
+                  }}
                 />
               </div>
             </CarouselItem>
