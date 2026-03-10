@@ -116,7 +116,7 @@ function ThemeTreeItem({
 
         <label
           htmlFor={`theme-checkbox-${node.code}`}
-          className={`flex-1 cursor-pointer text-sm font-medium ${isInherited ? 'text-muted-foreground' : ''}`}
+          className={`flex-1 text-left cursor-pointer text-sm font-medium ${isInherited ? 'text-muted-foreground' : ''}`}
         >
           {node.code} - {node.label}
         </label>
@@ -264,16 +264,15 @@ export function ThemeMultiSelect({
 
       {isExpanded && (
         <Portal>
-          <button
-            type="button"
-            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 animate-in fade-in-0 p-4 pointer-events-auto border-0"
-            onClick={() => setIsExpanded(false)}
-            aria-label="Fechar modal"
-          >
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/50 animate-in fade-in-0 border-0"
+              onClick={() => setIsExpanded(false)}
+              aria-label="Fechar modal"
+            />
             <div
               className="bg-white rounded-lg shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col animate-in zoom-in-95 relative z-[301]"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
               aria-labelledby="theme-select-title"
@@ -342,7 +341,7 @@ export function ThemeMultiSelect({
                 </button>
               </div>
             </div>
-          </button>
+          </div>
         </Portal>
       )}
     </div>
