@@ -157,7 +157,8 @@ presidencia:
     - iec
     - inca
   - secom:
-    - ebc
+    - agencia_brasil
+    - tvbrasil
   - secretariageral
   - sri
   - trabalho-e-emprego:
