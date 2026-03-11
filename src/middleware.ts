@@ -1,16 +1,20 @@
-import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { auth } from './auth'
 
-export function middleware(request: NextRequest) {
+export default auth((request) => {
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-pathname', request.nextUrl.pathname)
+
+  if (request.nextUrl.pathname.startsWith('/admin/preview') && !request.auth) {
+    return NextResponse.redirect(new URL('/api/auth/signin', request.url))
+  }
 
   return NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   })
-}
+})
 
 export const config = {
   matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico).*)'],
