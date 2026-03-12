@@ -23,6 +23,8 @@ export async function GET(request: Request) {
     )
   }
 
+  let tokenValid = false
+
   try {
     const db = getFirestoreDb()
     const tokenDoc = await db.collection('telegramAuthTokens').doc(state).get()
@@ -44,15 +46,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Token expirado' }, { status: 400 })
     }
 
-    redirect(`/api/auth/telegram/callback?state=${state}`)
+    tokenValid = true
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith('NEXT_REDIRECT')) {
-      throw error
-    }
     console.error('Error in telegram auth:', error)
     return NextResponse.json(
       { error: 'Erro interno no servidor' },
       { status: 500 },
     )
+  }
+
+  if (tokenValid) {
+    redirect(`/api/auth/telegram/callback?state=${state}`)
   }
 }
