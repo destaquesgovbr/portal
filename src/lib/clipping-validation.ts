@@ -1,0 +1,27 @@
+import { z } from 'zod'
+
+export const RecorteSchema = z
+  .object({
+    id: z.string().min(1),
+    themes: z.array(z.string()),
+    agencies: z.array(z.string()),
+    keywords: z.array(z.string().max(100)),
+  })
+  .refine(
+    (r) =>
+      r.themes.length > 0 || r.agencies.length > 0 || r.keywords.length > 0,
+    { message: 'Recorte must have at least one filter' },
+  )
+
+export const ClippingPayloadSchema = z.object({
+  name: z.string().min(1).max(100),
+  recortes: z.array(RecorteSchema).min(1),
+  prompt: z.string().max(2000),
+  scheduleTime: z.string().regex(/^([01]\d|2[0-3]):[03]0$/),
+  deliveryChannels: z.object({
+    email: z.boolean(),
+    telegram: z.boolean(),
+    push: z.boolean(),
+  }),
+  active: z.boolean(),
+})

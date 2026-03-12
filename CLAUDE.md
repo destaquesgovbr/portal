@@ -70,6 +70,22 @@ Portal de notícias do Governo Federal brasileiro, desenvolvido com Next.js 15, 
 │   │   └── dados-editoriais/  # Dashboard de dados
 │   │       ├── page.tsx
 │   │       └── actions.ts
+│   │   ├── (logged-in)/       # Route group autenticado (redireciona se sem sessão)
+│   │   │   ├── layout.tsx     # Guarda de autenticação
+│   │   │   └── minha-conta/
+│   │   │       └── clipping/
+│   │   │           ├── page.tsx          # Lista de clippings
+│   │   │           ├── novo/page.tsx     # Wizard de criação
+│   │   │           └── [id]/editar/page.tsx  # Edição de clipping
+│   │   └── api/
+│   │       ├── auth/
+│   │       │   ├── [...nextauth]/route.ts
+│   │       │   └── telegram/
+│   │       │       ├── route.ts          # Inicia vinculação Telegram
+│   │       │       └── callback/route.ts # Finaliza vinculação, salva chatId
+│   │       └── clipping/
+│   │           ├── route.ts              # GET + POST /api/clipping
+│   │           └── [id]/route.ts         # PUT + DELETE /api/clipping/[id]
 │   ├── components/            # Componentes React
 │   │   ├── ui/               # Componentes shadcn/ui
 │   │   ├── auth/
@@ -207,6 +223,21 @@ Quando o Keycloak interno estiver disponível, basta alterar `AUTH_GOVBR_ISSUER`
 ```
 Usuário → NextAuth → Keycloak DGB (SSO) → Gov.Br (IdP externo)
 ```
+
+**Vinculação Telegram (OAuth via portal):**
+
+O bot do Telegram (`/login`) inicia o fluxo de vinculação de conta, que passa pelo portal:
+
+```
+Bot /login → token UUID → Firestore telegramAuthTokens/{state}
+    → link para /api/auth/telegram?state=TOKEN
+        → usuário autentica via NextAuth
+            → /api/auth/telegram/callback
+                → salva chatId em users/{userId}/telegramLink/account
+                    → deleta token (uso único, TTL 10 min)
+```
+
+Implementação: `src/app/api/auth/telegram/route.ts` e `src/app/api/auth/telegram/callback/route.ts`.
 
 ## Comandos Principais
 
@@ -529,6 +560,56 @@ Certifique-se de configurar:
 **AuthButton não aparece:**
 - Verifique se `AUTH_GOOGLE_ID` ou `AUTH_GOVBR_ID` está definido no `.env.local`
 - O componente se oculta quando `/api/auth/providers` retorna objeto vazio
+
+## Área Logada (`(logged-in)`)
+
+Route group protegido por autenticação. O layout em `src/app/(logged-in)/layout.tsx` redireciona para `/api/auth/signin` se não houver sessão.
+
+### Páginas disponíveis
+
+- `/minha-conta/clipping` — Lista de clippings do usuário
+- `/minha-conta/clipping/novo` — Wizard de criação de clipping (4 passos)
+- `/minha-conta/clipping/[id]/editar` — Edição de clipping existente
+
+### Componentes (`src/components/clipping/`)
+
+| Componente | Propósito |
+|------------|-----------|
+| `ClippingWizard` | Wizard 4 passos: Recortes → Prompt → Horário → Canais |
+| `RecorteEditor` | Editor de um Recorte com tema, agência e keywords |
+| `ScheduleSelect` | Select com 48 horários (00:00–23:30 de 30 em 30 min) |
+| `PromptEditor` | Textarea com prompt LLM, contador de chars, botão restaurar |
+| `ChannelSelector` | Checkboxes email/telegram/push |
+| `ClippingCard` | Card na listagem com ações de editar/excluir/toggle |
+
+### Tipos (`src/types/clipping.ts`)
+
+- `Recorte` — filtro composto: `{ id, themes, agencies, keywords }`
+- `Clipping` — configuração completa com `recortes[]`, `scheduleTime`, `deliveryChannels`, `prompt`
+- `ClippingPayload` — payload para criação/atualização
+
+## Clipping APIs
+
+### CRUD de Clippings
+
+| Method | Path | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/api/clipping` | Required | Lista clippings do usuário |
+| POST | `/api/clipping` | Required | Cria novo clipping (max 10) |
+| PUT | `/api/clipping/[id]` | Required | Atualiza clipping |
+| DELETE | `/api/clipping/[id]` | Required | Remove clipping |
+
+Validação: `ClippingPayloadSchema` em `src/lib/clipping-validation.ts`
+Persistência: Firestore `users/{userId}/clippings/{clippingId}`
+
+### Vinculação Telegram
+
+| Method | Path | Descrição |
+|--------|------|-----------|
+| GET | `/api/auth/telegram?state=TOKEN` | Inicia vinculação (precisa de sessão) |
+| GET | `/api/auth/telegram/callback?state=TOKEN` | Finaliza vinculação, salva chatId |
+
+Fluxo: Bot `/login` → token Firestore → portal auth → callback → `users/{userId}/telegramLink/account`
 
 ## Links Úteis
 
