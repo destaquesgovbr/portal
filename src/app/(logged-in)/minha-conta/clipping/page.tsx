@@ -4,7 +4,7 @@ import { getFirestoreDb } from '@/lib/firebase-admin'
 import type { Clipping } from '@/types/clipping'
 import { ClippingListClient } from './ClippingListClient'
 
-async function getClippings(): Promise<Clipping[]> {
+export async function getClippings(): Promise<Clipping[]> {
   const session = await auth()
   if (!session?.user?.id) return []
 
