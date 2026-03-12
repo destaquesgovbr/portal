@@ -10,8 +10,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import NewsCard from '@/components/articles/NewsCard'
 import { VideoPlayer } from '@/components/articles/VideoPlayer'
+import { MarkdownRenderer } from '@/components/common/MarkdownRenderer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatDateTime } from '@/lib/utils'
@@ -21,12 +21,10 @@ export default function ClientArticle({
   article,
   baseUrl,
   pageUrl,
-  similarArticles,
 }: {
   article: ArticleRow
   baseUrl: string
   pageUrl: string
-  similarArticles: ArticleRow[]
 }) {
   const [copied, setCopied] = useState(false)
   const [coverImageBroken, setCoverImageBroken] = useState(false)
@@ -167,27 +165,10 @@ export default function ClientArticle({
           )
         )}
 
-        {/* Resumo da notícia */}
-        {article.summary && (
-          <article className="prose prose-lg mx-auto max-w-3xl text-primary/90 leading-relaxed mb-10">
-            <p>{article.summary}</p>
-          </article>
-        )}
-
-        {/* Botão CTA para notícia original */}
-        {article.url && (
-          <div className="flex justify-center mb-16">
-            <a href={article.url} target="_blank" rel="noopener noreferrer">
-              <Button
-                size="lg"
-                className="bg-[#0D4C92] hover:bg-[#0D4C92]/90 text-white text-base px-8 py-6 rounded-lg shadow-md"
-              >
-                <ExternalLink className="w-5 h-5 mr-2" />
-                Ler notícia completa em {baseUrl}
-              </Button>
-            </a>
-          </div>
-        )}
+        {/* Corpo do artigo */}
+        <article className="prose prose-lg mx-auto max-w-3xl text-primary/90 leading-relaxed article-content">
+          <MarkdownRenderer content={article.content ?? ''} />
+        </article>
 
         {/* Tags */}
         {article.tags && article.tags.length > 0 && (
@@ -211,34 +192,26 @@ export default function ClientArticle({
           </section>
         )}
 
-        {/* Notícias similares */}
-        {similarArticles.length > 0 && (
-          <section className="mt-16 border-t pt-10">
-            <h2 className="text-xl font-semibold text-primary mb-6">
-              Notícias relacionadas
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {similarArticles.map((similar) => (
-                <NewsCard
-                  key={similar.unique_id}
-                  title={similar.title || ''}
-                  summary={similar.summary || undefined}
-                  theme={similar.most_specific_theme_label || ''}
-                  internalUrl={`/artigos/${similar.unique_id}`}
-                  date={similar.published_at}
-                  imageUrl={similar.image || undefined}
-                  trackingOrigin="similar"
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* Rodapé */}
         <footer className="mt-16 border-t pt-8 text-primary/70 text-sm space-y-4">
           <div>
             <strong>Fonte:</strong> {article.agency}
           </div>
+
+          {article.url && (
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Fonte oficial:</span>
+              <a
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+              >
+                {baseUrl}
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
 
           <p className="text-xs text-primary/60 pt-4">
             Esta notícia foi publicada no portal oficial do Governo Federal do
