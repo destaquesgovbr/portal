@@ -17,10 +17,15 @@ async function getClippings(): Promise<Clipping[]> {
       .orderBy('createdAt', 'desc')
       .get()
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Clipping[]
+    return snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? '',
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? '',
+      }
+    }) as Clipping[]
   } catch (error) {
     console.error('Error reading clippings:', error)
     return []
