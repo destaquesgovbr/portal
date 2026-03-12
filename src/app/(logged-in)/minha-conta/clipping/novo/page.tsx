@@ -1,35 +1,12 @@
-'use client'
+import { getAgenciesList } from '@/data/agencies-utils'
+import { getThemesWithHierarchy } from '@/data/themes-utils'
+import { NovoClippingClient } from './NovoClippingClient'
 
-import { useRouter } from 'next/navigation'
-import { ClippingWizard } from '@/components/clipping/ClippingWizard'
-import type { ClippingPayload } from '@/types/clipping'
+export default async function NovoClippingPage() {
+  const [agencies, themes] = await Promise.all([
+    getAgenciesList(),
+    getThemesWithHierarchy(),
+  ])
 
-export default function NovoClippingPage() {
-  const router = useRouter()
-
-  const handleSubmit = async (data: ClippingPayload) => {
-    const res = await fetch('/api/clipping', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-
-    if (!res.ok) {
-      throw new Error('Falha ao criar clipping')
-    }
-
-    router.push('/minha-conta/clipping')
-  }
-
-  return (
-    <main className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Novo Clipping</h1>
-        <p className="text-muted-foreground mt-1">
-          Configure seu clipping personalizado em 4 passos.
-        </p>
-      </div>
-      <ClippingWizard onSubmit={handleSubmit} />
-    </main>
-  )
+  return <NovoClippingClient agencies={agencies} themes={themes} />
 }

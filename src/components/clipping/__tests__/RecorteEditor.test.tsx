@@ -63,6 +63,8 @@ describe('RecorteEditor', () => {
         recorte={baseRecorte}
         onChange={() => {}}
         onRemove={() => {}}
+        themes={[]}
+        agencies={[]}
       />,
     )
     expect(screen.getByTestId('theme-multi-select')).toBeInTheDocument()
@@ -77,6 +79,8 @@ describe('RecorteEditor', () => {
         recorte={baseRecorte}
         onChange={handleChange}
         onRemove={() => {}}
+        themes={[]}
+        agencies={[]}
       />,
     )
     const input = screen.getByPlaceholderText(/palavra-chave/i)
@@ -96,6 +100,8 @@ describe('RecorteEditor', () => {
         recorte={recorte}
         onChange={handleChange}
         onRemove={() => {}}
+        themes={[]}
+        agencies={[]}
       />,
     )
     const removeBtn = screen.getByRole('button', { name: /remover orçamento/i })
@@ -112,6 +118,8 @@ describe('RecorteEditor', () => {
         recorte={baseRecorte}
         onChange={handleChange}
         onRemove={() => {}}
+        themes={[]}
+        agencies={[]}
       />,
     )
     await user.click(screen.getByTestId('theme-select-btn'))
@@ -127,6 +135,8 @@ describe('RecorteEditor', () => {
         recorte={baseRecorte}
         onChange={handleChange}
         onRemove={() => {}}
+        themes={[]}
+        agencies={[]}
       />,
     )
     await user.click(screen.getByTestId('agency-select-btn'))
@@ -143,6 +153,8 @@ describe('RecorteEditor', () => {
         onChange={() => {}}
         onRemove={() => {}}
         showRemove={false}
+        themes={[]}
+        agencies={[]}
       />,
     )
     expect(
@@ -158,6 +170,8 @@ describe('RecorteEditor', () => {
         onChange={() => {}}
         onRemove={handleRemove}
         showRemove={true}
+        themes={[]}
+        agencies={[]}
       />,
     )
     expect(

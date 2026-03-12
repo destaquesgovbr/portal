@@ -100,13 +100,17 @@ const defaultOnSubmit = vi.fn().mockResolvedValue(undefined)
 
 describe('ClippingWizard', () => {
   it('renders step 1 initially', () => {
-    render(<ClippingWizard onSubmit={defaultOnSubmit} />)
+    render(
+      <ClippingWizard onSubmit={defaultOnSubmit} themes={[]} agencies={[]} />,
+    )
     expect(screen.getByText(/1\/4/i)).toBeInTheDocument()
     expect(screen.getAllByText(/recortes/i).length).toBeGreaterThan(0)
   })
 
   it('cannot advance from step 1 without at least one recorte with filters', async () => {
-    const { user } = render(<ClippingWizard onSubmit={defaultOnSubmit} />)
+    const { user } = render(
+      <ClippingWizard onSubmit={defaultOnSubmit} themes={[]} agencies={[]} />,
+    )
     const nextBtn = screen.getByRole('button', { name: /próximo/i })
     await user.click(nextBtn)
     // Should still be on step 1
@@ -114,7 +118,9 @@ describe('ClippingWizard', () => {
   })
 
   it('advances through all 4 steps with valid data', async () => {
-    const { user } = render(<ClippingWizard onSubmit={defaultOnSubmit} />)
+    const { user } = render(
+      <ClippingWizard onSubmit={defaultOnSubmit} themes={[]} agencies={[]} />,
+    )
 
     // Step 1: add a theme to the recorte
     const recorteEditors = screen.getAllByTestId(/^recorte-editor-/)
@@ -143,7 +149,9 @@ describe('ClippingWizard', () => {
 
   it('calls onSubmit with correct payload on step 4 confirm', async () => {
     const handleSubmit = vi.fn().mockResolvedValue(undefined)
-    const { user } = render(<ClippingWizard onSubmit={handleSubmit} />)
+    const { user } = render(
+      <ClippingWizard onSubmit={handleSubmit} themes={[]} agencies={[]} />,
+    )
 
     // Step 1: add theme + name
     const recorteEditors = screen.getAllByTestId(/^recorte-editor-/)
@@ -184,7 +192,9 @@ describe('ClippingWizard', () => {
           resolveSubmit = resolve
         }),
     )
-    const { user } = render(<ClippingWizard onSubmit={handleSubmit} />)
+    const { user } = render(
+      <ClippingWizard onSubmit={handleSubmit} themes={[]} agencies={[]} />,
+    )
 
     // Navigate to step 4 with valid data
     const recorteEditors = screen.getAllByTestId(/^recorte-editor-/)

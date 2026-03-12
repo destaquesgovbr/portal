@@ -3,6 +3,8 @@
 import { Loader2, Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import type { AgencyOption } from '@/data/agencies-utils'
+import type { ThemeOption } from '@/data/themes-utils'
 import type {
   ClippingPayload,
   DeliveryChannels,
@@ -44,12 +46,19 @@ function hasAnyFilter(recorte: Recorte): boolean {
 type Props = {
   initialData?: ClippingPayload
   onSubmit: (data: ClippingPayload) => Promise<void>
+  themes: ThemeOption[]
+  agencies: AgencyOption[]
 }
 
 const STEPS = ['Recortes', 'Prompt', 'Horário', 'Canais'] as const
 type Step = 0 | 1 | 2 | 3
 
-export function ClippingWizard({ initialData, onSubmit }: Props) {
+export function ClippingWizard({
+  initialData,
+  onSubmit,
+  themes,
+  agencies,
+}: Props) {
   const [step, setStep] = useState<Step>(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -206,6 +215,8 @@ export function ClippingWizard({ initialData, onSubmit }: Props) {
                   onChange={(updated) => updateRecorte(index, updated)}
                   onRemove={() => removeRecorte(index)}
                   showRemove={recortes.length > 1}
+                  themes={themes}
+                  agencies={agencies}
                 />
               ))}
             </div>

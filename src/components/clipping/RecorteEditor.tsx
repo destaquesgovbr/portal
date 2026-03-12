@@ -7,6 +7,8 @@ import { ThemeMultiSelect } from '@/components/filters/ThemeMultiSelect'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import type { AgencyOption } from '@/data/agencies-utils'
+import type { ThemeOption } from '@/data/themes-utils'
 import type { Recorte } from '@/types/clipping'
 
 type Props = {
@@ -14,6 +16,8 @@ type Props = {
   onChange: (recorte: Recorte) => void
   onRemove: () => void
   showRemove?: boolean
+  themes: ThemeOption[]
+  agencies: AgencyOption[]
 }
 
 export function RecorteEditor({
@@ -21,6 +25,8 @@ export function RecorteEditor({
   onChange,
   onRemove,
   showRemove = true,
+  themes,
+  agencies,
 }: Props) {
   const [keywordInput, setKeywordInput] = useState('')
 
@@ -72,7 +78,7 @@ export function RecorteEditor({
       <div className="space-y-1.5">
         <p className="text-sm font-medium text-foreground">Temas</p>
         <ThemeMultiSelect
-          themes={[]}
+          themes={themes}
           selectedThemes={recorte.themes}
           onSelectedThemesChange={handleThemesChange}
         />
@@ -82,7 +88,7 @@ export function RecorteEditor({
       <div className="space-y-1.5">
         <p className="text-sm font-medium text-foreground">Órgãos</p>
         <AgencyMultiSelect
-          agencies={[]}
+          agencies={agencies}
           selectedAgencies={recorte.agencies}
           onSelectedAgenciesChange={handleAgenciesChange}
         />
