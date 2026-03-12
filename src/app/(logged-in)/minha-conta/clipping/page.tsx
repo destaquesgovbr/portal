@@ -1,15 +1,28 @@
 import Link from 'next/link'
+import { auth } from '@/auth'
+import { getFirestoreDb } from '@/lib/firebase-admin'
+import type { Clipping } from '@/types/clipping'
 import { ClippingListClient } from './ClippingListClient'
 
-async function getClippings() {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+async function getClippings(): Promise<Clipping[]> {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
   try {
-    const res = await fetch(`${baseUrl}/api/clipping`, {
-      cache: 'no-store',
-    })
-    if (!res.ok) return []
-    return res.json()
-  } catch {
+    const db = getFirestoreDb()
+    const snapshot = await db
+      .collection('users')
+      .doc(session.user.id)
+      .collection('clippings')
+      .orderBy('createdAt', 'desc')
+      .get()
+
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Clipping[]
+  } catch (error) {
+    console.error('Error reading clippings:', error)
     return []
   }
 }
