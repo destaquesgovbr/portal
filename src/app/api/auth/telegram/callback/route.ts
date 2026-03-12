@@ -41,28 +41,39 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Token expirado' }, { status: 400 })
     }
 
-    await db
-      .collection('users')
-      .doc(session.user.id)
-      .collection('telegramLink')
-      .doc('account')
-      .set({
+    const batch = db.batch()
+
+    // Save link under user profile
+    batch.set(
+      db
+        .collection('users')
+        .doc(session.user.id)
+        .collection('telegramLink')
+        .doc('account'),
+      {
         chatId: tokenData.chatId,
         username: '',
         linkedAt: FieldValue.serverTimestamp(),
-      })
+      },
+    )
 
-    await db.collection('telegramAuthTokens').doc(state).delete()
+    // Reverse-lookup for bot's is_already_linked check
+    batch.set(db.collection('telegramLinks').doc(tokenData.chatId), {
+      userId: session.user.id,
+      linkedAt: FieldValue.serverTimestamp(),
+    })
 
-    redirect('/auth/telegram/success')
+    // Delete consumed token
+    batch.delete(db.collection('telegramAuthTokens').doc(state))
+
+    await batch.commit()
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith('NEXT_REDIRECT')) {
-      throw error
-    }
     console.error('Error in telegram callback:', error)
     return NextResponse.json(
       { error: 'Erro interno no servidor' },
       { status: 500 },
     )
   }
+
+  redirect('/auth/telegram/success')
 }
