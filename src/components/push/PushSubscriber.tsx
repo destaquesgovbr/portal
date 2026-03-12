@@ -502,6 +502,29 @@ export default function PushSubscriber() {
               Selecione ao menos um filtro para ativar.
             </p>
           )}
+
+          {/* Clipping contextual banner */}
+          {!session ? (
+            <div className="mt-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              Para recursos avançados como Clipping,{' '}
+              <a
+                href="/api/auth/signin"
+                className="text-primary underline hover:no-underline"
+              >
+                faça login
+              </a>
+            </div>
+          ) : (
+            <div className="mt-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              Gerencie seus{' '}
+              <a
+                href="/minha-conta/clipping"
+                className="text-primary underline hover:no-underline"
+              >
+                Clippings →
+              </a>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>

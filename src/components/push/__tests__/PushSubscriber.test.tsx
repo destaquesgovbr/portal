@@ -3,9 +3,17 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from '@/__tests__/test-utils'
 
-// Mock next-auth/react
+// Mock next-auth/react — default to unauthenticated; tests can override
+let mockSession: {
+  data: { user: { id: string; name: string } } | null
+  status: string
+} = {
+  data: null,
+  status: 'unauthenticated',
+}
+
 vi.mock('next-auth/react', () => ({
-  useSession: () => ({ data: null, status: 'unauthenticated' }),
+  useSession: () => mockSession,
 }))
 
 // Mock sonner toast
@@ -71,6 +79,8 @@ function setupBrowserAPIs(
 
 describe('PushSubscriber', () => {
   beforeEach(() => {
+    // Reset to unauthenticated before each test
+    mockSession = { data: null, status: 'unauthenticated' }
     vi.resetModules()
     vi.stubEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY', 'test-vapid-key-base64url')
     vi.stubEnv('NEXT_PUBLIC_PUSH_WORKER_URL', 'https://push-worker.example.com')
@@ -270,6 +280,83 @@ describe('PushSubscriber', () => {
       expect(
         screen.getByText(/selecione ao menos um filtro/i),
       ).toBeInTheDocument()
+    })
+  })
+
+  it('shows Clipping promo banner for unauthenticated users', async () => {
+    mockSession = { data: null, status: 'unauthenticated' }
+    const PushSubscriber = (await import('../PushSubscriber')).default
+    const { user } = render(<PushSubscriber />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/para recursos avançados como clipping/i),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('link', { name: /faça login/i }),
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('shows Minha Conta link for authenticated users', async () => {
+    mockSession = {
+      data: { user: { id: 'user-123', name: 'João Silva' } },
+      status: 'authenticated',
+    }
+    const PushSubscriber = (await import('../PushSubscriber')).default
+    const { user } = render(<PushSubscriber />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/gerencie seus/i)).toBeInTheDocument()
+      expect(
+        screen.getByRole('link', { name: /clippings/i }),
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('banner contains correct links', async () => {
+    // Test unauthenticated link
+    mockSession = { data: null, status: 'unauthenticated' }
+    const PushSubscriberUnauth = (await import('../PushSubscriber')).default
+    const { user: userUnauth, unmount } = render(<PushSubscriberUnauth />)
+
+    await waitFor(() => expect(screen.getByRole('button')).toBeInTheDocument())
+    await userUnauth.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      const loginLink = screen.getByRole('link', { name: /faça login/i })
+      expect(loginLink).toHaveAttribute('href', '/api/auth/signin')
+    })
+
+    unmount()
+
+    // Test authenticated link
+    mockSession = {
+      data: { user: { id: 'user-123', name: 'João Silva' } },
+      status: 'authenticated',
+    }
+    vi.resetModules()
+    const PushSubscriberAuth = (await import('../PushSubscriber')).default
+    const { user: userAuth } = render(<PushSubscriberAuth />)
+
+    await waitFor(() => expect(screen.getByRole('button')).toBeInTheDocument())
+    await userAuth.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      const clippingLink = screen.getByRole('link', { name: /clippings/i })
+      expect(clippingLink).toHaveAttribute('href', '/minha-conta/clipping')
     })
   })
 })
