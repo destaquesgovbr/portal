@@ -38,6 +38,13 @@ export function ClippingListClient({ initialClippings }: Props) {
     }
   }
 
+  const handleSend = async (id: string) => {
+    const res = await fetch(`/api/clipping/${id}/send`, { method: 'POST' })
+    if (!res.ok) {
+      throw new Error(`Send failed: ${res.status}`)
+    }
+  }
+
   if (clippings.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center gap-6">
@@ -67,6 +74,7 @@ export function ClippingListClient({ initialClippings }: Props) {
           clipping={clipping}
           onDelete={handleDelete}
           onToggleActive={handleToggleActive}
+          onSend={handleSend}
         />
       ))}
     </div>

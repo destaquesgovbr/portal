@@ -1,8 +1,17 @@
 'use client'
 
-import { Bell, Mail, MessageCircle, Pencil, Trash2 } from 'lucide-react'
+import {
+  Bell,
+  Check,
+  Loader2,
+  Mail,
+  MessageCircle,
+  Pencil,
+  Send,
+  Trash2,
+} from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,14 +23,47 @@ import {
 } from '@/components/ui/card'
 import type { Clipping } from '@/types/clipping'
 
+type SendStatus = 'idle' | 'loading' | 'success' | 'error'
+
 type Props = {
   clipping: Clipping
   onDelete: (id: string) => void
   onToggleActive: (id: string, active: boolean) => void
+  onSend: (id: string) => Promise<void>
 }
 
-export function ClippingCard({ clipping, onDelete, onToggleActive }: Props) {
+export function ClippingCard({
+  clipping,
+  onDelete,
+  onToggleActive,
+  onSend,
+}: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [sendStatus, setSendStatus] = useState<SendStatus>('idle')
+
+  const hasChannels =
+    clipping.deliveryChannels.email ||
+    clipping.deliveryChannels.telegram ||
+    clipping.deliveryChannels.push
+
+  const canSend = clipping.active && hasChannels && sendStatus !== 'loading'
+
+  useEffect(() => {
+    if (sendStatus === 'success' || sendStatus === 'error') {
+      const timer = setTimeout(() => setSendStatus('idle'), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [sendStatus])
+
+  const handleSend = async () => {
+    setSendStatus('loading')
+    try {
+      await onSend(clipping.id)
+      setSendStatus('success')
+    } catch {
+      setSendStatus('error')
+    }
+  }
 
   return (
     <Card className="flex flex-col">
@@ -85,6 +127,34 @@ export function ClippingCard({ clipping, onDelete, onToggleActive }: Props) {
             className="text-xs cursor-pointer"
           >
             {clipping.active ? 'Desativar' : 'Ativar'}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleSend}
+            disabled={!canSend}
+            className="text-xs cursor-pointer"
+          >
+            {sendStatus === 'loading' && (
+              <>
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                Enviando...
+              </>
+            )}
+            {sendStatus === 'success' && (
+              <>
+                <Check className="h-3.5 w-3.5 mr-1" />
+                Enviado!
+              </>
+            )}
+            {sendStatus === 'error' && 'Erro'}
+            {sendStatus === 'idle' && (
+              <>
+                <Send className="h-3.5 w-3.5 mr-1" />
+                Enviar Agora
+              </>
+            )}
           </Button>
         </div>
 
