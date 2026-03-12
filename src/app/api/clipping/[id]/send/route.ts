@@ -1,3 +1,4 @@
+import { GoogleAuth } from 'google-auth-library'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getFirestoreDb } from '@/lib/firebase-admin'
@@ -19,8 +20,6 @@ async function callWorker(userId: string, clippingId: string) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
 
   if (!isLocal) {
-    // Service-to-service auth via google-auth-library (transitive dep of firebase-admin)
-    const { GoogleAuth } = await import('google-auth-library')
     const googleAuth = new GoogleAuth()
     const client = await googleAuth.getIdTokenClient(workerUrl)
     const tokenResponse = await client.getRequestHeaders()
