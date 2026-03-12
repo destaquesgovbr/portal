@@ -11,7 +11,6 @@ import { FeedLink } from '@/components/common/FeedLink'
 import { MarkdownRenderer } from '@/components/common/MarkdownRenderer'
 import type { AgencyOption } from '@/data/agencies-utils'
 import THEME_ICONS from '@/data/themes'
-import { getExcerpt } from '@/lib/utils'
 import { getArticles } from './actions'
 
 type ThemePageClientProps = {
@@ -208,7 +207,7 @@ export default function ThemePageClient({
                   theme={article.theme_1_level_3_label || ''}
                   date={article.published_at}
                   ref={index === articles.length - 1 ? ref : undefined}
-                  summary={getExcerpt(article.content || '', 150)}
+                  summary={article.summary || ''}
                   title={article.title || ''}
                   imageUrl={article.image || ''}
                   trackingOrigin="theme"

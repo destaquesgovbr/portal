@@ -16,10 +16,4 @@ export interface WindowWithAnalytics extends Window {
 /**
  * Valid tracking origins for article clicks
  */
-export type TrackingOrigin =
-  | 'home'
-  | 'search'
-  | 'theme'
-  | 'agency'
-  | 'articles'
-  | 'similar'
+export type TrackingOrigin = 'home' | 'search' | 'theme' | 'agency' | 'articles'
