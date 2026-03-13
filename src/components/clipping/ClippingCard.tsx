@@ -6,7 +6,9 @@ import {
   Loader2,
   Mail,
   MessageCircle,
+  MoreVertical,
   Pencil,
+  Power,
   Send,
   Trash2,
 } from 'lucide-react'
@@ -21,6 +23,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import type { Clipping } from '@/types/clipping'
 
 type SendStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -38,7 +47,6 @@ export function ClippingCard({
   onToggleActive,
   onSend,
 }: Props) {
-  const [confirmDelete, setConfirmDelete] = useState(false)
   const [sendStatus, setSendStatus] = useState<SendStatus>('idle')
 
   const hasChannels =
@@ -64,6 +72,29 @@ export function ClippingCard({
       setSendStatus('error')
     }
   }
+
+  const sendIcon = {
+    idle: <Send className="h-4 w-4" />,
+    loading: <Loader2 className="h-4 w-4 animate-spin" />,
+    success: <Check className="h-4 w-4 text-green-600" />,
+    error: <Send className="h-4 w-4 text-destructive" />,
+  }
+
+  const sendLabel = {
+    idle: 'Enviar Agora',
+    loading: 'Enviando...',
+    success: 'Enviado!',
+    error: 'Erro ao enviar',
+  }
+
+  const menuButtonColor =
+    sendStatus === 'success'
+      ? 'text-green-600'
+      : sendStatus === 'error'
+        ? 'text-destructive'
+        : sendStatus === 'loading'
+          ? 'text-[#1351b4]'
+          : ''
 
   return (
     <Card className="flex flex-col">
@@ -117,96 +148,64 @@ export function ClippingCard({
         </div>
       </CardContent>
 
-      <CardFooter className="flex flex-wrap items-center gap-2 mt-auto pt-3">
-        <div className="flex items-center gap-1 flex-1 min-w-0">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onToggleActive(clipping.id, !clipping.active)}
-            className="text-xs cursor-pointer"
-          >
-            {clipping.active ? 'Desativar' : 'Ativar'}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleSend}
-            disabled={!canSend}
-            className="text-xs cursor-pointer"
-          >
-            {sendStatus === 'loading' && (
-              <>
-                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                Enviando...
-              </>
-            )}
-            {sendStatus === 'success' && (
-              <>
-                <Check className="h-3.5 w-3.5 mr-1" />
-                Enviado!
-              </>
-            )}
-            {sendStatus === 'error' && 'Erro'}
-            {sendStatus === 'idle' && (
-              <>
-                <Send className="h-3.5 w-3.5 mr-1" />
-                Enviar Agora
-              </>
-            )}
-          </Button>
-        </div>
+      <CardFooter className="flex items-center justify-between mt-auto pt-3">
+        <Button
+          variant="outline"
+          size="sm"
+          asChild
+          className="cursor-pointer text-xs"
+        >
+          <Link href={`/minha-conta/clipping/${clipping.id}/editar`}>
+            <Pencil className="h-3.5 w-3.5 mr-1.5" />
+            Editar
+          </Link>
+        </Button>
 
-        <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="cursor-pointer"
-          >
-            <Link href={`/minha-conta/clipping/${clipping.id}/editar`}>
-              <Pencil className="h-3.5 w-3.5 mr-1" />
-              Editar
-            </Link>
-          </Button>
-
-          {confirmDelete ? (
-            <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={() => {
-                  onDelete(clipping.id)
-                  setConfirmDelete(false)
-                }}
-                className="cursor-pointer text-xs"
-              >
-                Confirmar
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setConfirmDelete(false)}
-                className="cursor-pointer text-xs"
-              >
-                Cancelar
-              </Button>
-            </div>
-          ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
-              type="button"
               variant="ghost"
-              size="sm"
-              onClick={() => setConfirmDelete(true)}
-              className="cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
+              size="icon"
+              className={`h-8 w-8 cursor-pointer ${menuButtonColor}`}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              {sendStatus !== 'idle' ? (
+                sendIcon[sendStatus]
+              ) : (
+                <MoreVertical className="h-4 w-4" />
+              )}
             </Button>
-          )}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem
+              onClick={handleSend}
+              disabled={!canSend}
+              className="cursor-pointer gap-2"
+            >
+              {sendIcon[sendStatus]}
+              {sendLabel[sendStatus]}
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              onClick={() => onToggleActive(clipping.id, !clipping.active)}
+              className="cursor-pointer gap-2"
+            >
+              <Power className="h-4 w-4" />
+              {clipping.active ? 'Desativar' : 'Ativar'}
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              onClick={() => onDelete(clipping.id)}
+              className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+              Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardFooter>
     </Card>
   )
