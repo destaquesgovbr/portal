@@ -66,6 +66,14 @@ export async function POST(request: Request, { params }: RouteParams) {
       )
     }
 
+    // Ensure user document has email (for existing users created before this field)
+    if (session.user.email) {
+      await db
+        .collection('users')
+        .doc(session.user.id)
+        .set({ email: session.user.email }, { merge: true })
+    }
+
     const result = await callWorker(session.user.id, id)
     return NextResponse.json(result)
   } catch (error) {

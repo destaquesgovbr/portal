@@ -69,13 +69,22 @@ export async function POST(request: Request) {
     }
 
     const payload = result.data
-    const docRef = await clippingsRef.add({
+    const userRef = db.collection('users').doc(session.user.id)
+    const clippingRef = clippingsRef.doc()
+
+    const batch = db.batch()
+    batch.set(userRef, { email: session.user.email }, { merge: true })
+    batch.set(clippingRef, {
       ...payload,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     })
+    await batch.commit()
 
-    return NextResponse.json({ id: docRef.id, ...payload }, { status: 201 })
+    return NextResponse.json(
+      { id: clippingRef.id, ...payload },
+      { status: 201 },
+    )
   } catch (error) {
     console.error('Error creating clipping:', error)
     return NextResponse.json(
