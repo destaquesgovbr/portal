@@ -48,6 +48,7 @@ export function ClippingCard({
   onSend,
 }: Props) {
   const [sendStatus, setSendStatus] = useState<SendStatus>('idle')
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const hasChannels =
     clipping.deliveryChannels.email ||
@@ -197,13 +198,34 @@ export function ClippingCard({
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem
-              onClick={() => onDelete(clipping.id)}
-              className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4" />
-              Excluir
-            </DropdownMenuItem>
+            {confirmDelete ? (
+              <>
+                <DropdownMenuItem
+                  onClick={() => {
+                    onDelete(clipping.id)
+                    setConfirmDelete(false)
+                  }}
+                  className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Confirmar exclusão
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setConfirmDelete(false)}
+                  className="cursor-pointer gap-2"
+                >
+                  Cancelar
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem
+                onClick={() => setConfirmDelete(true)}
+                className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4" />
+                Excluir
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </CardFooter>
