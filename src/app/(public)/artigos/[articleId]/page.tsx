@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import ClientArticle from '@/components/articles/ClientArticle'
-import { getArticleById } from './actions'
+import { getArticleById, getSimilarArticles } from './actions'
 
 interface Props {
   params: Promise<{ articleId: string }>
@@ -72,6 +72,14 @@ export default async function ArticlePage({ params }: Props) {
   const articleUrl = new URL(article.url || '', 'https://www.gov.br')
   const baseUrl = articleUrl.hostname.replace('www.', '')
   const pageUrl = `${process.env.NEXT_PUBLIC_SITE_URL!}/artigos/${article.unique_id}`
+  const similarArticles = await getSimilarArticles(article)
 
-  return <ClientArticle article={article} baseUrl={baseUrl} pageUrl={pageUrl} />
+  return (
+    <ClientArticle
+      article={article}
+      baseUrl={baseUrl}
+      pageUrl={pageUrl}
+      similarArticles={similarArticles}
+    />
+  )
 }

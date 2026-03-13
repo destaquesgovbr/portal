@@ -32,3 +32,30 @@ export const getArticleById = withResult(
   },
   {} as GetArticleError,
 )
+
+export async function getSimilarArticles(
+  article: ArticleRow,
+  limit = 4,
+): Promise<ArticleRow[]> {
+  const filters: string[] = [`unique_id:!=${article.unique_id}`]
+
+  if (article.most_specific_theme_code) {
+    filters.push(
+      `(theme_1_level_1_code:=${article.most_specific_theme_code} || theme_1_level_2_code:=${article.most_specific_theme_code} || theme_1_level_3_code:=${article.most_specific_theme_code})`,
+    )
+  } else if (article.theme_1_level_1_code) {
+    filters.push(`theme_1_level_1_code:=${article.theme_1_level_1_code}`)
+  }
+
+  const result = await typesense
+    .collections<ArticleRow>('news')
+    .documents()
+    .search({
+      q: '*',
+      filter_by: filters.join(' && '),
+      sort_by: 'published_at:desc',
+      limit,
+    })
+
+  return result.hits?.map((hit) => hit.document) ?? []
+}
