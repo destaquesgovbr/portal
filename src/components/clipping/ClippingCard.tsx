@@ -117,8 +117,8 @@ export function ClippingCard({
         </div>
       </CardContent>
 
-      <CardFooter className="flex items-center justify-between gap-2 mt-auto">
-        <div className="flex items-center gap-2">
+      <CardFooter className="flex flex-wrap items-center gap-2 mt-auto pt-3">
+        <div className="flex items-center gap-1 flex-1 min-w-0">
           <Button
             type="button"
             variant="ghost"
@@ -158,7 +158,7 @@ export function ClippingCard({
           </Button>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <Button
             variant="outline"
             size="sm"
