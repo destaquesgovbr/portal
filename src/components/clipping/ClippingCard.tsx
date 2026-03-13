@@ -143,7 +143,19 @@ export function ClippingCard({
           </div>
         </CardContent>
 
-        <CardFooter className="flex items-center justify-end mt-auto pt-3">
+        <CardFooter className="flex items-center justify-between mt-auto pt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="cursor-pointer text-xs"
+          >
+            <Link href={`/minha-conta/clipping/${clipping.id}/editar`}>
+              <Pencil className="h-3.5 w-3.5 mr-1.5" />
+              Editar
+            </Link>
+          </Button>
+
           {isPostSend ? (
             <Button
               variant="ghost"
@@ -179,13 +191,6 @@ export function ClippingCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem asChild className="cursor-pointer gap-2">
-                  <Link href={`/minha-conta/clipping/${clipping.id}/editar`}>
-                    <Pencil className="h-4 w-4" />
-                    Editar
-                  </Link>
-                </DropdownMenuItem>
-
                 <DropdownMenuItem
                   onClick={handleSend}
                   disabled={!canSend}
