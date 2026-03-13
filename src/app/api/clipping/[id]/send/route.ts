@@ -20,10 +20,15 @@ async function callWorker(userId: string, clippingId: string) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
 
   if (!isLocal) {
-    const googleAuth = new GoogleAuth()
-    const client = await googleAuth.getIdTokenClient(workerUrl)
-    const tokenResponse = await client.getRequestHeaders()
-    Object.assign(headers, tokenResponse)
+    const metadataUrl = `http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=${encodeURIComponent(workerUrl)}&format=full`
+    const tokenRes = await fetch(metadataUrl, {
+      headers: { 'Metadata-Flavor': 'Google' },
+    })
+    if (!tokenRes.ok) {
+      throw new Error(`Failed to get identity token: ${tokenRes.status}`)
+    }
+    const token = await tokenRes.text()
+    headers['Authorization'] = `Bearer ${token}`
   }
 
   const response = await fetch(url, { method: 'POST', headers, body })
