@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import NewsCard from '@/components/articles/NewsCard'
 import { VideoPlayer } from '@/components/articles/VideoPlayer'
+import { MarkdownRenderer } from '@/components/common/MarkdownRenderer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatDateTime } from '@/lib/utils'
@@ -167,16 +168,14 @@ export default function ClientArticle({
           )
         )}
 
-        {/* Resumo da notícia */}
-        {article.summary && (
-          <article className="prose prose-lg mx-auto max-w-3xl text-primary/90 leading-relaxed mb-10">
-            <p>{article.summary}</p>
-          </article>
-        )}
+        {/* Corpo do artigo */}
+        <article className="prose prose-lg mx-auto max-w-3xl text-primary/90 leading-relaxed article-content">
+          <MarkdownRenderer content={article.content ?? ''} />
+        </article>
 
         {/* Botão CTA para notícia original */}
         {article.url && (
-          <div className="flex justify-center mb-16">
+          <div className="flex justify-center my-12">
             <a href={article.url} target="_blank" rel="noopener noreferrer">
               <Button
                 size="lg"
@@ -239,6 +238,21 @@ export default function ClientArticle({
           <div>
             <strong>Fonte:</strong> {article.agency}
           </div>
+
+          {article.url && (
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Fonte oficial:</span>
+              <a
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+              >
+                {baseUrl}
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
 
           <p className="text-xs text-primary/60 pt-4">
             Esta notícia foi publicada no portal oficial do Governo Federal do
