@@ -1,5 +1,5 @@
 import { screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from '@/__tests__/test-utils'
 import type { ClippingPayload } from '@/types/clipping'
 import { ClippingWizard } from '../ClippingWizard'
@@ -98,12 +98,23 @@ vi.mock('../ChannelSelector', () => ({
 
 const defaultOnSubmit = vi.fn().mockResolvedValue(undefined)
 
-describe('ClippingWizard', () => {
-  it('renders step 1 initially', () => {
+async function fillRecorteAndName(user: ReturnType<typeof render>['user']) {
+  const recorteEditors = screen.getAllByTestId(/^recorte-editor-/)
+  const firstId = recorteEditors[0]
+    .getAttribute('data-testid')!
+    .replace('recorte-editor-', '')
+  await user.click(screen.getByTestId(`add-theme-${firstId}`))
+  const nameInput = screen.getByPlaceholderText(/nome do clipping/i)
+  await user.clear(nameInput)
+  await user.type(nameInput, 'Meu Clipping')
+}
+
+describe('ClippingWizard (3-step flow, prompt step hidden)', () => {
+  it('renders step 1 with 1/3 indicator', () => {
     render(
       <ClippingWizard onSubmit={defaultOnSubmit} themes={[]} agencies={[]} />,
     )
-    expect(screen.getByText(/1\/4/i)).toBeInTheDocument()
+    expect(screen.getByText(/1\/3/i)).toBeInTheDocument()
     expect(screen.getAllByText(/recortes/i).length).toBeGreaterThan(0)
   })
 
@@ -113,57 +124,36 @@ describe('ClippingWizard', () => {
     )
     const nextBtn = screen.getByRole('button', { name: /próximo/i })
     await user.click(nextBtn)
-    // Should still be on step 1
-    expect(screen.getByText(/1\/4/i)).toBeInTheDocument()
+    expect(screen.getByText(/1\/3/i)).toBeInTheDocument()
   })
 
-  it('advances through all 4 steps with valid data', async () => {
+  it('advances through all 3 steps with valid data', async () => {
     const { user } = render(
       <ClippingWizard onSubmit={defaultOnSubmit} themes={[]} agencies={[]} />,
     )
 
-    // Step 1: add a theme to the recorte
-    const recorteEditors = screen.getAllByTestId(/^recorte-editor-/)
-    const firstId = recorteEditors[0]
-      .getAttribute('data-testid')!
-      .replace('recorte-editor-', '')
-    await user.click(screen.getByTestId(`add-theme-${firstId}`))
+    await fillRecorteAndName(user)
 
-    // Also fill the name field
-    const nameInput = screen.getByPlaceholderText(/nome do clipping/i)
-    await user.clear(nameInput)
-    await user.type(nameInput, 'Meu Clipping')
-
-    // Advance to step 2
+    // Advance to step 2 (Horário)
     await user.click(screen.getByRole('button', { name: /próximo/i }))
-    expect(screen.getByText(/2\/4/i)).toBeInTheDocument()
+    expect(screen.getByText(/2\/3/i)).toBeInTheDocument()
+    expect(screen.getByTestId('schedule-select')).toBeInTheDocument()
 
-    // Advance to step 3
+    // Advance to step 3 (Canais)
     await user.click(screen.getByRole('button', { name: /próximo/i }))
-    expect(screen.getByText(/3\/4/i)).toBeInTheDocument()
-
-    // Advance to step 4
-    await user.click(screen.getByRole('button', { name: /próximo/i }))
-    expect(screen.getByText(/4\/4/i)).toBeInTheDocument()
+    expect(screen.getByText(/3\/3/i)).toBeInTheDocument()
+    expect(screen.getByTestId('channel-selector')).toBeInTheDocument()
   })
 
-  it('calls onSubmit with correct payload on step 4 confirm', async () => {
+  it('calls onSubmit with empty prompt when prompt step is hidden', async () => {
     const handleSubmit = vi.fn().mockResolvedValue(undefined)
     const { user } = render(
       <ClippingWizard onSubmit={handleSubmit} themes={[]} agencies={[]} />,
     )
 
-    // Step 1: add theme + name
-    const recorteEditors = screen.getAllByTestId(/^recorte-editor-/)
-    const firstId = recorteEditors[0]
-      .getAttribute('data-testid')!
-      .replace('recorte-editor-', '')
-    await user.click(screen.getByTestId(`add-theme-${firstId}`))
-    const nameInput = screen.getByPlaceholderText(/nome do clipping/i)
-    await user.clear(nameInput)
-    await user.type(nameInput, 'Meu Clipping Teste')
+    await fillRecorteAndName(user)
 
-    await user.click(screen.getByRole('button', { name: /próximo/i }))
+    // Navigate to Canais (2 clicks: Recortes → Horário → Canais)
     await user.click(screen.getByRole('button', { name: /próximo/i }))
     await user.click(screen.getByRole('button', { name: /próximo/i }))
 
@@ -175,10 +165,9 @@ describe('ClippingWizard', () => {
     await waitFor(() => {
       expect(handleSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: 'Meu Clipping Teste',
-          recortes: expect.arrayContaining([
-            expect.objectContaining({ themes: ['01'] }),
-          ]),
+          name: 'Meu Clipping',
+          prompt: '',
+          includeHistory: false,
         } as Partial<ClippingPayload>),
       )
     })
@@ -196,24 +185,14 @@ describe('ClippingWizard', () => {
       <ClippingWizard onSubmit={handleSubmit} themes={[]} agencies={[]} />,
     )
 
-    // Navigate to step 4 with valid data
-    const recorteEditors = screen.getAllByTestId(/^recorte-editor-/)
-    const firstId = recorteEditors[0]
-      .getAttribute('data-testid')!
-      .replace('recorte-editor-', '')
-    await user.click(screen.getByTestId(`add-theme-${firstId}`))
-    const nameInput = screen.getByPlaceholderText(/nome do clipping/i)
-    await user.clear(nameInput)
-    await user.type(nameInput, 'Clipping Loading Test')
+    await fillRecorteAndName(user)
 
-    await user.click(screen.getByRole('button', { name: /próximo/i }))
     await user.click(screen.getByRole('button', { name: /próximo/i }))
     await user.click(screen.getByRole('button', { name: /próximo/i }))
 
     await user.click(screen.getByTestId('channel-email'))
     await user.click(screen.getByRole('button', { name: /confirmar/i }))
 
-    // Should show loading indicator
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /confirmar/i })).toBeDisabled()
     })

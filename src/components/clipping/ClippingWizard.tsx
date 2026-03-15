@@ -17,7 +17,15 @@ import { PromptEditor } from './PromptEditor'
 import { RecorteEditor } from './RecorteEditor'
 import { ScheduleSelect } from './ScheduleSelect'
 
-const DEFAULT_PROMPT = `Consolide os artigos a seguir para o clipping "{clipping_name}".
+// NOTE: this prompt must be kept in sync with clipping worker consolidator.py DEFAULT_PROMPT
+const DEFAULT_PROMPT = `Consolide os artigos a seguir em um digest editorial para o clipping "{clipping_name}".
+
+Diretrizes:
+- Identifique os fios narrativos mais relevantes e agrupe os artigos por eles
+- Crie manchetes editoriais que revelem o significado, não que descrevam o fato
+- Nos resumos, cruze informações entre fontes e destaque implicações práticas
+- Use <em> para enfatizar datas, valores e fatos-chave
+- Inclua uma intro contextualizando os temas dominantes do período
 
 Artigos:
 {articles}`
@@ -52,8 +60,11 @@ type Props = {
   agencies: AgencyOption[]
 }
 
-const STEPS = ['Recortes', 'Prompt', 'Horário', 'Canais'] as const
-type Step = 0 | 1 | 2 | 3
+const SHOW_PROMPT_STEP = process.env.NEXT_PUBLIC_SHOW_PROMPT_STEP === 'true'
+
+const STEPS = SHOW_PROMPT_STEP
+  ? (['Recortes', 'Prompt', 'Horário', 'Canais'] as const)
+  : (['Recortes', 'Horário', 'Canais'] as const)
 
 export function ClippingWizard({
   initialData,
@@ -61,7 +72,7 @@ export function ClippingWizard({
   themes,
   agencies,
 }: Props) {
-  const [step, setStep] = useState<Step>(0)
+  const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -105,8 +116,10 @@ export function ClippingWizard({
     setRecortes((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
+  const currentStepLabel = STEPS[step]
+
   const validateStep = useCallback((): string | null => {
-    if (step === 0) {
+    if (currentStepLabel === 'Recortes') {
       if (!name.trim()) return 'Dê um nome ao seu clipping.'
       if (recortes.length === 0) return 'Adicione ao menos um recorte.'
       if (!recortes.some(hasAnyFilter))
@@ -114,7 +127,7 @@ export function ClippingWizard({
       if (estimatedTotal > MAX_DAILY_ARTICLES)
         return `Seus recortes retornam ~${estimatedTotal} notícias/dia. O limite é ${MAX_DAILY_ARTICLES}.`
     }
-    if (step === 3) {
+    if (currentStepLabel === 'Canais') {
       const anyEnabled =
         deliveryChannels.email ||
         deliveryChannels.telegram ||
@@ -122,7 +135,7 @@ export function ClippingWizard({
       if (!anyEnabled) return 'Selecione ao menos um canal de entrega.'
     }
     return null
-  }, [step, name, recortes, deliveryChannels, estimatedTotal])
+  }, [currentStepLabel, name, recortes, deliveryChannels, estimatedTotal])
 
   const handleNext = useCallback(() => {
     const err = validateStep()
@@ -131,12 +144,12 @@ export function ClippingWizard({
       return
     }
     setError(null)
-    if (step < 3) setStep((prev) => (prev + 1) as Step)
+    if (step < STEPS.length - 1) setStep((prev) => prev + 1)
   }, [step, validateStep])
 
   const handleBack = useCallback(() => {
     setError(null)
-    if (step > 0) setStep((prev) => (prev - 1) as Step)
+    if (step > 0) setStep((prev) => prev - 1)
   }, [step])
 
   const handleConfirm = useCallback(async () => {
@@ -151,12 +164,12 @@ export function ClippingWizard({
       await onSubmit({
         name,
         recortes,
-        prompt,
+        prompt: SHOW_PROMPT_STEP ? prompt : '',
         scheduleTime,
         deliveryChannels,
         active: initialData?.active ?? true,
         extraEmails,
-        includeHistory,
+        includeHistory: SHOW_PROMPT_STEP ? includeHistory : false,
       })
     } finally {
       setLoading(false)
@@ -210,8 +223,8 @@ export function ClippingWizard({
 
       {/* Step content */}
       <div className="min-h-[200px]">
-        {/* Step 1: Recortes */}
-        {step === 0 && (
+        {/* Step: Recortes */}
+        {currentStepLabel === 'Recortes' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Recortes</h2>
             {/* Estimation summary */}
@@ -274,8 +287,8 @@ export function ClippingWizard({
           </div>
         )}
 
-        {/* Step 2: Prompt */}
-        {step === 1 && (
+        {/* Step: Prompt (behind feature toggle) */}
+        {currentStepLabel === 'Prompt' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Prompt de resumo</h2>
             <p className="text-sm text-muted-foreground">
@@ -307,8 +320,8 @@ export function ClippingWizard({
           </div>
         )}
 
-        {/* Step 3: Horário */}
-        {step === 2 && (
+        {/* Step: Horário */}
+        {currentStepLabel === 'Horário' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Horário de envio</h2>
             <p className="text-sm text-muted-foreground">
@@ -320,8 +333,8 @@ export function ClippingWizard({
           </div>
         )}
 
-        {/* Step 4: Canais */}
-        {step === 3 && (
+        {/* Step: Canais */}
+        {currentStepLabel === 'Canais' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Canais de entrega</h2>
             <ChannelSelector
@@ -354,7 +367,7 @@ export function ClippingWizard({
           Voltar
         </Button>
 
-        {step < 3 ? (
+        {step < STEPS.length - 1 ? (
           <Button
             type="button"
             onClick={handleNext}
