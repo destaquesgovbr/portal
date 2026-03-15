@@ -72,6 +72,7 @@ export function ClippingWizard({
   themes,
   agencies,
 }: Props) {
+  const isEditing = !!initialData
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -152,8 +153,23 @@ export function ClippingWizard({
     if (step > 0) setStep((prev) => prev - 1)
   }, [step])
 
+  const validateAll = useCallback((): string | null => {
+    if (!name.trim()) return 'Dê um nome ao seu clipping.'
+    if (recortes.length === 0) return 'Adicione ao menos um recorte.'
+    if (!recortes.some(hasAnyFilter))
+      return 'Cada recorte precisa ter ao menos um filtro (tema, órgão ou palavra-chave).'
+    if (estimatedTotal > MAX_DAILY_ARTICLES)
+      return `Seus recortes retornam ~${estimatedTotal} notícias/dia. O limite é ${MAX_DAILY_ARTICLES}.`
+    const anyChannel =
+      deliveryChannels.email ||
+      deliveryChannels.telegram ||
+      deliveryChannels.push
+    if (!anyChannel) return 'Selecione ao menos um canal de entrega.'
+    return null
+  }, [name, recortes, deliveryChannels, estimatedTotal])
+
   const handleConfirm = useCallback(async () => {
-    const err = validateStep()
+    const err = isEditing ? validateAll() : validateStep()
     if (err) {
       setError(err)
       return
@@ -175,6 +191,8 @@ export function ClippingWizard({
       setLoading(false)
     }
   }, [
+    isEditing,
+    validateAll,
     validateStep,
     onSubmit,
     name,
@@ -194,17 +212,20 @@ export function ClippingWizard({
         <div className="flex items-center gap-2">
           {STEPS.map((label, i) => (
             <div key={label} className="flex items-center gap-2">
-              <div
+              <button
+                type="button"
+                onClick={() => isEditing && setStep(i)}
+                disabled={!isEditing}
                 className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
                   i < step
                     ? 'bg-primary text-primary-foreground'
                     : i === step
                       ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2'
                       : 'bg-muted text-muted-foreground'
-                }`}
+                } ${isEditing ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 hover:ring-offset-1' : ''}`}
               >
                 {i + 1}
-              </div>
+              </button>
               <span
                 className={`hidden sm:inline text-sm ${i === step ? 'font-semibold' : 'text-muted-foreground'}`}
               >
@@ -367,26 +388,41 @@ export function ClippingWizard({
           Voltar
         </Button>
 
-        {step < STEPS.length - 1 ? (
-          <Button
-            type="button"
-            onClick={handleNext}
-            disabled={loading}
-            className="cursor-pointer"
-          >
-            Próximo
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            onClick={handleConfirm}
-            disabled={loading}
-            className="cursor-pointer"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            Confirmar
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isEditing && step < STEPS.length - 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleConfirm}
+              disabled={loading}
+              className="cursor-pointer"
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Salvar
+            </Button>
+          )}
+
+          {step < STEPS.length - 1 ? (
+            <Button
+              type="button"
+              onClick={handleNext}
+              disabled={loading}
+              className="cursor-pointer"
+            >
+              Próximo
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={handleConfirm}
+              disabled={loading}
+              className="cursor-pointer"
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {isEditing ? 'Salvar' : 'Confirmar'}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   )
