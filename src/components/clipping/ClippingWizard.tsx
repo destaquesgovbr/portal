@@ -60,6 +60,7 @@ type Props = {
   onSubmit: (data: ClippingPayload) => Promise<void>
   themes: ThemeOption[]
   agencies: AgencyOption[]
+  hasTelegram?: boolean
 }
 
 const SHOW_PROMPT_STEP = process.env.NEXT_PUBLIC_SHOW_PROMPT_STEP === 'true'
@@ -75,6 +76,7 @@ export function ClippingWizard({
   onSubmit,
   themes,
   agencies,
+  hasTelegram = false,
 }: Props) {
   const { data: session } = useSession()
   const isEditing = !!initialData
@@ -420,7 +422,7 @@ export function ClippingWizard({
             <ChannelSelector
               value={deliveryChannels}
               onChange={setDeliveryChannels}
-              hasTelegram={false}
+              hasTelegram={hasTelegram}
               extraEmails={extraEmails}
               onExtraEmailsChange={setExtraEmails}
             />

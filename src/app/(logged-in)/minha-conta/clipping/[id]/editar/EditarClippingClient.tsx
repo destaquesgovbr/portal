@@ -11,9 +11,15 @@ type Props = {
   id: string
   agencies: AgencyOption[]
   themes: ThemeOption[]
+  hasTelegram: boolean
 }
 
-export function EditarClippingClient({ id, agencies, themes }: Props) {
+export function EditarClippingClient({
+  id,
+  agencies,
+  themes,
+  hasTelegram,
+}: Props) {
   const router = useRouter()
   const [clipping, setClipping] = useState<Clipping | null>(null)
   const [loading, setLoading] = useState(true)
@@ -94,6 +100,7 @@ export function EditarClippingClient({ id, agencies, themes }: Props) {
         onSubmit={handleSubmit}
         themes={themes}
         agencies={agencies}
+        hasTelegram={hasTelegram}
       />
     </main>
   )

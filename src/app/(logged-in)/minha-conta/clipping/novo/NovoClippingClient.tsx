@@ -9,9 +9,10 @@ import type { ClippingPayload } from '@/types/clipping'
 type Props = {
   agencies: AgencyOption[]
   themes: ThemeOption[]
+  hasTelegram: boolean
 }
 
-export function NovoClippingClient({ agencies, themes }: Props) {
+export function NovoClippingClient({ agencies, themes, hasTelegram }: Props) {
   const router = useRouter()
 
   const handleSubmit = async (data: ClippingPayload) => {
@@ -40,6 +41,7 @@ export function NovoClippingClient({ agencies, themes }: Props) {
         onSubmit={handleSubmit}
         themes={themes}
         agencies={agencies}
+        hasTelegram={hasTelegram}
       />
     </main>
   )

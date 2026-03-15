@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { useState } from 'react'
 import type { DeliveryChannels } from '@/types/clipping'
 import { ExtraEmailsInput } from './ExtraEmailsInput'
 
@@ -19,8 +19,25 @@ export function ChannelSelector({
   extraEmails,
   onExtraEmailsChange,
 }: Props) {
+  const [linkLoading, setLinkLoading] = useState(false)
+
   const toggle = (channel: keyof DeliveryChannels) => {
     onChange({ ...value, [channel]: !value[channel] })
+  }
+
+  const handleConnectTelegram = async () => {
+    setLinkLoading(true)
+    try {
+      const res = await fetch('/api/auth/telegram/initiate', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok || !data.url) {
+        alert(data.error ?? 'Erro ao gerar link do Telegram')
+        return
+      }
+      window.open(data.url, '_blank')
+    } finally {
+      setLinkLoading(false)
+    }
   }
 
   return (
@@ -73,12 +90,14 @@ export function ChannelSelector({
         {!hasTelegram && (
           <p className="text-xs text-muted-foreground pl-7">
             Vincule sua conta Telegram para ativar —{' '}
-            <Link
-              href="/api/auth/telegram?state=pending"
-              className="text-primary underline hover:no-underline"
+            <button
+              type="button"
+              onClick={handleConnectTelegram}
+              disabled={linkLoading}
+              className="text-primary underline hover:no-underline disabled:opacity-50 cursor-pointer"
             >
-              conectar Telegram
-            </Link>
+              {linkLoading ? 'Gerando link…' : 'conectar Telegram'}
+            </button>
           </p>
         )}
       </div>
