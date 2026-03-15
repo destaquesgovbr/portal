@@ -126,7 +126,7 @@ jobs:
             --platform managed \
             --service-account ${{ env.STAGING_SA }} \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=preview,AUTH_URL=${{ steps.check.outputs.url }},AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }},AUTH_GOOGLE_SECRET=${{ secrets.AUTH_GOOGLE_SECRET }},CLIPPING_WORKER_URL=${{ steps.clipping.outputs.url }}" \
+            --set-env-vars "NODE_ENV=preview,AUTH_URL=${{ steps.check.outputs.url }},AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }},AUTH_GOOGLE_SECRET=${{ secrets.AUTH_GOOGLE_SECRET }},CLIPPING_WORKER_URL=${{ steps.clipping.outputs.url }},TELEGRAM_BOT_USERNAME=destaquesgovbr_bot" \
             --set-secrets "AUTH_SECRET=auth-secret:latest" \
             --port 3000 \
             --memory 512Mi \
