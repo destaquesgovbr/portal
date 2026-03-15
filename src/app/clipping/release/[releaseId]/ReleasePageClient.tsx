@@ -37,19 +37,35 @@ export function ReleasePageClient({ release }: Props) {
     }
   }, [release])
 
-  // Auto-resize iframe to fit content
+  // Auto-resize iframe to fit content without scrollbar
   useEffect(() => {
     const iframe = iframeRef.current
     if (!iframe) return
 
+    const syncHeight = () => {
+      try {
+        const doc = iframe.contentDocument
+        if (doc?.body) {
+          setIframeHeight(doc.body.scrollHeight)
+        }
+      } catch {
+        // cross-origin — shouldn't happen with srcdoc
+      }
+    }
+
     const handleLoad = () => {
+      syncHeight()
+      // Watch for layout changes (images loading, fonts, etc.)
       try {
         const body = iframe.contentDocument?.body
         if (body) {
-          setIframeHeight(body.scrollHeight + 32)
+          const observer = new ResizeObserver(syncHeight)
+          observer.observe(body)
         }
       } catch {
-        // cross-origin restriction — shouldn't happen with srcdoc
+        // fallback: poll a few times
+        setTimeout(syncHeight, 500)
+        setTimeout(syncHeight, 1500)
       }
     }
 
@@ -93,7 +109,8 @@ export function ReleasePageClient({ release }: Props) {
         ref={iframeRef}
         srcDoc={release.digestHtml}
         title={`Clipping: ${release.clippingName}`}
-        className="w-full border-0"
+        scrolling="no"
+        className="w-full border-0 overflow-hidden"
         style={{ height: iframeHeight }}
       />
     </div>
