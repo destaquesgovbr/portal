@@ -215,7 +215,7 @@ export function ClippingCard({
                 {confirmDelete ? (
                   <>
                     <DropdownMenuItem
-                      onClick={() => {
+                      onSelect={() => {
                         onDelete(clipping.id)
                         setConfirmDelete(false)
                       }}
@@ -225,7 +225,10 @@ export function ClippingCard({
                       Confirmar exclusão
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => setConfirmDelete(false)}
+                      onSelect={(e) => {
+                        e.preventDefault()
+                        setConfirmDelete(false)
+                      }}
                       className="cursor-pointer gap-2"
                     >
                       Cancelar
@@ -233,7 +236,10 @@ export function ClippingCard({
                   </>
                 ) : (
                   <DropdownMenuItem
-                    onClick={() => setConfirmDelete(true)}
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setConfirmDelete(true)
+                    }}
                     className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
                   >
                     <Trash2 className="h-4 w-4" />
