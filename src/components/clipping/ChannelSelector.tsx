@@ -2,14 +2,23 @@
 
 import Link from 'next/link'
 import type { DeliveryChannels } from '@/types/clipping'
+import { ExtraEmailsInput } from './ExtraEmailsInput'
 
 type Props = {
   value: DeliveryChannels
   onChange: (v: DeliveryChannels) => void
   hasTelegram: boolean
+  extraEmails: string[]
+  onExtraEmailsChange: (emails: string[]) => void
 }
 
-export function ChannelSelector({ value, onChange, hasTelegram }: Props) {
+export function ChannelSelector({
+  value,
+  onChange,
+  hasTelegram,
+  extraEmails,
+  onExtraEmailsChange,
+}: Props) {
   const toggle = (channel: keyof DeliveryChannels) => {
     onChange({ ...value, [channel]: !value[channel] })
   }
@@ -36,6 +45,10 @@ export function ChannelSelector({ value, onChange, hasTelegram }: Props) {
           </p>
         </div>
       </label>
+
+      {value.email && (
+        <ExtraEmailsInput emails={extraEmails} onChange={onExtraEmailsChange} />
+      )}
 
       {/* Telegram */}
       <div className="space-y-1.5">

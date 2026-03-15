@@ -2,6 +2,10 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { ClippingPayloadSchema } from '@/lib/clipping-validation'
+import {
+  estimateTotalCount,
+  MAX_DAILY_ARTICLES,
+} from '@/lib/estimate-recorte-count'
 import { getFirestoreDb } from '@/lib/firebase-admin'
 
 const MAX_CLIPPINGS = 10
@@ -64,6 +68,16 @@ export async function POST(request: Request) {
     if (count >= MAX_CLIPPINGS) {
       return NextResponse.json(
         { error: `Limite máximo de ${MAX_CLIPPINGS} clippings atingido` },
+        { status: 400 },
+      )
+    }
+
+    const estimation = await estimateTotalCount(result.data.recortes)
+    if (estimation.total > MAX_DAILY_ARTICLES) {
+      return NextResponse.json(
+        {
+          error: `Recortes retornam ~${estimation.total} notícias/dia. Limite: ${MAX_DAILY_ARTICLES}`,
+        },
         { status: 400 },
       )
     }

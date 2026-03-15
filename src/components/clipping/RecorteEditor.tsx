@@ -1,6 +1,6 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { ExternalLink, X } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { AgencyMultiSelect } from '@/components/filters/AgencyMultiSelect'
 import { ThemeMultiSelect } from '@/components/filters/ThemeMultiSelect'
@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
+import { buildRecortePreviewUrl } from '@/lib/recorte-preview-url'
 import type { Recorte } from '@/types/clipping'
+import { ArticleCountBadge } from './ArticleCountBadge'
 
 type Props = {
   recorte: Recorte
@@ -18,6 +20,7 @@ type Props = {
   showRemove?: boolean
   themes: ThemeOption[]
   agencies: AgencyOption[]
+  estimatedCount?: number
 }
 
 export function RecorteEditor({
@@ -27,6 +30,7 @@ export function RecorteEditor({
   showRemove = true,
   themes,
   agencies,
+  estimatedCount,
 }: Props) {
   const [keywordInput, setKeywordInput] = useState('')
 
@@ -74,6 +78,12 @@ export function RecorteEditor({
 
   return (
     <div className="border border-border rounded-lg p-4 space-y-4 bg-card">
+      {estimatedCount !== undefined && (
+        <div className="flex justify-end">
+          <ArticleCountBadge count={estimatedCount} />
+        </div>
+      )}
+
       {/* Themes */}
       <div className="space-y-1.5">
         <p className="text-sm font-medium text-foreground">Temas</p>
@@ -134,6 +144,22 @@ export function RecorteEditor({
           </div>
         )}
       </div>
+
+      {/* Preview link */}
+      {(() => {
+        const previewUrl = buildRecortePreviewUrl(recorte)
+        return previewUrl ? (
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Ver notícias que combinam com este recorte
+          </a>
+        ) : null
+      })()}
 
       {/* Remove button */}
       {showRemove && (

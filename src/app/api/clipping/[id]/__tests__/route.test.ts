@@ -16,6 +16,13 @@ vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }))
 
+vi.mock('@/lib/estimate-recorte-count', () => ({
+  estimateTotalCount: vi
+    .fn()
+    .mockResolvedValue({ total: 50, perRecorte: [50] }),
+  MAX_DAILY_ARTICLES: 100,
+}))
+
 import { auth } from '@/auth'
 import { DELETE, PUT } from '../route'
 

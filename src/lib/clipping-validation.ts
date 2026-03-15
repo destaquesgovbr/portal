@@ -24,4 +24,6 @@ export const ClippingPayloadSchema = z.object({
     push: z.boolean(),
   }),
   active: z.boolean(),
+  extraEmails: z.array(z.string().email()).max(3).default([]),
+  includeHistory: z.boolean().optional().default(false),
 })

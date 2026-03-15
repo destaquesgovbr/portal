@@ -5,6 +5,8 @@ import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
+import { useRecorteEstimation } from '@/hooks/useRecorteEstimation'
+import { MAX_DAILY_ARTICLES } from '@/lib/estimate-recorte-count'
 import type {
   ClippingPayload,
   DeliveryChannels,
@@ -78,6 +80,18 @@ export function ClippingWizard({
       push: false,
     },
   )
+  const [extraEmails, setExtraEmails] = useState<string[]>(
+    initialData?.extraEmails ?? [],
+  )
+  const [includeHistory, setIncludeHistory] = useState(
+    initialData?.includeHistory ?? false,
+  )
+
+  const {
+    total: estimatedTotal,
+    perRecorte: estimatedPerRecorte,
+    loading: estimationLoading,
+  } = useRecorteEstimation(recortes)
 
   const addRecorte = useCallback(() => {
     setRecortes((prev) => [...prev, createRecorte()])
@@ -97,6 +111,8 @@ export function ClippingWizard({
       if (recortes.length === 0) return 'Adicione ao menos um recorte.'
       if (!recortes.some(hasAnyFilter))
         return 'Cada recorte precisa ter ao menos um filtro (tema, órgão ou palavra-chave).'
+      if (estimatedTotal > MAX_DAILY_ARTICLES)
+        return `Seus recortes retornam ~${estimatedTotal} notícias/dia. O limite é ${MAX_DAILY_ARTICLES}.`
     }
     if (step === 3) {
       const anyEnabled =
@@ -106,7 +122,7 @@ export function ClippingWizard({
       if (!anyEnabled) return 'Selecione ao menos um canal de entrega.'
     }
     return null
-  }, [step, name, recortes, deliveryChannels])
+  }, [step, name, recortes, deliveryChannels, estimatedTotal])
 
   const handleNext = useCallback(() => {
     const err = validateStep()
@@ -139,6 +155,8 @@ export function ClippingWizard({
         scheduleTime,
         deliveryChannels,
         active: initialData?.active ?? true,
+        extraEmails,
+        includeHistory,
       })
     } finally {
       setLoading(false)
@@ -152,6 +170,8 @@ export function ClippingWizard({
     scheduleTime,
     deliveryChannels,
     initialData?.active,
+    extraEmails,
+    includeHistory,
   ])
 
   return (
@@ -194,6 +214,26 @@ export function ClippingWizard({
         {step === 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Recortes</h2>
+            {/* Estimation summary */}
+            {(estimatedTotal > 0 || estimationLoading) && (
+              <div
+                className={`text-sm px-3 py-2 rounded-md ${
+                  estimatedTotal > MAX_DAILY_ARTICLES
+                    ? 'text-destructive bg-destructive/10'
+                    : estimatedTotal < 10 && estimatedTotal > 0
+                      ? 'text-yellow-700 bg-yellow-50'
+                      : 'text-muted-foreground bg-muted/50'
+                }`}
+              >
+                {estimationLoading
+                  ? 'Estimando notícias...'
+                  : estimatedTotal > MAX_DAILY_ARTICLES
+                    ? `~${estimatedTotal} notícias/dia estimadas — limite máximo é ${MAX_DAILY_ARTICLES}`
+                    : estimatedTotal < 10 && estimatedTotal > 0
+                      ? `~${estimatedTotal} notícias/dia estimadas — considere ampliar os filtros`
+                      : `~${estimatedTotal} notícias/dia estimadas`}
+              </div>
+            )}
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="clipping-name">
                 Nome do Clipping
@@ -217,6 +257,7 @@ export function ClippingWizard({
                   showRemove={recortes.length > 1}
                   themes={themes}
                   agencies={agencies}
+                  estimatedCount={estimatedPerRecorte[index]}
                 />
               ))}
             </div>
@@ -245,6 +286,24 @@ export function ClippingWizard({
               onChange={setPrompt}
               defaultPrompt={DEFAULT_PROMPT}
             />
+            <div className="flex items-center gap-3 pt-4 border-t border-border">
+              <input
+                type="checkbox"
+                id="include-history"
+                checked={includeHistory}
+                onChange={(e) => setIncludeHistory(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+              />
+              <label htmlFor="include-history" className="cursor-pointer">
+                <span className="text-sm font-medium">
+                  Incluir histórico de edições anteriores
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  Quando ativado, edições anteriores são usadas como referência
+                  para criar continuidade narrativa entre os resumos.
+                </p>
+              </label>
+            </div>
           </div>
         )}
 
@@ -269,6 +328,8 @@ export function ClippingWizard({
               value={deliveryChannels}
               onChange={setDeliveryChannels}
               hasTelegram={false}
+              extraEmails={extraEmails}
+              onExtraEmailsChange={setExtraEmails}
             />
           </div>
         )}

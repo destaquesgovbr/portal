@@ -77,6 +77,8 @@ export function EditarClippingClient({ id, agencies, themes }: Props) {
     scheduleTime: clipping.scheduleTime,
     deliveryChannels: clipping.deliveryChannels,
     active: clipping.active,
+    extraEmails: clipping.extraEmails ?? [],
+    includeHistory: clipping.includeHistory ?? false,
   }
 
   return (

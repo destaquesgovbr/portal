@@ -2,6 +2,10 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { ClippingPayloadSchema } from '@/lib/clipping-validation'
+import {
+  estimateTotalCount,
+  MAX_DAILY_ARTICLES,
+} from '@/lib/estimate-recorte-count'
 import { getFirestoreDb } from '@/lib/firebase-admin'
 
 type RouteParams = { params: Promise<{ id: string }> }
@@ -39,6 +43,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
       )
     }
 
+    const estimation = await estimateTotalCount(result.data.recortes)
+    if (estimation.total > MAX_DAILY_ARTICLES) {
+      return NextResponse.json(
+        {
+          error: `Recortes retornam ~${estimation.total} notícias/dia. Limite: ${MAX_DAILY_ARTICLES}`,
+        },
+        { status: 400 },
+      )
+    }
+
     const payload = result.data
     await docRef.update({
       ...payload,
@@ -55,7 +69,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(_request: Request, { params }: RouteParams) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })

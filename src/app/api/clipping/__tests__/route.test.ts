@@ -2,24 +2,38 @@ import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock firebase-admin
-const mockGet = vi.fn()
+const _mockGet = vi.fn()
 const mockAdd = vi.fn()
-const mockOrderBy = vi.fn()
-const mockLimit = vi.fn()
-const mockWhere = vi.fn()
+const _mockOrderBy = vi.fn()
+const _mockLimit = vi.fn()
+const _mockWhere = vi.fn()
 const mockCollection = vi.fn()
-const mockDoc = vi.fn()
-const mockCount = vi.fn()
-const mockGetCount = vi.fn()
+const _mockDoc = vi.fn()
+const _mockCount = vi.fn()
+const _mockGetCount = vi.fn()
+
+const mockBatchSet = vi.fn()
+const mockBatchCommit = vi.fn().mockResolvedValue(undefined)
 
 vi.mock('@/lib/firebase-admin', () => ({
   getFirestoreDb: vi.fn(() => ({
     collection: mockCollection,
+    batch: vi.fn(() => ({
+      set: mockBatchSet,
+      commit: mockBatchCommit,
+    })),
   })),
 }))
 
 vi.mock('@/auth', () => ({
   auth: vi.fn(),
+}))
+
+vi.mock('@/lib/estimate-recorte-count', () => ({
+  estimateTotalCount: vi
+    .fn()
+    .mockResolvedValue({ total: 50, perRecorte: [50] }),
+  MAX_DAILY_ARTICLES: 100,
 }))
 
 import { auth } from '@/auth'
@@ -136,19 +150,19 @@ describe('POST /api/clipping', () => {
     const newDocRef = { id: 'new-clip-id' }
     mockAdd.mockResolvedValue(newDocRef)
 
-    const chain = {
-      collection: vi.fn().mockReturnThis(),
-      doc: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      get: vi.fn().mockResolvedValue({ size: 0 }),
-      add: mockAdd,
+    const clippingsRef = {
+      doc: vi.fn().mockReturnValue({ id: 'new-clip-id' }),
       count: vi.fn().mockReturnValue({
         get: vi.fn().mockResolvedValue({ data: () => ({ count: 0 }) }),
       }),
     }
-    mockCollection.mockReturnValue(chain)
+    const userDocRef = {
+      collection: vi.fn().mockReturnValue(clippingsRef),
+    }
+    const usersCollectionRef = {
+      doc: vi.fn().mockReturnValue(userDocRef),
+    }
+    mockCollection.mockReturnValue(usersCollectionRef)
 
     const request = new NextRequest('http://localhost/api/clipping', {
       method: 'POST',
