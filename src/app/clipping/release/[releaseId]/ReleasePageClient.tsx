@@ -1,7 +1,7 @@
 'use client'
 
 import { Download, Share2 } from 'lucide-react'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { Release } from '@/types/clipping'
 
@@ -10,8 +10,14 @@ type Props = {
 }
 
 export function ReleasePageClient({ release }: Props) {
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [iframeHeight, setIframeHeight] = useState(800)
+
   const handlePrint = useCallback(() => {
-    window.print()
+    const iframe = iframeRef.current
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.print()
+    }
   }, [])
 
   const handleShare = useCallback(async () => {
@@ -30,6 +36,26 @@ export function ReleasePageClient({ release }: Props) {
       await navigator.clipboard.writeText(release.releaseUrl)
     }
   }, [release])
+
+  // Auto-resize iframe to fit content
+  useEffect(() => {
+    const iframe = iframeRef.current
+    if (!iframe) return
+
+    const handleLoad = () => {
+      try {
+        const body = iframe.contentDocument?.body
+        if (body) {
+          setIframeHeight(body.scrollHeight + 32)
+        }
+      } catch {
+        // cross-origin restriction — shouldn't happen with srcdoc
+      }
+    }
+
+    iframe.addEventListener('load', handleLoad)
+    return () => iframe.removeEventListener('load', handleLoad)
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -62,11 +88,13 @@ export function ReleasePageClient({ release }: Props) {
         </div>
       </div>
 
-      {/* Rendered digest HTML — trusted content from our own digest_renderer */}
-      <div
-        className="release-content"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: server-rendered HTML from our worker
-        dangerouslySetInnerHTML={{ __html: release.digestHtml }}
+      {/* Rendered digest HTML in isolated iframe to prevent CSS leaks */}
+      <iframe
+        ref={iframeRef}
+        srcDoc={release.digestHtml}
+        title={`Clipping: ${release.clippingName}`}
+        className="w-full border-0"
+        style={{ height: iframeHeight }}
       />
     </div>
   )
