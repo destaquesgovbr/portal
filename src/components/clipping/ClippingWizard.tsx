@@ -17,10 +17,10 @@ import { PromptEditor } from './PromptEditor'
 import { RecorteEditor } from './RecorteEditor'
 import { ScheduleSelect } from './ScheduleSelect'
 
-const DEFAULT_PROMPT = `Você é um assistente que consolida notícias do governo brasileiro.
-A seguir estão artigos publicados nas últimas horas para o clipping "{clipping_name}".
-Faça um resumo executivo em português, estruturado por tópico, destacando pontos de atenção e decisões relevantes.
-Seja conciso (máximo 400 palavras). Use bullet points por tema. Inclua a fonte (órgão) de cada ponto.`
+const DEFAULT_PROMPT = `Consolide os artigos a seguir para o clipping "{clipping_name}".
+
+Artigos:
+{articles}`
 
 let _recorteCounter = 0
 function createRecorte(): Recorte {
