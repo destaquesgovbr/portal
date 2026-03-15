@@ -201,7 +201,7 @@ export function ClippingWizard({
       body: JSON.stringify({
         endpoint: sub.endpoint,
         keys: sub.keys,
-        filters: {},
+        filters: [],
         user_id: session?.user?.id ?? null,
       }),
     })
