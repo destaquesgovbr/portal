@@ -1,12 +1,14 @@
 'use client'
 
 import { Loader2, Plus } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
 import { useRecorteEstimation } from '@/hooks/useRecorteEstimation'
 import { MAX_DAILY_ARTICLES } from '@/lib/estimate-recorte-count'
+import { urlBase64ToUint8Array } from '@/lib/push-utils'
 import type {
   ClippingPayload,
   DeliveryChannels,
@@ -61,6 +63,8 @@ type Props = {
 }
 
 const SHOW_PROMPT_STEP = process.env.NEXT_PUBLIC_SHOW_PROMPT_STEP === 'true'
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
+const PUSH_WORKER_URL = process.env.NEXT_PUBLIC_PUSH_WORKER_URL || ''
 
 const STEPS = SHOW_PROMPT_STEP
   ? (['Recortes', 'Prompt', 'Horário', 'Canais'] as const)
@@ -72,6 +76,7 @@ export function ClippingWizard({
   themes,
   agencies,
 }: Props) {
+  const { data: session } = useSession()
   const isEditing = !!initialData
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -168,6 +173,44 @@ export function ClippingWizard({
     return null
   }, [name, recortes, deliveryChannels, estimatedTotal])
 
+  const ensurePushSubscription = useCallback(async () => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      throw new Error('Seu navegador não suporta notificações push.')
+    }
+    if (!VAPID_PUBLIC_KEY || !PUSH_WORKER_URL) {
+      throw new Error('Notificações push não estão configuradas no servidor.')
+    }
+
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') {
+      throw new Error(
+        'Permissão de notificação negada. Ative nas configurações do navegador.',
+      )
+    }
+
+    const registration = await navigator.serviceWorker.ready
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    })
+
+    const sub = subscription.toJSON()
+    const response = await fetch(`${PUSH_WORKER_URL}/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        endpoint: sub.endpoint,
+        keys: sub.keys,
+        filters: {},
+        user_id: session?.user?.id ?? null,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Falha ao registrar notificação push no servidor.')
+    }
+  }, [session])
+
   const handleConfirm = useCallback(async () => {
     const err = isEditing ? validateAll() : validateStep()
     if (err) {
@@ -177,6 +220,21 @@ export function ClippingWizard({
     setError(null)
     setLoading(true)
     try {
+      // Request push permission and register subscription if push is enabled
+      if (deliveryChannels.push) {
+        try {
+          await ensurePushSubscription()
+        } catch (pushErr) {
+          setError(
+            pushErr instanceof Error
+              ? pushErr.message
+              : 'Erro ao ativar notificações push.',
+          )
+          setLoading(false)
+          return
+        }
+      }
+
       await onSubmit({
         name,
         recortes,
@@ -194,6 +252,7 @@ export function ClippingWizard({
     isEditing,
     validateAll,
     validateStep,
+    ensurePushSubscription,
     onSubmit,
     name,
     recortes,

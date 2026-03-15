@@ -2,6 +2,11 @@ import { screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from '@/__tests__/test-utils'
 import type { ClippingPayload } from '@/types/clipping'
+
+vi.mock('next-auth/react', () => ({
+  useSession: vi.fn(() => ({ data: { user: { id: 'test-user' } } })),
+}))
+
 import { ClippingWizard } from '../ClippingWizard'
 
 // Mock child components
