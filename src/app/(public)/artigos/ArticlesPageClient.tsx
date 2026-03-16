@@ -9,7 +9,6 @@ import { ArticleFilters } from '@/components/articles/ArticleFilters'
 import NewsCard from '@/components/articles/NewsCard'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
-import { getExcerpt } from '@/lib/utils'
 import { getArticles, type TagFacet } from './actions'
 
 type ArticlesPageClientProps = {
@@ -254,7 +253,7 @@ export default function ArticlesPageClient({
                   theme={article.theme_1_level_3_label || ''}
                   date={article.published_at}
                   ref={index === articles.length - 1 ? ref : undefined}
-                  summary={getExcerpt(article.content || '', 150)}
+                  summary={article.summary || ''}
                   title={article.title || ''}
                   imageUrl={article.image || ''}
                   trackingOrigin="articles"
