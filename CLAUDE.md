@@ -662,6 +662,11 @@ Use comentários descritivos para seções da página:
 }
 ```
 
+### Git Flow
+
+- **Branches**: `main` (produção) ← `development` (staging) ← `feat/*` (features)
+- **PRs**: Sempre direcionar para `development` primeiro (staging). Após validação, merge de `development` → `main` para produção.
+
 ### Git Commits
 
 - **Idioma**: Português
