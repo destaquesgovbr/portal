@@ -5,6 +5,7 @@ interface MockSession {
     id: string
     name: string
     email: string
+    roles: string[]
   }
 }
 
@@ -16,6 +17,7 @@ export function mockAuthenticated(
       id: 'user-123',
       name: 'Test User',
       email: 'test@example.com',
+      roles: [],
       ...overrides,
     },
   }
@@ -28,6 +30,7 @@ export function mockAdmin(
     id: 'admin-123',
     name: 'Admin User',
     email: 'admin@example.com',
+    roles: ['admin'],
     ...overrides,
   })
 }

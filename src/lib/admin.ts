@@ -9,7 +9,13 @@ function getAdminEmails(): string[] {
 
 export async function isAdmin(): Promise<boolean> {
   const session = await auth()
-  if (!session?.user?.email) return false
+  if (!session?.user) return false
+
+  // Keycloak realm role
+  if (session.user.roles?.includes('admin')) return true
+
+  // Fallback: env var (para dev local sem Keycloak)
+  if (!session.user.email) return false
   const adminEmails = getAdminEmails()
   return adminEmails.includes(session.user.email)
 }
@@ -17,8 +23,4 @@ export async function isAdmin(): Promise<boolean> {
 export async function requireAdmin(): Promise<void> {
   const admin = await isAdmin()
   if (!admin) throw new Error('Unauthorized')
-}
-
-export function isAdminEmail(email: string): boolean {
-  return getAdminEmails().includes(email)
 }

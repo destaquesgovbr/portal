@@ -108,8 +108,8 @@ jobs:
             --platform managed \
             --service-account ${{ env.STAGING_SA }} \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=preview,AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }},AUTH_GOOGLE_SECRET=${{ secrets.AUTH_GOOGLE_SECRET }}" \
-            --set-secrets "AUTH_SECRET=auth-secret:latest" \
+            --set-env-vars "NODE_ENV=preview,AUTH_GOVBR_ID=portal-preview,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=google" \
+            --set-secrets "AUTH_SECRET=auth-secret:latest,AUTH_GOVBR_SECRET=keycloak-portal-preview-client-secret:latest" \
             --port 3000 \
             --memory 512Mi \
             --cpu 1 \
