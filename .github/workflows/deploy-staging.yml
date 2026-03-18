@@ -63,8 +63,8 @@ jobs:
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=staging,AUTH_GOVBR_ID=portal,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=google" \
-            --set-secrets "AUTH_SECRET=auth-secret:latest,AUTH_GOVBR_SECRET=keycloak-portal-client-secret:latest" \
+            --set-env-vars "NODE_ENV=staging,AUTH_GOVBR_ID=portal,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=google,EMBEDDINGS_API_URL=https://destaquesgovbr-embeddings-api-klvx64dufq-rj.a.run.app" \
+            --set-secrets "AUTH_SECRET=auth-secret:latest,AUTH_GOVBR_SECRET=keycloak-portal-client-secret:latest,EMBEDDINGS_API_KEY=embeddings-api-key:latest" \
             --quiet
 
       - name: Set AUTH_URL
