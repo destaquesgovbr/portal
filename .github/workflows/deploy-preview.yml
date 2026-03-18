@@ -120,19 +120,16 @@ jobs:
 
       - name: Set AUTH_URL
         run: |
-          URL=$(gcloud run services describe ${{ steps.slug.outputs.service }} \
-            --region ${{ env.REGION }} \
-            --format 'value(status.url)')
+          # Usa o formato 990583792367 que já está nos redirect URIs do Keycloak
+          AUTH_URL="https://${{ steps.slug.outputs.service }}-990583792367.${{ env.REGION }}.run.app"
           gcloud run services update ${{ steps.slug.outputs.service }} \
             --region ${{ env.REGION }} \
-            --update-env-vars "AUTH_URL=$URL" \
+            --update-env-vars "AUTH_URL=$AUTH_URL" \
             --quiet
 
       - name: Show deployment URL
         run: |
-          URL=$(gcloud run services describe ${{ steps.slug.outputs.service }} \
-            --region ${{ env.REGION }} \
-            --format 'value(status.url)')
+          URL="https://${{ steps.slug.outputs.service }}-990583792367.${{ env.REGION }}.run.app"
           echo "## Preview Deployment" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| | |" >> "$GITHUB_STEP_SUMMARY"
