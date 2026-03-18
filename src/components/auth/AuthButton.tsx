@@ -2,8 +2,7 @@
 
 import { LogIn, LogOut, Ticket } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { signOut, useSession } from 'next-auth/react'
+import { signIn, signOut, useSession } from 'next-auth/react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +14,6 @@ import {
 
 export function AuthButton() {
   const { data: session, status } = useSession()
-  const router = useRouter()
 
   // SessionProvider returns status "unauthenticated" with no session
   // when no providers are configured — no need for an extra fetch
@@ -28,7 +26,7 @@ export function AuthButton() {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => router.push('/convite')}
+        onClick={() => signIn(undefined, { callbackUrl: '/auth/postlogin' })}
         className="gap-2 cursor-pointer"
       >
         <LogIn className="h-4 w-4" />

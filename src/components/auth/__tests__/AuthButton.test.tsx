@@ -36,7 +36,8 @@ describe('AuthButton', () => {
     expect(document.querySelector('.animate-pulse')).toBeTruthy()
   })
 
-  it('redirects to /convite when clicking Entrar (unauthenticated)', async () => {
+  it('calls signIn with postlogin callback when clicking Entrar (unauthenticated)', async () => {
+    const { signIn } = await import('next-auth/react')
     vi.mocked(useSession).mockReturnValue({
       data: null,
       status: 'unauthenticated',
@@ -48,7 +49,9 @@ describe('AuthButton', () => {
     const button = screen.getByRole('button', { name: /entrar/i })
     await user.click(button)
 
-    expect(mockPush).toHaveBeenCalledWith('/convite')
+    expect(signIn).toHaveBeenCalledWith(undefined, {
+      callbackUrl: '/auth/postlogin',
+    })
   })
 
   it('shows user avatar when authenticated', () => {

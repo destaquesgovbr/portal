@@ -2,6 +2,8 @@
 
 import { auth } from '@/auth'
 import { requireAdmin } from '@/lib/admin'
+import { sendEmail } from '@/lib/email'
+import { renderWaitlistApprovalEmail } from '@/lib/email-templates'
 import { getFirestoreDb } from '@/lib/firebase-admin'
 import { generateInviteCode } from '@/lib/invite'
 import { ResultError, withResult } from '@/lib/result'
@@ -81,6 +83,24 @@ export const approveEntry = withResult(
     })
 
     await batch.commit()
+
+    const data = entryDoc.data()!
+    try {
+      const html = renderWaitlistApprovalEmail({
+        name: (data.name as string) ?? undefined,
+        code,
+        portalUrl:
+          process.env.AUTH_URL ?? 'https://destaquesgovbr.gov.br',
+      })
+      await sendEmail({
+        to: data.email as string,
+        subject: 'Seu acesso ao Destaques Gov.br foi aprovado!',
+        html,
+      })
+    } catch (error) {
+      console.error('[waitlist] Failed to send approval email:', error)
+    }
+
     return code
   },
 )
