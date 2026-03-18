@@ -22,7 +22,7 @@ export function buildFilterBy(
 
   if (recorte.agencies.length > 0) {
     const agencyConditions = recorte.agencies
-      .map((a) => `agency_key:=${a}`)
+      .map((a) => `agency:=${a}`)
       .join(' || ')
     parts.push(`(${agencyConditions})`)
   }
