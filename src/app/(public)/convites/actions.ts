@@ -1,6 +1,7 @@
 'use server'
 
 import { auth } from '@/auth'
+import { isAdmin } from '@/lib/admin'
 import { getFirestoreDb } from '@/lib/firebase-admin'
 import { generateInviteCode } from '@/lib/invite'
 import { ResultError, withResult } from '@/lib/result'
@@ -23,6 +24,7 @@ export const getUserInvites = withResult(async (): Promise<UserInvitesData> => {
   const userDoc = await db.collection('users').doc(session.user.id).get()
   const userData = userDoc.data()
   const inviteCount = (userData?.inviteCount as number) ?? 0
+  const admin = await isAdmin()
 
   const codesSnapshot = await db
     .collection('inviteCodes')
@@ -44,7 +46,7 @@ export const getUserInvites = withResult(async (): Promise<UserInvitesData> => {
 
   return {
     inviteCount,
-    maxInvites: MAX_INVITES_PER_USER,
+    maxInvites: admin ? Infinity : MAX_INVITES_PER_USER,
     codes,
   }
 })
@@ -61,8 +63,9 @@ export const createInviteCode = withResult(async (): Promise<string> => {
   const userDoc = await userRef.get()
   const userData = userDoc.data()
   const currentCount = (userData?.inviteCount as number) ?? 0
+  const admin = await isAdmin()
 
-  if (currentCount >= MAX_INVITES_PER_USER) {
+  if (!admin && currentCount >= MAX_INVITES_PER_USER) {
     throw new ResultError(
       `Você já atingiu o limite de ${MAX_INVITES_PER_USER} convites`,
     )

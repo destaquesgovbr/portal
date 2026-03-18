@@ -43,6 +43,7 @@ export function ConvitesClient({ initialData }: ConvitesClientProps) {
       <CardContent className="space-y-6">
         <GenerateInviteButton
           currentCount={initialData.inviteCount}
+          maxInvites={initialData.maxInvites}
           onGenerate={createInviteCode}
           onSuccess={() => router.refresh()}
         />

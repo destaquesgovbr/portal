@@ -4,21 +4,23 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { MAX_INVITES_PER_USER } from '@/types/invite'
 
 interface GenerateInviteButtonProps {
   currentCount: number
+  maxInvites: number
   onGenerate: () => Promise<{ type: string; data?: string; error?: unknown }>
   onSuccess?: () => void
 }
 
 export function GenerateInviteButton({
   currentCount,
+  maxInvites,
   onGenerate,
   onSuccess,
 }: GenerateInviteButtonProps) {
   const [isPending, setIsPending] = useState(false)
-  const remaining = MAX_INVITES_PER_USER - currentCount
+  const unlimited = !Number.isFinite(maxInvites)
+  const remaining = unlimited ? Infinity : maxInvites - currentCount
   const isDisabled = remaining <= 0 || isPending
 
   async function handleClick() {
@@ -43,7 +45,9 @@ export function GenerateInviteButton({
         {isPending ? 'Gerando...' : 'Gerar Convite'}
       </Button>
       <span className="text-sm text-muted-foreground">
-        {remaining} de {MAX_INVITES_PER_USER} restantes
+        {unlimited
+          ? `${currentCount} gerados`
+          : `${remaining} de ${maxInvites} restantes`}
       </span>
     </div>
   )
