@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import NewsCard from '@/components/articles/NewsCard'
 import { VideoPlayer } from '@/components/articles/VideoPlayer'
 import { MarkdownRenderer } from '@/components/common/MarkdownRenderer'
 import { Badge } from '@/components/ui/badge'
@@ -21,12 +22,15 @@ export default function ClientArticle({
   article,
   baseUrl,
   pageUrl,
+  similarArticles,
 }: {
   article: ArticleRow
   baseUrl: string
   pageUrl: string
+  similarArticles: ArticleRow[]
 }) {
   const [copied, setCopied] = useState(false)
+  const [coverImageBroken, setCoverImageBroken] = useState(false)
 
   // Check if the cover image appears in the article body
   const isImageInBody = useMemo(() => {
@@ -149,7 +153,8 @@ export default function ClientArticle({
         ) : (
           /* Imagem de capa - only show if image is NOT repeated in body */
           article.image &&
-          !isImageInBody && (
+          !isImageInBody &&
+          !coverImageBroken && (
             <div className="mb-12">
               <img
                 src={article.image}
@@ -157,6 +162,7 @@ export default function ClientArticle({
                 width={992}
                 height={384}
                 className="w-full h-64 md:h-96 object-cover rounded-lg shadow-md"
+                onError={() => setCoverImageBroken(true)}
               />
             </div>
           )
@@ -166,6 +172,21 @@ export default function ClientArticle({
         <article className="prose prose-lg mx-auto max-w-3xl text-primary/90 leading-relaxed article-content">
           <MarkdownRenderer content={article.content ?? ''} />
         </article>
+
+        {/* Botão CTA para notícia original */}
+        {article.url && (
+          <div className="flex justify-center my-12">
+            <a href={article.url} target="_blank" rel="noopener noreferrer">
+              <Button
+                size="lg"
+                className="bg-[#0D4C92] hover:bg-[#0D4C92]/90 text-white text-base px-8 py-6 rounded-lg shadow-md"
+              >
+                <ExternalLink className="w-5 h-5 mr-2" />
+                Ler notícia completa em {baseUrl}
+              </Button>
+            </a>
+          </div>
+        )}
 
         {/* Tags */}
         {article.tags && article.tags.length > 0 && (
@@ -184,6 +205,29 @@ export default function ClientArticle({
                     {tag}
                   </Badge>
                 </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Notícias similares */}
+        {similarArticles.length > 0 && (
+          <section className="mt-16 border-t pt-10">
+            <h2 className="text-xl font-semibold text-primary mb-6">
+              Notícias relacionadas
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {similarArticles.map((similar) => (
+                <NewsCard
+                  key={similar.unique_id}
+                  title={similar.title || ''}
+                  summary={similar.summary || undefined}
+                  theme={similar.most_specific_theme_label || ''}
+                  internalUrl={`/artigos/${similar.unique_id}`}
+                  date={similar.published_at}
+                  imageUrl={similar.image || undefined}
+                  trackingOrigin="similar"
+                />
               ))}
             </div>
           </section>

@@ -282,11 +282,16 @@ sources:
     parent: mdr
     type: Autarquia
     url: https://www.gov.br/dnocs/pt-br/assuntos/noticias
-  ebc:
-    name: Empresa Brasil de Comunicação
+  agencia_brasil:
+    name: Agência Brasil
     parent: secom
     type: Empresa Pública
-    url: https://memoria.ebc.com.br/noticias
+    url: https://agenciabrasil.ebc.com.br/ultimas
+  tvbrasil:
+    name: TV Brasil
+    parent: secom
+    type: Empresa Pública
+    url: https://tvbrasil.ebc.com.br/ultimas
   ebserh:
     name: Empresa Brasileira de Serviços Hospitalares
     parent: mec
