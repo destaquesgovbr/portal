@@ -20,17 +20,8 @@ export async function resolveStableUserId(
       .get()
 
     if (!snapshot.empty) {
-      const stableId = snapshot.docs[0].id
-      if (stableId !== providerSub) {
-        console.log(
-          `resolveStableUserId: mapped ${providerSub} → ${stableId} (email=${email})`,
-        )
-      }
-      return stableId
+      return snapshot.docs[0].id
     }
-    console.log(
-      `resolveStableUserId: no existing user for email=${email}, using providerSub=${providerSub}`,
-    )
   } catch (error) {
     console.error('Failed to resolve stable user ID:', error)
   }
