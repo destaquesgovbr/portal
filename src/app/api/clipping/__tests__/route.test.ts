@@ -144,6 +144,44 @@ describe('POST /api/clipping', () => {
     expect(response.status).toBe(401)
   })
 
+  it('stores email as lowercase in user doc', async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: 'user-1', email: 'Nitai@Gmail.COM' },
+    } as never)
+
+    const clippingsRef = {
+      doc: vi.fn().mockReturnValue({ id: 'new-clip-id' }),
+      count: vi.fn().mockReturnValue({
+        get: vi.fn().mockResolvedValue({ data: () => ({ count: 0 }) }),
+      }),
+    }
+    const userDocRef = {
+      collection: vi.fn().mockReturnValue(clippingsRef),
+    }
+    const usersCollectionRef = {
+      doc: vi.fn().mockReturnValue(userDocRef),
+    }
+    mockCollection.mockReturnValue(usersCollectionRef)
+
+    const request = new NextRequest('http://localhost/api/clipping', {
+      method: 'POST',
+      body: JSON.stringify(validPayload),
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    await POST(request)
+
+    // batch.set(userRef, { email: ... }) should normalize to lowercase
+    const setCall = mockBatchSet.mock.calls.find(
+      (call: unknown[]) =>
+        call[1] &&
+        typeof call[1] === 'object' &&
+        'email' in (call[1] as Record<string, unknown>),
+    )
+    expect(setCall).toBeDefined()
+    expect((setCall![1] as { email: string }).email).toBe('nitai@gmail.com')
+  })
+
   it('creates clipping with valid payload', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
 
