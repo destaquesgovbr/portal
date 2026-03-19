@@ -33,11 +33,12 @@ if (process.env.AUTH_GOVBR_ID) {
         }),
       },
     },
-    profile(profile: Record<string, string>) {
+    profile(profile: Record<string, unknown>) {
       return {
-        id: profile.sub,
-        name: profile.name,
-        email: profile.email,
+        id: profile.sub as string,
+        name: profile.name as string,
+        email: profile.email as string,
+        roles: (profile.realm_roles as string[]) ?? [],
       }
     },
   })
@@ -65,6 +66,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       }
 
+      if (profile) {
+        token.roles =
+          ((profile as Record<string, unknown>).realm_roles as string[]) ?? []
+      }
+
       if (token.expiresAt && Date.now() < (token.expiresAt as number) * 1000) {
         return token
       }
@@ -78,6 +84,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       session.user.id = (token.stableUserId as string) ?? token.sub ?? ''
+      session.user.roles = (token.roles as string[]) ?? []
       return session
     },
   },
