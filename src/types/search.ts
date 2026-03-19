@@ -7,6 +7,7 @@ export type QueryArticlesArgs = {
   endDate?: number
   agencies?: string[]
   themes?: string[]
+  semantic?: boolean
 }
 
 export type QueryArticlesResult = {
