@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockGet = vi.fn()
+const mockSet = vi.fn().mockResolvedValue(undefined)
+const mockDoc = vi.fn().mockReturnValue({ set: mockSet })
 const mockWhere = vi.fn()
 const mockLimit = vi.fn()
 const mockCollection = vi.fn()
@@ -38,10 +40,16 @@ describe('resolveStableUserId', () => {
     expect(mockLimit).toHaveBeenCalledWith(1)
   })
 
-  it('returns providerSub when no existing user is found', async () => {
+  it('returns providerSub and creates user doc when no existing user is found', async () => {
     mockGet.mockResolvedValue({
       empty: true,
       docs: [],
+    })
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'users') {
+        return { where: mockWhere, doc: mockDoc }
+      }
+      return { where: mockWhere }
     })
 
     const result = await resolveStableUserId(
@@ -50,6 +58,12 @@ describe('resolveStableUserId', () => {
     )
 
     expect(result).toBe('provider-sub-456')
+    // Should create user doc so next login from a different provider finds it
+    expect(mockDoc).toHaveBeenCalledWith('provider-sub-456')
+    expect(mockSet).toHaveBeenCalledWith(
+      { email: 'new@example.com' },
+      { merge: true },
+    )
   })
 
   it('returns providerSub when Firestore query fails', async () => {
@@ -77,5 +91,28 @@ describe('resolveStableUserId', () => {
     const result = await resolveStableUserId('user@example.com', 'provider-sub')
 
     expect(result).toBe('first-user')
+  })
+
+  it('normalizes email to lowercase before querying', async () => {
+    mockGet.mockResolvedValue({
+      empty: false,
+      docs: [{ id: 'existing-user' }],
+    })
+
+    await resolveStableUserId('User@Example.COM', 'provider-sub')
+
+    expect(mockWhere).toHaveBeenCalledWith('email', '==', 'user@example.com')
+  })
+
+  it('finds user even when email case differs between providers', async () => {
+    mockGet.mockResolvedValue({
+      empty: false,
+      docs: [{ id: 'google-user-id' }],
+    })
+
+    const result = await resolveStableUserId('Nitai@Gmail.com', 'keycloak-uuid')
+
+    expect(result).toBe('google-user-id')
+    expect(mockWhere).toHaveBeenCalledWith('email', '==', 'nitai@gmail.com')
   })
 })
