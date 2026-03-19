@@ -2,7 +2,6 @@ import { GoogleAuth } from 'google-auth-library'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getFirestoreDb } from '@/lib/firebase-admin'
-import { normalizeEmail } from '@/lib/resolve-stable-user-id'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -72,7 +71,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       await db
         .collection('users')
         .doc(session.user.id)
-        .set({ email: normalizeEmail(session.user.email) }, { merge: true })
+        .set({ email: session.user.email }, { merge: true })
     }
 
     const result = await callWorker(session.user.id, id)

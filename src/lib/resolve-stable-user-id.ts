@@ -1,10 +1,5 @@
 import { getFirestoreDb } from '@/lib/firebase-admin'
 
-/** Normalize email to lowercase for case-insensitive matching across providers. */
-export function normalizeEmail(email: string): string {
-  return email.toLowerCase().trim()
-}
-
 /**
  * Resolve a stable user ID from Firestore based on email.
  * If a user doc with this email already exists, return its ID.
@@ -16,18 +11,26 @@ export async function resolveStableUserId(
   email: string,
   providerSub: string,
 ): Promise<string> {
-  const normalized = normalizeEmail(email)
   try {
     const db = getFirestoreDb()
     const snapshot = await db
       .collection('users')
-      .where('email', '==', normalized)
+      .where('email', '==', email)
       .limit(1)
       .get()
 
     if (!snapshot.empty) {
-      return snapshot.docs[0].id
+      const stableId = snapshot.docs[0].id
+      if (stableId !== providerSub) {
+        console.log(
+          `resolveStableUserId: mapped ${providerSub} → ${stableId} (email=${email})`,
+        )
+      }
+      return stableId
     }
+    console.log(
+      `resolveStableUserId: no existing user for email=${email}, using providerSub=${providerSub}`,
+    )
   } catch (error) {
     console.error('Failed to resolve stable user ID:', error)
   }

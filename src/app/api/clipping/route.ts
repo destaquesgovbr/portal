@@ -7,7 +7,6 @@ import {
   MAX_DAILY_ARTICLES,
 } from '@/lib/estimate-recorte-count'
 import { getFirestoreDb } from '@/lib/firebase-admin'
-import { normalizeEmail } from '@/lib/resolve-stable-user-id'
 
 const MAX_CLIPPINGS = 10
 
@@ -88,11 +87,7 @@ export async function POST(request: Request) {
     const clippingRef = clippingsRef.doc()
 
     const batch = db.batch()
-    batch.set(
-      userRef,
-      { email: normalizeEmail(session.user.email ?? '') },
-      { merge: true },
-    )
+    batch.set(userRef, { email: session.user.email }, { merge: true })
     batch.set(clippingRef, {
       ...payload,
       createdAt: FieldValue.serverTimestamp(),
