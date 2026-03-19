@@ -1,6 +1,7 @@
 'use client'
 
-import { LogIn, LogOut } from 'lucide-react'
+import { LogIn, LogOut, Ticket } from 'lucide-react'
+import Link from 'next/link'
 import { signIn, signOut, useSession } from 'next-auth/react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -25,7 +26,12 @@ export function AuthButton() {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => signIn('govbr')}
+        onClick={async () => {
+          const res = await fetch('/api/auth/providers')
+          const providers = await res.json()
+          const providerId = Object.keys(providers)[0]
+          signIn(providerId, { callbackUrl: '/auth/postlogin' })
+        }}
         className="gap-2 cursor-pointer"
       >
         <LogIn className="h-4 w-4" />
@@ -56,6 +62,12 @@ export function AuthButton() {
         <div className="px-2 py-1.5 text-sm font-medium">
           {session.user?.name}
         </div>
+        <DropdownMenuItem asChild>
+          <Link href="/convites">
+            <Ticket className="mr-2 h-4 w-4" />
+            Meus Convites
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => signOut()}>
           <LogOut className="mr-2 h-4 w-4" />
           Sair

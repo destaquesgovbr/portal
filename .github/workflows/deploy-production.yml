@@ -75,25 +75,11 @@ jobs:
           docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:${{ steps.release.outputs.tag }}
           docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:latest
 
-      - name: Deploy to Cloud Run
+      - name: Deploy to Cloud Run (image only — env vars managed by Terraform)
         run: |
-          gcloud run deploy ${{ env.SERVICE_NAME }} \
+          gcloud run services update ${{ env.SERVICE_NAME }} \
             --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:${{ steps.release.outputs.tag }} \
             --region ${{ env.REGION }} \
-            --platform managed \
-            --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=production,AUTH_GOVBR_ID=portal,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=google,EMBEDDINGS_API_URL=https://destaquesgovbr-embeddings-api-klvx64dufq-rj.a.run.app" \
-            --set-secrets "AUTH_SECRET=auth-secret:latest,AUTH_GOVBR_SECRET=keycloak-portal-client-secret:latest,EMBEDDINGS_API_KEY=embeddings-api-key:latest" \
-            --quiet
-
-      - name: Set AUTH_URL
-        run: |
-          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --region ${{ env.REGION }} \
-            --format 'value(status.url)')
-          gcloud run services update ${{ env.SERVICE_NAME }} \
-            --region ${{ env.REGION }} \
-            --update-env-vars "AUTH_URL=$URL" \
             --quiet
 
       - name: Show deployment URL

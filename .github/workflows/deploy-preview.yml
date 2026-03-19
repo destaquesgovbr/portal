@@ -102,14 +102,18 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
+          # AUTH_URL usa o formato com project number (990583792367), que já está nos
+          # redirect URIs do Keycloak — garante que todos os env vars chegam juntos
+          # num único deploy, sem passos extras que podem deixar o serviço em estado parcial.
+          AUTH_URL="https://${{ steps.slug.outputs.service }}-990583792367.${{ env.REGION }}.run.app"
           gcloud run deploy ${{ steps.slug.outputs.service }} \
             --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:${{ steps.slug.outputs.tag }} \
             --region ${{ env.REGION }} \
             --platform managed \
             --service-account ${{ env.STAGING_SA }} \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=preview,AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }},AUTH_GOOGLE_SECRET=${{ secrets.AUTH_GOOGLE_SECRET }},EMBEDDINGS_API_URL=https://destaquesgovbr-embeddings-api-klvx64dufq-rj.a.run.app" \
-            --set-secrets "AUTH_SECRET=auth-secret:latest,EMBEDDINGS_API_KEY=embeddings-api-key:latest" \
+            --set-env-vars "NODE_ENV=preview,AUTH_URL=$AUTH_URL,AUTH_GOVBR_ID=portal-preview,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=google,EMAIL_FROM_ADDRESS=noreply@destaquesgovbr.gov.br,TELEGRAM_BOT_USERNAME=destaquesgovbr_bot,EMBEDDINGS_API_URL=https://destaquesgovbr-embeddings-api-klvx64dufq-rj.a.run.app" \
+            --set-secrets "AUTH_SECRET=auth-secret:latest,AUTH_GOVBR_SECRET=keycloak-portal-preview-client-secret:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,EMBEDDINGS_API_KEY=embeddings-api-key:latest" \
             --port 3000 \
             --memory 512Mi \
             --cpu 1 \
@@ -118,21 +122,9 @@ jobs:
             --cpu-throttling \
             --quiet
 
-      - name: Set AUTH_URL
-        run: |
-          URL=$(gcloud run services describe ${{ steps.slug.outputs.service }} \
-            --region ${{ env.REGION }} \
-            --format 'value(status.url)')
-          gcloud run services update ${{ steps.slug.outputs.service }} \
-            --region ${{ env.REGION }} \
-            --update-env-vars "AUTH_URL=$URL" \
-            --quiet
-
       - name: Show deployment URL
         run: |
-          URL=$(gcloud run services describe ${{ steps.slug.outputs.service }} \
-            --region ${{ env.REGION }} \
-            --format 'value(status.url)')
+          URL="https://${{ steps.slug.outputs.service }}-990583792367.${{ env.REGION }}.run.app"
           echo "## Preview Deployment" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| | |" >> "$GITHUB_STEP_SUMMARY"

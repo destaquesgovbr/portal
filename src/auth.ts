@@ -32,11 +32,12 @@ if (process.env.AUTH_GOVBR_ID) {
         }),
       },
     },
-    profile(profile: Record<string, string>) {
+    profile(profile: Record<string, unknown>) {
       return {
-        id: profile.sub,
-        name: profile.name,
-        email: profile.email,
+        id: profile.sub as string,
+        name: profile.name as string,
+        email: profile.email as string,
+        roles: (profile.realm_roles as string[]) ?? [],
       }
     },
   })
@@ -46,12 +47,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers,
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, profile }) {
       if (account) {
         token.accessToken = account.access_token
         token.refreshToken = account.refresh_token
         token.expiresAt = account.expires_at
         token.provider = account.provider
+
+        // Resolve stable user ID based on email to avoid duplicates
+        // across providers/deployments (token.sub changes, email doesn't)
+        // Dynamic import to avoid pulling firebase-admin into edge runtime (middleware)
+        const email = token.email ?? profile?.email
+        if (email) {
+          const { resolveStableUserId } = await import(
+            '@/lib/resolve-stable-user-id'
+          )
+          token.stableUserId = await resolveStableUserId(
+            email as string,
+            token.sub ?? '',
+          )
+        }
+      }
+
+      if (profile) {
+        token.roles =
+          ((profile as Record<string, unknown>).realm_roles as string[]) ?? []
       }
 
       if (token.expiresAt && Date.now() < (token.expiresAt as number) * 1000) {
@@ -66,7 +86,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token
     },
     async session({ session, token }) {
-      session.user.id = token.sub ?? ''
+      session.user.id = (token.stableUserId as string) ?? token.sub ?? ''
+      session.user.roles = (token.roles as string[]) ?? []
       return session
     },
   },
