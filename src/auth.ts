@@ -1,6 +1,5 @@
 import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
-import { resolveStableUserId } from '@/lib/resolve-stable-user-id'
 
 const providers = []
 
@@ -57,8 +56,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         // Resolve stable user ID based on email to avoid duplicates
         // across providers/deployments (token.sub changes, email doesn't)
+        // Dynamic import to avoid pulling firebase-admin into edge runtime (middleware)
         const email = token.email ?? profile?.email
         if (email) {
+          const { resolveStableUserId } = await import(
+            '@/lib/resolve-stable-user-id'
+          )
           token.stableUserId = await resolveStableUserId(
             email as string,
             token.sub ?? '',
