@@ -112,8 +112,8 @@ jobs:
             --platform managed \
             --service-account ${{ env.STAGING_SA }} \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=preview,AUTH_URL=$AUTH_URL,AUTH_GOVBR_ID=portal-preview,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=google,EMAIL_FROM_ADDRESS=noreply@destaquesgovbr.gov.br,TELEGRAM_BOT_USERNAME=destaquesgovbr_bot" \
-            --set-secrets "AUTH_SECRET=auth-secret:latest,AUTH_GOVBR_SECRET=keycloak-portal-preview-client-secret:latest,SENDGRID_API_KEY=sendgrid-api-key:latest" \
+            --set-env-vars "NODE_ENV=preview,AUTH_URL=$AUTH_URL,AUTH_GOVBR_ID=portal-preview,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=google,EMAIL_FROM_ADDRESS=noreply@destaquesgovbr.gov.br,TELEGRAM_BOT_USERNAME=destaquesgovbr_bot,EMBEDDINGS_API_URL=https://destaquesgovbr-embeddings-api-klvx64dufq-rj.a.run.app" \
+            --set-secrets "AUTH_SECRET=auth-secret:latest,AUTH_GOVBR_SECRET=keycloak-portal-preview-client-secret:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,EMBEDDINGS_API_KEY=embeddings-api-key:latest" \
             --port 3000 \
             --memory 512Mi \
             --cpu 1 \

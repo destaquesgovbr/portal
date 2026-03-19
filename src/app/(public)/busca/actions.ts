@@ -15,6 +15,26 @@ import type {
 
 const PAGE_SIZE = 40
 
+async function getQueryEmbedding(query: string): Promise<number[] | null> {
+  const apiUrl = process.env.EMBEDDINGS_API_URL
+  const apiKey = process.env.EMBEDDINGS_API_KEY
+  if (!apiUrl || !apiKey) return null
+
+  try {
+    const response = await fetch(`${apiUrl.replace(/\/$/, '')}/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+      body: JSON.stringify({ texts: [query] }),
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!response.ok) return null
+    const data = await response.json()
+    return (data.embeddings?.[0] as number[]) ?? null
+  } catch {
+    return null
+  }
+}
+
 /**
  * Shared search function to avoid duplicate Typesense queries.
  * Used by both inline autocomplete and search suggestions.
@@ -264,15 +284,49 @@ export async function queryArticles(
     filter_by.push(`(${themeFilters.join(' || ')})`)
   }
 
+  const normalizedQuery = query ? query.trim().replace(/\s+/g, ' ') : null
+  const filterByStr = filter_by.join(' && ')
+
+  // Hybrid search: keyword + semantic when query is provided
+  if (normalizedQuery) {
+    const embedding = await getQueryEmbedding(normalizedQuery)
+    if (embedding) {
+      // biome-ignore format: true
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (typesense.multiSearch as any).perform({
+        searches: [{
+          collection: 'news',
+          q: normalizedQuery,
+          query_by: 'title,content',
+          query_by_weights: '3,1',
+          vector_query: `content_embedding:([${embedding.join(',')}], alpha:0.3)`,
+          filter_by: filterByStr || undefined,
+          exclude_fields: 'content_embedding',
+          limit: PAGE_SIZE,
+          page,
+        }],
+      })
+      const result = response.results?.[0]
+      return {
+        articles:
+          result?.hits?.map((hit: { document: ArticleRow }) => hit.document) ??
+          [],
+        page: page + 1,
+        found: result?.found ?? 0,
+      }
+    }
+  }
+
+  // Fallback: keyword-only search, sorted by date
   // biome-ignore format: true
   const result = await typesense
     .collections<ArticleRow>('news')
     .documents()
     .search({
-      q: query ? query.trim().replace(/\s+/g, ' ') : '*',
+      q: normalizedQuery ?? '*',
       query_by: 'title, content',
       sort_by: 'published_at:desc, unique_id:desc',
-      filter_by: filter_by.join(" && "),
+      filter_by: filterByStr,
       limit: PAGE_SIZE,
       page
     })
