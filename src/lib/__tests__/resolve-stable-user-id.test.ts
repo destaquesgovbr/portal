@@ -78,4 +78,27 @@ describe('resolveStableUserId', () => {
 
     expect(result).toBe('first-user')
   })
+
+  it('normalizes email to lowercase before querying', async () => {
+    mockGet.mockResolvedValue({
+      empty: false,
+      docs: [{ id: 'existing-user' }],
+    })
+
+    await resolveStableUserId('User@Example.COM', 'provider-sub')
+
+    expect(mockWhere).toHaveBeenCalledWith('email', '==', 'user@example.com')
+  })
+
+  it('finds user even when email case differs between providers', async () => {
+    mockGet.mockResolvedValue({
+      empty: false,
+      docs: [{ id: 'google-user-id' }],
+    })
+
+    const result = await resolveStableUserId('Nitai@Gmail.com', 'keycloak-uuid')
+
+    expect(result).toBe('google-user-id')
+    expect(mockWhere).toHaveBeenCalledWith('email', '==', 'nitai@gmail.com')
+  })
 })

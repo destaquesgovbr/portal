@@ -1,4 +1,5 @@
 import { getFirestoreDb } from '@/lib/firebase-admin'
+import { normalizeEmail } from '@/lib/normalize-email'
 
 /**
  * Resolve a stable user ID from Firestore based on email.
@@ -11,11 +12,12 @@ export async function resolveStableUserId(
   email: string,
   providerSub: string,
 ): Promise<string> {
+  const normalized = normalizeEmail(email)
   try {
     const db = getFirestoreDb()
     const snapshot = await db
       .collection('users')
-      .where('email', '==', email)
+      .where('email', '==', normalized)
       .limit(1)
       .get()
 
