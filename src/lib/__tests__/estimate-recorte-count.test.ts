@@ -1,6 +1,18 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { Recorte } from '@/types/clipping'
-import { buildFilterBy } from '../estimate-recorte-count'
+
+const mockSearch = vi.fn()
+vi.mock('@/services/typesense/client', () => ({
+  typesense: {
+    collections: () => ({
+      documents: () => ({
+        search: mockSearch,
+      }),
+    }),
+  },
+}))
+
+import { buildFilterBy, estimateRecorteCount } from '../estimate-recorte-count'
 
 function recorte(overrides: Partial<Omit<Recorte, 'id'>> = {}): Recorte {
   return { id: 'r1', themes: [], agencies: [], keywords: [], ...overrides }
@@ -79,5 +91,35 @@ describe('buildFilterBy', () => {
       const result = buildFilterBy(recorte(), 42)
       expect(result).toBe('published_at:>=42')
     })
+  })
+})
+
+describe('estimateRecorteCount', () => {
+  it('returns 0 for empty recorte without calling Typesense', async () => {
+    mockSearch.mockClear()
+    const count = await estimateRecorteCount(recorte())
+    expect(count).toBe(0)
+    expect(mockSearch).not.toHaveBeenCalled()
+  })
+
+  it('calls Typesense when recorte has theme filter', async () => {
+    mockSearch.mockResolvedValue({ found: 42 })
+    const count = await estimateRecorteCount(recorte({ themes: ['08'] }))
+    expect(count).toBe(42)
+    expect(mockSearch).toHaveBeenCalled()
+  })
+
+  it('calls Typesense when recorte has agency filter', async () => {
+    mockSearch.mockResolvedValue({ found: 10 })
+    const count = await estimateRecorteCount(recorte({ agencies: ['mec'] }))
+    expect(count).toBe(10)
+  })
+
+  it('calls Typesense when recorte has keyword filter', async () => {
+    mockSearch.mockResolvedValue({ found: 5 })
+    const count = await estimateRecorteCount(
+      recorte({ keywords: ['educação'] }),
+    )
+    expect(count).toBe(5)
   })
 })

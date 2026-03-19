@@ -104,6 +104,15 @@ const Header = () => {
 
           {/* Mobile icons - right side */}
           <div className="flex md:hidden ml-auto items-center gap-1">
+            {session && (
+              <Link
+                href="/minha-conta/clipping"
+                className="inline-flex items-center justify-center rounded-md h-10 w-10 hover:bg-accent hover:text-accent-foreground transition-colors"
+                title="Meus Clippings"
+              >
+                <Scissors className="h-5 w-5" />
+              </Link>
+            )}
             <PushSubscriber />
             <AuthButton />
             <Button

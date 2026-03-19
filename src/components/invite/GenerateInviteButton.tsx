@@ -19,7 +19,7 @@ export function GenerateInviteButton({
   onSuccess,
 }: GenerateInviteButtonProps) {
   const [isPending, setIsPending] = useState(false)
-  const unlimited = !Number.isFinite(maxInvites)
+  const unlimited = maxInvites < 0
   const remaining = unlimited ? Infinity : maxInvites - currentCount
   const isDisabled = remaining <= 0 || isPending
 
@@ -32,6 +32,8 @@ export function GenerateInviteButton({
         onSuccess?.()
       } else if (result.type === 'err') {
         toast.error(result.error as string)
+      } else {
+        toast.error('Erro ao gerar convite. Tente novamente.')
       }
     } finally {
       setIsPending(false)
