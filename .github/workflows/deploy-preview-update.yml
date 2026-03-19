@@ -58,9 +58,7 @@ jobs:
         run: |
           SERVICE="${{ steps.slug.outputs.service }}"
           if gcloud run services describe "$SERVICE" --region ${{ env.REGION }} --quiet 2>/dev/null; then
-            URL=$(gcloud run services describe "$SERVICE" --region ${{ env.REGION }} --format 'value(status.url)')
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "url=$URL" >> "$GITHUB_OUTPUT"
             echo "Preview service \`$SERVICE\` found — will update." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -96,6 +94,9 @@ jobs:
             --build-arg NEXT_PUBLIC_TYPESENSE_PORT="${{ steps.typesense.outputs.port }}" \
             --build-arg NEXT_PUBLIC_TYPESENSE_PROTOCOL="${{ steps.typesense.outputs.protocol }}" \
             --build-arg NEXT_PUBLIC_TYPESENSE_SEARCH_ONLY_API_KEY="${{ steps.typesense.outputs.api_key }}" \
+            --build-arg NEXT_PUBLIC_VAPID_PUBLIC_KEY="${{ secrets.VAPID_PUBLIC_KEY }}" \
+            --build-arg NEXT_PUBLIC_PUSH_WORKER_URL="${{ secrets.PUSH_WORKER_URL }}" \
+            --build-arg NEXT_PUBLIC_CLARITY_PROJECT_ID="${{ secrets.CLARITY_PROJECT_ID }}" \
             -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:${{ steps.slug.outputs.tag }} \
             --load \
             .
@@ -108,14 +109,17 @@ jobs:
       - name: Deploy to Cloud Run
         if: steps.check.outputs.exists == 'true'
         run: |
+          # AUTH_URL usa o formato com project number (990583792367), consistente
+          # com os redirect URIs do Keycloak — mesma config do deploy-preview.yml
+          AUTH_URL="https://${{ steps.slug.outputs.service }}-990583792367.${{ env.REGION }}.run.app"
           gcloud run deploy ${{ steps.slug.outputs.service }} \
             --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:${{ steps.slug.outputs.tag }} \
             --region ${{ env.REGION }} \
             --platform managed \
             --service-account ${{ env.STAGING_SA }} \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=preview,AUTH_URL=${{ steps.check.outputs.url }},AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }},AUTH_GOOGLE_SECRET=${{ secrets.AUTH_GOOGLE_SECRET }}" \
-            --set-secrets "AUTH_SECRET=auth-secret:latest" \
+            --set-env-vars "NODE_ENV=preview,AUTH_URL=$AUTH_URL,AUTH_GOVBR_ID=portal-preview,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=google,EMAIL_FROM_ADDRESS=noreply@destaquesgovbr.gov.br" \
+            --set-secrets "AUTH_SECRET=auth-secret:latest,AUTH_GOVBR_SECRET=keycloak-portal-preview-client-secret:latest,SENDGRID_API_KEY=sendgrid-api-key:latest" \
             --port 3000 \
             --memory 512Mi \
             --cpu 1 \
@@ -127,9 +131,7 @@ jobs:
       - name: Show deployment URL
         if: steps.check.outputs.exists == 'true'
         run: |
-          URL=$(gcloud run services describe ${{ steps.slug.outputs.service }} \
-            --region ${{ env.REGION }} \
-            --format 'value(status.url)')
+          URL="https://${{ steps.slug.outputs.service }}-990583792367.${{ env.REGION }}.run.app"
           echo "## Preview Updated" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| | |" >> "$GITHUB_STEP_SUMMARY"
