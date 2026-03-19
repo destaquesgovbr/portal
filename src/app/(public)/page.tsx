@@ -3,7 +3,7 @@ import Link from 'next/link'
 import NewsCard from '@/components/articles/NewsCard'
 import { Button } from '@/components/ui/button'
 import THEME_ICONS from '@/data/themes'
-import { formatDateTime, getExcerpt } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 import type { ArticleRow } from '@/types/article'
 import {
   countMonthlyNews,
@@ -68,7 +68,7 @@ export default async function Home() {
               date={featuredMain.published_at}
               internalUrl={`/artigos/${featuredMain.unique_id}`}
               imageUrl={featuredMain.image || ''}
-              summary={getExcerpt(featuredMain.content || '', 250)}
+              summary={featuredMain.summary || ''}
               title={featuredMain.title || ''}
               isMain
               trackingOrigin="home"
@@ -82,7 +82,7 @@ export default async function Home() {
                   date={article.published_at}
                   internalUrl={`/artigos/${article.unique_id}`}
                   imageUrl=""
-                  summary={getExcerpt(article.content || '', 150)}
+                  summary={article.summary || ''}
                   title={article.title || ''}
                   trackingOrigin="home"
                 />
@@ -101,7 +101,7 @@ export default async function Home() {
                     date={article.published_at}
                     internalUrl={`/artigos/${article.unique_id}`}
                     imageUrl={article.image || ''}
-                    summary={getExcerpt(article.content || '', 150)}
+                    summary={article.summary || ''}
                     title={article.title || ''}
                     trackingOrigin="home"
                   />
@@ -143,7 +143,7 @@ export default async function Home() {
                 internalUrl={`/artigos/${article.unique_id}`}
                 theme={article.theme_1_level_3_label || ''}
                 date={article.published_at}
-                summary={getExcerpt(article.content || '', 200)}
+                summary={article.summary || ''}
                 title={article.title || ''}
                 imageUrl={article.image || ''}
                 trackingOrigin="home"
