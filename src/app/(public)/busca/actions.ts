@@ -259,7 +259,15 @@ export async function getCombinedSearchResults(
 export async function queryArticles(
   args: QueryArticlesArgs,
 ): Promise<QueryArticlesResult> {
-  const { page, query, startDate, endDate, agencies, themes } = args
+  const {
+    page,
+    query,
+    startDate,
+    endDate,
+    agencies,
+    themes,
+    semantic = true,
+  } = args
 
   const filter_by: string[] = []
 
@@ -287,8 +295,8 @@ export async function queryArticles(
   const normalizedQuery = query ? query.trim().replace(/\s+/g, ' ') : null
   const filterByStr = filter_by.join(' && ')
 
-  // Hybrid search: keyword + semantic when query is provided
-  if (normalizedQuery) {
+  // Hybrid search: keyword + semantic when query is provided and semantic is enabled
+  if (normalizedQuery && semantic) {
     const embedding = await getQueryEmbedding(normalizedQuery)
     if (embedding) {
       // biome-ignore format: true

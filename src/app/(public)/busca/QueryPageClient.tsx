@@ -2,6 +2,7 @@
 
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
+import { Sparkles } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
@@ -47,6 +48,10 @@ export default function QueryPageClient({
     const temas = searchParams.get('temas')
     return temas ? temas.split(',') : []
   })
+
+  const [semantic, setSemantic] = useState<boolean>(
+    () => searchParams.get('semantica') !== '0',
+  )
 
   // Analytics tracking
   const { track } = useUmamiTrack()
@@ -142,6 +147,22 @@ export default function QueryPageClient({
     [updateUrlParams, track],
   )
 
+  const handleSemanticToggle = useCallback(() => {
+    const next = !semantic
+    setSemantic(next)
+    const params = new URLSearchParams(searchParams.toString())
+    if (next) {
+      params.delete('semantica')
+    } else {
+      params.set('semantica', '0')
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+    track('filter_changed', {
+      filter_type: 'semantic',
+      action: next ? 'enable' : 'disable',
+    })
+  }, [semantic, searchParams, pathname, router, track])
+
   const articlesQ = useInfiniteQuery({
     queryKey: [
       'articles',
@@ -150,6 +171,7 @@ export default function QueryPageClient({
       endDate,
       selectedAgencies,
       selectedThemes,
+      semantic,
     ],
     queryFn: ({ pageParam }: { pageParam: number | null }) =>
       queryArticles({
@@ -159,6 +181,7 @@ export default function QueryPageClient({
         endDate: endDate?.getTime(),
         agencies: selectedAgencies.length > 0 ? selectedAgencies : undefined,
         themes: selectedThemes.length > 0 ? selectedThemes : undefined,
+        semantic,
       }),
     getNextPageParam: (lastPage) => lastPage.page ?? undefined,
     initialPageParam: 1,
@@ -278,6 +301,25 @@ export default function QueryPageClient({
 
           {/* Right Content - Results Grid */}
           <main className="flex-1 min-w-0">
+            {/* Semantic search toggle */}
+            {query && (
+              <div className="mb-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSemanticToggle}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                    semantic
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                  aria-label="busca inteligente"
+                  aria-pressed={semantic}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Busca inteligente
+                </button>
+              </div>
+            )}
             <motion.div
               className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
               initial={{ opacity: 0, y: 40 }}

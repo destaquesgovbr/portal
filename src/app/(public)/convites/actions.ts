@@ -46,7 +46,7 @@ export const getUserInvites = withResult(async (): Promise<UserInvitesData> => {
 
   return {
     inviteCount,
-    maxInvites: admin ? Infinity : MAX_INVITES_PER_USER,
+    maxInvites: admin ? -1 : MAX_INVITES_PER_USER,
     codes,
   }
 })
@@ -83,9 +83,13 @@ export const createInviteCode = withResult(async (): Promise<string> => {
     usedAt: null,
   })
 
-  batch.update(userRef, {
-    inviteCount: currentCount + 1,
-  })
+  batch.set(
+    userRef,
+    {
+      inviteCount: currentCount + 1,
+    },
+    { merge: true },
+  )
 
   await batch.commit()
   return code
