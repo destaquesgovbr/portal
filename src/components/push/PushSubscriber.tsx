@@ -252,7 +252,7 @@ export default function PushSubscriber() {
         className="w-[360px] sm:w-[420px] overflow-y-auto"
       >
         <SheetHeader>
-          <SheetTitle>Notificações</SheetTitle>
+          <SheetTitle>Notificações WebPush</SheetTitle>
           <SheetDescription>
             Selecione os órgãos que você quer acompanhar para receber
             notificações quando publicarem novas notícias.
