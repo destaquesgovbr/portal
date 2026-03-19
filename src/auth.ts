@@ -58,6 +58,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // across providers/deployments (token.sub changes, email doesn't)
         // Dynamic import to avoid pulling firebase-admin into edge runtime (middleware)
         const email = token.email ?? profile?.email
+        console.log(
+          `[auth.jwt] account.provider=${account.provider} email=${email} sub=${token.sub}`,
+        )
         if (email) {
           const { resolveStableUserId } = await import(
             '@/lib/resolve-stable-user-id'

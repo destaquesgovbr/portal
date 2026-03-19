@@ -13,6 +13,9 @@ export async function resolveStableUserId(
   providerSub: string,
 ): Promise<string> {
   const normalized = normalizeEmail(email)
+  console.log(
+    `[resolveStableUserId] email=${email} normalized=${normalized} providerSub=${providerSub}`,
+  )
   try {
     const db = getFirestoreDb()
     const snapshot = await db
@@ -22,16 +25,21 @@ export async function resolveStableUserId(
       .get()
 
     if (!snapshot.empty) {
-      return snapshot.docs[0].id
+      const stableId = snapshot.docs[0].id
+      console.log(`[resolveStableUserId] FOUND existing user: ${stableId}`)
+      return stableId
     }
 
+    console.log(
+      `[resolveStableUserId] NOT FOUND — creating users/${providerSub}`,
+    )
     // First login — create user doc so the next provider finds it by email
     await db
       .collection('users')
       .doc(providerSub)
       .set({ email: normalized }, { merge: true })
   } catch (error) {
-    console.error('Failed to resolve stable user ID:', error)
+    console.error('[resolveStableUserId] ERROR:', error)
   }
   return providerSub
 }
