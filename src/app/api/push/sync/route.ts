@@ -5,17 +5,6 @@ import { getFirestoreDb } from '@/lib/firebase-admin'
 const PUSH_WORKER_URL = process.env.NEXT_PUBLIC_PUSH_WORKER_URL || ''
 
 /**
- * Detecta o nível do tema pelo número de dots no code:
- * "01" → theme_l1, "01.02" → theme_l2, "01.02.03" → theme_l3
- */
-function themeCodeToFilterType(code: string): string {
-  const dots = (code.match(/\./g) || []).length
-  if (dots === 0) return 'theme_l1'
-  if (dots === 1) return 'theme_l2'
-  return 'theme_l3'
-}
-
-/**
  * POST /api/push/sync
  * Syncs an existing anonymous push subscription with the authenticated user.
  * Called when a user logs in and already has a push subscription.
@@ -57,24 +46,12 @@ export async function POST(request: Request) {
       .doc('filters')
       .get()
 
-    const prefs = doc.exists
-      ? doc.data()
-      : { themes: [], agencies: [], keywords: [] }
+    const prefs = doc.exists ? doc.data() : { agencies: [] }
 
-    const filters = [
-      ...(prefs?.themes ?? []).map((code: string) => ({
-        type: themeCodeToFilterType(code),
-        value: code,
-      })),
-      ...(prefs?.agencies ?? []).map((key: string) => ({
-        type: 'agency',
-        value: key,
-      })),
-      ...(prefs?.keywords ?? []).map((kw: string) => ({
-        type: 'keyword',
-        value: kw,
-      })),
-    ]
+    const filters = (prefs?.agencies ?? []).map((key: string) => ({
+      type: 'agency',
+      value: key,
+    }))
 
     const response = await fetch(`${PUSH_WORKER_URL}/subscribe`, {
       method: 'POST',

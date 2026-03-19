@@ -518,6 +518,28 @@ Certifique-se de configurar:
 - `AUTH_URL` (URL pública do app, ex: `https://portal.exemplo.gov.br`) — necessário para Cloud Run pois o `trustHost: true` não infere a URL base automaticamente em todos os cenários
 - `AUTH_GOVBR_ID`, `AUTH_GOVBR_SECRET`, `AUTH_GOVBR_ISSUER` (para Gov.Br em produção)
 
+## Deployment Gotchas
+
+### 1. Edge Runtime — nunca importar módulos Node.js em `auth.ts`
+
+`src/auth.ts` é importado por `middleware.ts`, que roda no **Edge Runtime** do Next.js. Módulos Node.js (como `firebase-admin`) **não podem** ser importados estaticamente. Use `await import()` (dynamic import) dentro de callbacks.
+
+### 2. CI/CD prod/staging só atualiza a imagem Docker
+
+Os workflows `deploy-production.yml` e `deploy-staging.yml` usam apenas `gcloud run services update --image`. Variáveis de ambiente são gerenciadas pelo **Terraform** no repo `destaquesgovbr/infra` (`terraform/portal.tf`). Nunca use `--set-env-vars` nos deploys de prod/staging.
+
+### 3. Preview deploys DEFINEM env vars no workflow
+
+`deploy-preview.yml` e `deploy-preview-update.yml` usam `--set-env-vars` porque serviços de preview **não são gerenciados pelo Terraform**. Ambos os workflows devem ser mantidos em sincronia.
+
+### 4. Keycloak redirect URIs — wildcard só funciona como sufixo
+
+No Keycloak, `*` só funciona como **sufixo** (prefix match). Exemplo: `https://portal-preview-*` funciona, mas `https://portal-preview-*-990583792367...` **NÃO** funciona.
+
+### 5. `signIn()` precisa de provider explícito
+
+`signIn(undefined)` exibe a página de signin padrão do NextAuth. Sempre busque `/api/auth/providers` e passe o ID do provider explicitamente.
+
 ## Troubleshooting Comum
 
 ### Erros de Build com Turbopack
