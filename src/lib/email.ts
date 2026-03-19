@@ -4,7 +4,11 @@ export async function sendEmail({
   to,
   subject,
   html,
-}: { to: string; subject: string; html: string }): Promise<void> {
+}: {
+  to: string
+  subject: string
+  html: string
+}): Promise<void> {
   const apiKey = process.env.SENDGRID_API_KEY
   if (!apiKey) {
     console.warn('[email] SENDGRID_API_KEY not set, skipping email')
@@ -30,6 +34,10 @@ export async function sendEmail({
   })
 
   if (!response.ok) {
-    console.error('[email] SendGrid error:', response.status, await response.text())
+    console.error(
+      '[email] SendGrid error:',
+      response.status,
+      await response.text(),
+    )
   }
 }

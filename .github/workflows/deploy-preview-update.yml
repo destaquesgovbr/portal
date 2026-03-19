@@ -77,6 +77,15 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
+      - name: Fetch Clipping Worker URL
+        if: steps.check.outputs.exists == 'true'
+        id: clipping
+        run: |
+          URL=$(gcloud run services describe destaquesgovbr-clipping \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         if: steps.check.outputs.exists == 'true'
         uses: docker/setup-buildx-action@v3
@@ -118,7 +127,7 @@ jobs:
             --platform managed \
             --service-account ${{ env.STAGING_SA }} \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=preview,AUTH_URL=$AUTH_URL,AUTH_GOVBR_ID=portal-preview,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=google,EMAIL_FROM_ADDRESS=noreply@destaquesgovbr.gov.br" \
+            --set-env-vars "NODE_ENV=preview,AUTH_URL=$AUTH_URL,AUTH_GOVBR_ID=portal-preview,AUTH_GOVBR_ISSUER=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app/realms/destaquesgovbr,AUTH_GOVBR_IDP_HINT=google,EMAIL_FROM_ADDRESS=noreply@destaquesgovbr.gov.br,TELEGRAM_BOT_USERNAME=destaquesgovbr_bot" \
             --set-secrets "AUTH_SECRET=auth-secret:latest,AUTH_GOVBR_SECRET=keycloak-portal-preview-client-secret:latest,SENDGRID_API_KEY=sendgrid-api-key:latest" \
             --port 3000 \
             --memory 512Mi \

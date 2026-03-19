@@ -13,15 +13,18 @@ export default async function PostLoginPage() {
   if (userDoc.exists) redirect('/')
 
   if (await isAdmin()) {
-    await db.collection('users').doc(session.user.id).set({
-      invitedBy: null,
-      inviteCode: null,
-      inviteCount: 0,
-      joinedAt: new Date().toISOString(),
-      role: 'admin',
-      name: session.user.name ?? null,
-      email: session.user.email ?? null,
-    })
+    await db
+      .collection('users')
+      .doc(session.user.id)
+      .set({
+        invitedBy: null,
+        inviteCode: null,
+        inviteCount: 0,
+        joinedAt: new Date().toISOString(),
+        role: 'admin',
+        name: session.user.name ?? null,
+        email: session.user.email ?? null,
+      })
     redirect('/')
   }
 

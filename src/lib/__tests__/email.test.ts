@@ -5,10 +5,7 @@ describe('sendEmail', () => {
 
   beforeEach(() => {
     vi.resetModules()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({ ok: true, status: 202 }),
-    )
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 202 }))
   })
 
   afterEach(() => {
@@ -68,9 +65,7 @@ describe('sendEmail', () => {
       html: '<p>Hello</p>',
     })
 
-    const body = JSON.parse(
-      vi.mocked(fetch).mock.calls[0][1]?.body as string,
-    )
+    const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]?.body as string)
     expect(body.from.email).toBe('noreply@destaquesgovbr.gov.br')
   })
 

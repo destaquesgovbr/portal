@@ -89,8 +89,7 @@ export const approveEntry = withResult(
       const html = renderWaitlistApprovalEmail({
         name: (data.name as string) ?? undefined,
         code,
-        portalUrl:
-          process.env.AUTH_URL ?? 'https://destaquesgovbr.gov.br',
+        portalUrl: process.env.AUTH_URL ?? 'https://destaquesgovbr.gov.br',
       })
       await sendEmail({
         to: data.email as string,

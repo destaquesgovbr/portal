@@ -1,8 +1,9 @@
 'use client'
 
-import { Search, X } from 'lucide-react'
+import { Scissors, Search, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { AuthButton } from '@/components/auth/AuthButton'
 import PushSubscriber from '@/components/push/PushSubscriber'
@@ -28,6 +29,7 @@ const themeLinks = [
 const Header = () => {
   const [searchOpen, setSearchOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const { data: session } = useSession()
 
   // Focus search input when overlay opens
   useEffect(() => {
@@ -86,6 +88,16 @@ const Header = () => {
 
           {/* Desktop icons - right side */}
           <div className="hidden md:flex shrink-0 items-center gap-1">
+            {session && (
+              <Link
+                href="/minha-conta/clipping"
+                className="inline-flex items-center gap-1.5 rounded-md px-3 h-10 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                title="Meus Clippings"
+              >
+                <Scissors className="h-4 w-4" />
+                <span className="hidden lg:inline">Meus Clippings</span>
+              </Link>
+            )}
             <PushSubscriber />
             <AuthButton />
           </div>
