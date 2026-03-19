@@ -30,10 +30,20 @@ export function buildFilterBy(
   return parts.join(' && ')
 }
 
+export function hasFilters(recorte: Recorte): boolean {
+  return (
+    recorte.themes.length > 0 ||
+    recorte.agencies.length > 0 ||
+    recorte.keywords.length > 0
+  )
+}
+
 export async function estimateRecorteCount(
   recorte: Recorte,
   sinceHours = 24,
 ): Promise<number> {
+  if (!hasFilters(recorte)) return 0
+
   const sinceTimestamp = Math.floor(Date.now() / 1000) - sinceHours * 3600
   const filterBy = buildFilterBy(recorte, sinceTimestamp)
 
