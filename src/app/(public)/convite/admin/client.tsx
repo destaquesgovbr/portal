@@ -22,9 +22,12 @@ export function AdminSignIn() {
       </CardHeader>
       <CardContent className="flex flex-col items-center gap-4">
         <Button
-          onClick={() =>
-            signIn(undefined, { callbackUrl: '/convite/admin/callback' })
-          }
+          onClick={async () => {
+            const res = await fetch('/api/auth/providers')
+            const providers = await res.json()
+            const providerId = Object.keys(providers)[0]
+            signIn(providerId, { callbackUrl: '/convite/admin/callback' })
+          }}
           size="lg"
           className="gap-2 w-full"
         >

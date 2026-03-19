@@ -18,8 +18,11 @@ interface InviteLandingProps {
 }
 
 export function InviteLanding({ code, inviterName }: InviteLandingProps) {
-  function handleSignIn() {
-    signIn(undefined, { callbackUrl: `/convite/${code}/redeem` })
+  async function handleSignIn() {
+    const res = await fetch('/api/auth/providers')
+    const providers = await res.json()
+    const providerId = Object.keys(providers)[0]
+    signIn(providerId, { callbackUrl: `/convite/${code}/redeem` })
   }
 
   return (

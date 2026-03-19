@@ -36,8 +36,15 @@ describe('AuthButton', () => {
     expect(document.querySelector('.animate-pulse')).toBeTruthy()
   })
 
-  it('calls signIn with postlogin callback when clicking Entrar (unauthenticated)', async () => {
+  it('fetches providers and calls signIn when clicking Entrar (unauthenticated)', async () => {
     const { signIn } = await import('next-auth/react')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ govbr: { id: 'govbr', name: 'Gov.Br' } }),
+      }),
+    )
+
     vi.mocked(useSession).mockReturnValue({
       data: null,
       status: 'unauthenticated',
@@ -49,7 +56,7 @@ describe('AuthButton', () => {
     const button = screen.getByRole('button', { name: /entrar/i })
     await user.click(button)
 
-    expect(signIn).toHaveBeenCalledWith(undefined, {
+    expect(signIn).toHaveBeenCalledWith('govbr', {
       callbackUrl: '/auth/postlogin',
     })
   })
