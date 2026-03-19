@@ -24,6 +24,12 @@ export async function resolveStableUserId(
     if (!snapshot.empty) {
       return snapshot.docs[0].id
     }
+
+    // First login — create user doc so the next provider finds it by email
+    await db
+      .collection('users')
+      .doc(providerSub)
+      .set({ email: normalized }, { merge: true })
   } catch (error) {
     console.error('Failed to resolve stable user ID:', error)
   }
