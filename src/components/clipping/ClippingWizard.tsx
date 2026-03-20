@@ -4,6 +4,7 @@ import { Loader2, Plus } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
 import { useRecorteEstimation } from '@/hooks/useRecorteEstimation'
@@ -41,6 +42,7 @@ function createRecorte(): Recorte {
       : `recorte-${_recorteCounter}-${Date.now()}`
   return {
     id,
+    title: '',
     themes: [],
     agencies: [],
     keywords: [],
@@ -85,6 +87,7 @@ export function ClippingWizard({
   const [error, setError] = useState<string | null>(null)
 
   const [name, setName] = useState(initialData?.name ?? '')
+  const [description, setDescription] = useState(initialData?.description ?? '')
   const [recortes, setRecortes] = useState<Recorte[]>(
     initialData?.recortes?.length ? initialData.recortes : [createRecorte()],
   )
@@ -239,6 +242,7 @@ export function ClippingWizard({
 
       await onSubmit({
         name,
+        description: description || undefined,
         recortes,
         prompt: SHOW_PROMPT_STEP ? prompt : '',
         scheduleTime,
@@ -257,6 +261,7 @@ export function ClippingWizard({
     ensurePushSubscription,
     onSubmit,
     name,
+    description,
     recortes,
     prompt,
     scheduleTime,
@@ -341,6 +346,28 @@ export function ClippingWizard({
                 placeholder="Nome do clipping (ex: Economia e Infraestrutura)"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
+            </div>
+            <div className="space-y-1.5">
+              <label
+                className="text-sm font-medium"
+                htmlFor="clipping-description"
+              >
+                Descrição{' '}
+                <span className="text-muted-foreground font-normal">
+                  (opcional)
+                </span>
+              </label>
+              <Textarea
+                id="clipping-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+                placeholder="Descreva o propósito do seu clipping para o marketplace"
+                maxLength={500}
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {description.length}/500
+              </p>
             </div>
             <div className="space-y-3">
               {recortes.map((recorte, index) => (

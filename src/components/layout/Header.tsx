@@ -15,6 +15,7 @@ const routeLinks = [
   { href: '/temas', label: 'Temas' },
   { href: '/orgaos', label: 'Órgãos' },
   { href: '/dados-editoriais', label: 'Dados' },
+  { href: '/marketplace', label: 'Marketplace' },
 ]
 
 const themeLinks = [

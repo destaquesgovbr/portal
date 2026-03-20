@@ -3,6 +3,8 @@
 import {
   Bell,
   Check,
+  ExternalLink,
+  Globe,
   Loader2,
   Mail,
   MessageCircle,
@@ -15,6 +17,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { toast } from 'sonner'
+import { PublishDialog } from '@/components/marketplace/PublishDialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +53,7 @@ type Props = {
   onDelete: (id: string) => void
   onToggleActive: (id: string, active: boolean) => void
   onSend: (id: string) => Promise<void>
+  onUnpublished?: () => void
 }
 
 export function ClippingCard({
@@ -56,11 +61,19 @@ export function ClippingCard({
   onDelete,
   onToggleActive,
   onSend,
+  onUnpublished,
 }: Props) {
   const [sendStatus, setSendStatus] = useState<SendStatus>('idle')
   const [sendError, setSendError] = useState<string | null>(null)
   const [showErrorDialog, setShowErrorDialog] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmUnpublish, setConfirmUnpublish] = useState(false)
+  const [isUnpublishing, setIsUnpublishing] = useState(false)
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false)
+
+  const isPublished =
+    clipping.publishedToMarketplace && clipping.marketplaceListingId
+  const isFollow = !!clipping.followsListingId
 
   const hasChannels =
     clipping.deliveryChannels.email ||
@@ -88,6 +101,35 @@ export function ClippingCard({
     }
   }
 
+  const handleUnpublish = async () => {
+    if (!clipping.marketplaceListingId) return
+    setIsUnpublishing(true)
+
+    try {
+      const res = await fetch(
+        `/api/marketplace/${clipping.marketplaceListingId}`,
+        { method: 'DELETE' },
+      )
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.error ?? 'Erro ao despublicar')
+      }
+
+      toast.success('Clipping removido do marketplace')
+      setConfirmUnpublish(false)
+      onUnpublished?.()
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Erro ao despublicar do marketplace',
+      )
+    } finally {
+      setIsUnpublishing(false)
+    }
+  }
+
   const isPostSend = sendStatus === 'success' || sendStatus === 'error'
 
   return (
@@ -95,9 +137,23 @@ export function ClippingCard({
       <Card className="flex flex-col">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-base font-semibold leading-tight">
-              {clipping.name}
-            </CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <CardTitle className="text-base font-semibold leading-tight">
+                {clipping.name}
+              </CardTitle>
+              {isPublished && (
+                <Badge className="text-xs bg-indigo-100 text-indigo-700 border-indigo-200">
+                  Publicado
+                </Badge>
+              )}
+              {isFollow && (
+                <Link href={`/marketplace/${clipping.followsListingId}`}>
+                  <Badge className="text-xs bg-teal-100 text-teal-700 border-teal-200 cursor-pointer hover:bg-teal-200">
+                    Seguindo
+                  </Badge>
+                </Link>
+              )}
+            </div>
             <Badge
               className={`shrink-0 text-xs ${
                 clipping.active
@@ -175,7 +231,12 @@ export function ClippingCard({
             </Button>
           ) : (
             <DropdownMenu
-              onOpenChange={(open) => !open && setConfirmDelete(false)}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setConfirmDelete(false)
+                  setConfirmUnpublish(false)
+                }
+              }}
             >
               <DropdownMenuTrigger asChild>
                 <Button
@@ -190,7 +251,7 @@ export function ClippingCard({
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuItem
                   onClick={handleSend}
                   disabled={!canSend}
@@ -211,6 +272,72 @@ export function ClippingCard({
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
+
+                {/* Marketplace actions */}
+                {!isPublished && !isFollow && (
+                  <DropdownMenuItem
+                    onSelect={() => setPublishDialogOpen(true)}
+                    className="cursor-pointer gap-2"
+                  >
+                    <Globe className="h-4 w-4" />
+                    Publicar no Marketplace
+                  </DropdownMenuItem>
+                )}
+
+                {isPublished && (
+                  <>
+                    <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                      <Link
+                        href={`/marketplace/${clipping.marketplaceListingId}`}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Ver no Marketplace
+                      </Link>
+                    </DropdownMenuItem>
+
+                    {confirmUnpublish ? (
+                      <>
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            handleUnpublish()
+                          }}
+                          disabled={isUnpublishing}
+                          className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                        >
+                          {isUnpublishing ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Globe className="h-4 w-4" />
+                          )}
+                          Confirmar despublicação
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault()
+                            setConfirmUnpublish(false)
+                          }}
+                          className="cursor-pointer gap-2"
+                        >
+                          Cancelar
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault()
+                          setConfirmUnpublish(true)
+                        }}
+                        className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                      >
+                        <Globe className="h-4 w-4" />
+                        Despublicar
+                      </DropdownMenuItem>
+                    )}
+                  </>
+                )}
+
+                {(!isPublished || isFollow) && <DropdownMenuSeparator />}
+                {isPublished && <DropdownMenuSeparator />}
 
                 {confirmDelete ? (
                   <>
@@ -251,6 +378,13 @@ export function ClippingCard({
           )}
         </CardFooter>
       </Card>
+
+      <PublishDialog
+        clipping={clipping}
+        open={publishDialogOpen}
+        onOpenChange={setPublishDialogOpen}
+        onPublished={onUnpublished ?? (() => {})}
+      />
 
       <AlertDialog
         open={showErrorDialog}
