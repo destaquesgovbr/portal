@@ -25,10 +25,15 @@ export async function GET() {
       .orderBy('createdAt', 'desc')
       .get()
 
-    const clippings = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
+    const clippings = snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
+      }
+    })
     return NextResponse.json(clippings)
   } catch (error) {
     console.error('Error reading clippings:', error)
@@ -87,7 +92,9 @@ export async function POST(request: Request) {
     const clippingRef = clippingsRef.doc()
 
     const batch = db.batch()
-    batch.set(userRef, { email: session.user.email }, { merge: true })
+    if (session.user.email) {
+      batch.set(userRef, { email: session.user.email }, { merge: true })
+    }
     batch.set(clippingRef, {
       ...payload,
       createdAt: FieldValue.serverTimestamp(),

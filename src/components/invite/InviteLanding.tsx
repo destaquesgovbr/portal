@@ -22,6 +22,7 @@ export function InviteLanding({ code, inviterName }: InviteLandingProps) {
     const res = await fetch('/api/auth/providers')
     const providers = await res.json()
     const providerId = Object.keys(providers)[0]
+    if (!providerId) return
     signIn(providerId, { callbackUrl: `/convite/${code}/redeem` })
   }
 

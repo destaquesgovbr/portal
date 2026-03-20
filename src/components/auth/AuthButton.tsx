@@ -30,6 +30,7 @@ export function AuthButton() {
           const res = await fetch('/api/auth/providers')
           const providers = await res.json()
           const providerId = Object.keys(providers)[0]
+          if (!providerId) return
           signIn(providerId, { callbackUrl: '/auth/postlogin' })
         }}
         className="gap-2 cursor-pointer"

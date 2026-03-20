@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
+import { isAdmin } from '@/lib/admin'
 
 export default async function AdminLayout({
   children,
@@ -10,6 +11,10 @@ export default async function AdminLayout({
 
   if (!session) {
     redirect('/api/auth/signin')
+  }
+
+  if (!(await isAdmin())) {
+    redirect('/')
   }
 
   return <>{children}</>

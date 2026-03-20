@@ -3,6 +3,7 @@
 import { Maximize2, X } from 'lucide-react'
 import * as React from 'react'
 import { Portal } from '@/components/layout/Portal'
+import { Button } from '@/components/ui/button'
 
 type Agency = {
   key: string
@@ -287,13 +288,9 @@ export function AgencyMultiSelect({
                   {selectedAgencies.length !== 1 ? 's' : ''} selecionado
                   {selectedAgencies.length !== 1 ? 's' : ''}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setIsExpanded(false)}
-                  className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors font-medium"
-                >
+                <Button type="button" onClick={() => setIsExpanded(false)}>
                   Confirmar
-                </button>
+                </Button>
               </div>
             </div>
           </button>

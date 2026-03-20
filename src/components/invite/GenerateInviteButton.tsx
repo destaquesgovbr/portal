@@ -30,8 +30,12 @@ export function GenerateInviteButton({
       if (result.type === 'ok') {
         toast.success('Convite gerado!')
         onSuccess?.()
-      } else if (result.type === 'err') {
-        toast.error(result.error as string)
+      } else {
+        toast.error(
+          typeof result.error === 'string'
+            ? result.error
+            : 'Erro inesperado ao gerar convite',
+        )
       }
     } finally {
       setIsPending(false)
