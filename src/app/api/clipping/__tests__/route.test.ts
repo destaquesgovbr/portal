@@ -120,6 +120,7 @@ describe('POST /api/clipping', () => {
     recortes: [
       {
         id: 'rec-1',
+        title: 'Saúde',
         themes: ['01'],
         agencies: [],
         keywords: [],

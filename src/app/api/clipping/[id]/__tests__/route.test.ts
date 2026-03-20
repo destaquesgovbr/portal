@@ -93,6 +93,7 @@ describe('PUT /api/clipping/[id]', () => {
     recortes: [
       {
         id: 'rec-1',
+        title: 'Saúde Pública',
         themes: ['01'],
         agencies: [],
         keywords: [],

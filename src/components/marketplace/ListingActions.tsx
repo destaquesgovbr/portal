@@ -122,12 +122,7 @@ export function ListingActions({
       }
 
       const body = await res.json()
-      toast.success('Clipping clonado com sucesso!', {
-        action: {
-          label: 'Editar',
-          onClick: () => router.push(`/minha-conta/clipping/${body.id}/editar`),
-        },
-      })
+      router.push(`/minha-conta/clipping/${body.id}/editar`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao clonar')
     } finally {
