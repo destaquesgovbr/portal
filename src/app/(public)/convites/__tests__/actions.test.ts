@@ -14,6 +14,10 @@ vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }))
 
+vi.mock('@/lib/invite', () => ({
+  generateInviteCode: () => 'TEST1234',
+}))
+
 describe('convites actions', () => {
   beforeEach(() => {
     vi.resetModules()
@@ -136,7 +140,7 @@ describe('convites actions', () => {
 
       expect(result.type).toBe('ok')
       expect(mockBatch.set).toHaveBeenCalled()
-      expect(mockBatch.update).toHaveBeenCalled()
+      expect(mockBatch.set).toHaveBeenCalledTimes(2)
       expect(mockBatch.commit).toHaveBeenCalled()
     })
 
