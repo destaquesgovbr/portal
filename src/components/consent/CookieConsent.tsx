@@ -1,5 +1,6 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
 import { useConsent } from './ConsentProvider'
 
 export function CookieConsent() {
@@ -18,20 +19,12 @@ export function CookieConsent() {
           dados de uso.
         </p>
         <div className="flex gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={rejectCookies}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-          >
+          <Button variant="outline" size="sm" onClick={rejectCookies}>
             Recusar
-          </button>
-          <button
-            type="button"
-            onClick={acceptCookies}
-            className="px-4 py-2 text-sm font-medium text-white bg-government-blue rounded-md hover:bg-government-blue/90 transition-colors"
-          >
+          </Button>
+          <Button size="sm" onClick={acceptCookies}>
             Aceitar
-          </button>
+          </Button>
         </div>
       </div>
     </div>

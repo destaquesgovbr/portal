@@ -246,7 +246,7 @@ export function ClippingCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 cursor-pointer ${sendStatus === 'loading' ? 'text-[#1351b4]' : ''}`}
+                  className={`h-8 w-8 cursor-pointer ${sendStatus === 'loading' ? 'text-primary' : ''}`}
                 >
                   {sendStatus === 'loading' ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

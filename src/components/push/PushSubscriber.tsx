@@ -113,7 +113,10 @@ export default function PushSubscriber() {
     if (!open || dataLoaded.current) return
 
     fetch('/api/push/filters-data')
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
       .then((data) => {
         if (data.agencies) setAgencies(data.agencies)
         dataLoaded.current = true
