@@ -7,9 +7,15 @@ import type { Clipping } from '@/types/clipping'
 
 type Props = {
   initialClippings: Clipping[]
+  themeMap?: Record<string, string>
+  agencyMap?: Record<string, string>
 }
 
-export function ClippingListClient({ initialClippings }: Props) {
+export function ClippingListClient({
+  initialClippings,
+  themeMap = {},
+  agencyMap = {},
+}: Props) {
   const [clippings, setClippings] = useState<Clipping[]>(initialClippings)
 
   const handleDelete = async (id: string) => {
@@ -88,6 +94,8 @@ export function ClippingListClient({ initialClippings }: Props) {
           onToggleActive={handleToggleActive}
           onSend={handleSend}
           onUnpublished={refreshClippings}
+          themeMap={themeMap}
+          agencyMap={agencyMap}
         />
       ))}
     </div>

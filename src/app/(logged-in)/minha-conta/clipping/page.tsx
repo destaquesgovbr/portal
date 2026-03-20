@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { auth } from '@/auth'
+import { getAgenciesList } from '@/data/agencies-utils'
+import { getThemesWithHierarchy } from '@/data/themes-utils'
 import { getFirestoreDb } from '@/lib/firebase-admin'
 import type { Clipping } from '@/types/clipping'
 import { ClippingListClient } from './ClippingListClient'
@@ -33,7 +35,13 @@ export async function getClippings(): Promise<Clipping[]> {
 }
 
 export default async function ClippingPage() {
-  const clippings = await getClippings()
+  const [clippings, themes, agencies] = await Promise.all([
+    getClippings(),
+    getThemesWithHierarchy(),
+    getAgenciesList(),
+  ])
+  const themeMap = Object.fromEntries(themes.map((t) => [t.key, t.name]))
+  const agencyMap = Object.fromEntries(agencies.map((a) => [a.key, a.name]))
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-5xl">
@@ -55,7 +63,11 @@ export default async function ClippingPage() {
         </div>
       </div>
 
-      <ClippingListClient initialClippings={clippings} />
+      <ClippingListClient
+        initialClippings={clippings}
+        themeMap={themeMap}
+        agencyMap={agencyMap}
+      />
     </main>
   )
 }

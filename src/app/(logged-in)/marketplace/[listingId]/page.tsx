@@ -3,8 +3,26 @@ import { notFound } from 'next/navigation'
 import { auth } from '@/auth'
 import { ListingActions } from '@/components/marketplace/ListingActions'
 import { Badge } from '@/components/ui/badge'
+import { getAgencyField } from '@/data/agencies-utils'
+import { getThemeNameByCode } from '@/data/themes-utils'
 import { getFirestoreDb } from '@/lib/firebase-admin'
-import type { MarketplaceListing } from '@/types/clipping'
+import type { MarketplaceListing, Recorte } from '@/types/clipping'
+
+async function resolveRecorteLabels(recortes: Recorte[]) {
+  return Promise.all(
+    recortes.map(async (r) => ({
+      ...r,
+      themeLabels: await Promise.all(
+        r.themes.map((code) => getThemeNameByCode(code).then((l) => l ?? code)),
+      ),
+      agencyLabels: await Promise.all(
+        r.agencies.map((key) =>
+          getAgencyField(key, 'name').then((l) => l ?? key),
+        ),
+      ),
+    })),
+  )
+}
 
 export const revalidate = 600
 
@@ -90,6 +108,8 @@ export default async function ListingDetailPage({ params }: Props) {
     notFound()
   }
 
+  const resolvedRecortes = await resolveRecorteLabels(listing.recortes)
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <h1 className="text-3xl font-bold tracking-tight">{listing.name}</h1>
@@ -132,20 +152,28 @@ export default async function ListingDetailPage({ params }: Props) {
         <section className="mt-8">
           <h2 className="text-xl font-semibold mb-4">Recortes</h2>
           <div className="space-y-4">
-            {listing.recortes.map((recorte) => (
+            {resolvedRecortes.map((recorte) => (
               <div key={recorte.id} className="border rounded-md p-4 space-y-2">
                 <h3 className="text-base font-medium">
                   {recorte.title ?? `Recorte ${recorte.id.slice(0, 4)}`}
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
-                  {recorte.themes.map((theme) => (
-                    <Badge key={theme} variant="secondary" className="text-xs">
-                      {theme}
+                  {recorte.themeLabels.map((label, i) => (
+                    <Badge
+                      key={recorte.themes[i]}
+                      variant="secondary"
+                      className="text-xs"
+                    >
+                      {label}
                     </Badge>
                   ))}
-                  {recorte.agencies.map((agency) => (
-                    <Badge key={agency} variant="outline" className="text-xs">
-                      {agency}
+                  {recorte.agencyLabels.map((label, i) => (
+                    <Badge
+                      key={recorte.agencies[i]}
+                      variant="outline"
+                      className="text-xs"
+                    >
+                      {label}
                     </Badge>
                   ))}
                   {recorte.keywords.map((keyword) => (
