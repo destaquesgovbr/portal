@@ -35,7 +35,7 @@ export function MarketplaceCard({ listing }: Props) {
           {listing.recortes.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {listing.recortes.map((recorte) => (
-                <Badge key={recorte.id} variant="secondary" className="text-xs">
+                <Badge key={recorte.id} className="text-xs">
                   {recorte.title ?? `Recorte ${recorte.id.slice(0, 4)}`}
                 </Badge>
               ))}

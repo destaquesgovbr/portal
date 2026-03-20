@@ -106,12 +106,15 @@ export function PublishDialog({
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {recorte.themes.map((theme) => (
-                    <Badge key={theme} variant="secondary" className="text-xs">
+                    <Badge key={theme} className="text-xs">
                       {themeMap[theme] ?? theme}
                     </Badge>
                   ))}
                   {recorte.agencies.map((agency) => (
-                    <Badge key={agency} variant="outline" className="text-xs">
+                    <Badge
+                      key={agency}
+                      className="text-xs border-border bg-background"
+                    >
                       {agencyMap[agency] ?? agency}
                     </Badge>
                   ))}
