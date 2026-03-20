@@ -1,5 +1,6 @@
 export type Recorte = {
   id: string
+  title?: string
   themes: string[]
   agencies: string[]
   keywords: string[]
@@ -14,6 +15,7 @@ export type DeliveryChannels = {
 export type Clipping = {
   id: string
   name: string
+  description?: string
   recortes: Recorte[]
   prompt: string
   scheduleTime: string
@@ -23,6 +25,29 @@ export type Clipping = {
   includeHistory: boolean
   createdAt: string
   updatedAt: string
+  // Marketplace
+  publishedToMarketplace?: boolean
+  marketplaceListingId?: string | null
+  followsListingId?: string | null
+  followsAuthorUserId?: string | null
+  clonedFrom?: string | null
+}
+
+export type MarketplaceListing = {
+  id: string
+  authorUserId: string
+  authorDisplayName: string
+  sourceClippingId: string
+  name: string
+  description: string
+  recortes: Recorte[]
+  prompt: string
+  likeCount: number
+  followerCount: number
+  cloneCount: number
+  publishedAt: string
+  updatedAt: string
+  active: boolean
 }
 
 export type ClippingPayload = Omit<Clipping, 'id' | 'createdAt' | 'updatedAt'>
