@@ -159,19 +159,14 @@ export default async function ListingDetailPage({ params }: Props) {
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
                   {recorte.themeLabels.map((label, i) => (
-                    <Badge
-                      key={recorte.themes[i]}
-                      variant="secondary"
-                      className="text-xs"
-                    >
+                    <Badge key={recorte.themes[i]} className="text-xs">
                       {label}
                     </Badge>
                   ))}
                   {recorte.agencyLabels.map((label, i) => (
                     <Badge
                       key={recorte.agencies[i]}
-                      variant="outline"
-                      className="text-xs"
+                      className="text-xs border-border bg-background"
                     >
                       {label}
                     </Badge>
