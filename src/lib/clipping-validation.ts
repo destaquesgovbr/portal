@@ -32,6 +32,10 @@ export const ClippingPayloadSchema = z.object({
 
 export const PublishToMarketplaceSchema = z.object({
   clippingId: z.string().min(1),
+  description: z
+    .string()
+    .min(1, 'Descrição é obrigatória para publicar')
+    .max(500),
 })
 
 export const FollowListingSchema = z.object({

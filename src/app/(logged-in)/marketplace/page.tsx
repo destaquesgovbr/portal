@@ -8,21 +8,35 @@ export default async function MarketplacePage() {
   let listings: MarketplaceListing[] = []
   try {
     const db = getFirestoreDb()
-    const snapshot = await db
-      .collection('marketplace')
-      .where('active', '==', true)
-      .orderBy('publishedAt', 'desc')
-      .limit(12)
-      .get()
-    listings = snapshot.docs.map((doc) => {
-      const data = doc.data()
-      return {
-        id: doc.id,
-        ...data,
-        publishedAt: data.publishedAt?.toDate?.()?.toISOString?.() ?? '',
-        updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? '',
-      } as MarketplaceListing
-    })
+    let snapshot: FirebaseFirestore.QuerySnapshot
+    try {
+      // Composite index: active + publishedAt (preferred)
+      snapshot = await db
+        .collection('marketplace')
+        .where('active', '==', true)
+        .orderBy('publishedAt', 'desc')
+        .limit(12)
+        .get()
+    } catch {
+      // Fallback: query without composite index, filter in memory
+      snapshot = await db
+        .collection('marketplace')
+        .where('active', '==', true)
+        .limit(50)
+        .get()
+    }
+    listings = snapshot.docs
+      .map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          ...data,
+          publishedAt: data.publishedAt?.toDate?.()?.toISOString?.() ?? '',
+          updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? '',
+        } as MarketplaceListing
+      })
+      .sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
+      .slice(0, 12)
   } catch (error) {
     console.error('Failed to load marketplace:', error)
   }

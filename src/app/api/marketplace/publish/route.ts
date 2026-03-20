@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { clippingId } = result.data
+    const { clippingId, description: submittedDescription } = result.data
     const db = getFirestoreDb()
 
     const clippingRef = db
@@ -55,13 +55,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const description = clippingData.description
-    if (!description || !description.trim()) {
-      return NextResponse.json(
-        { error: 'Clipping precisa ter uma descrição para ser publicado' },
-        { status: 400 },
-      )
-    }
+    const description = submittedDescription.trim()
 
     const recortes = clippingData.recortes
     if (!recortes || !Array.isArray(recortes) || recortes.length === 0) {
@@ -102,14 +96,16 @@ export async function POST(request: Request) {
     batch.update(clippingRef, {
       publishedToMarketplace: true,
       marketplaceListingId: listingRef.id,
+      description,
     })
     await batch.commit()
 
     return NextResponse.json({ listingId: listingRef.id }, { status: 201 })
   } catch (error) {
-    console.error('Error publishing to marketplace:', error)
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('Error publishing to marketplace:', message, error)
     return NextResponse.json(
-      { error: 'Erro ao publicar no marketplace' },
+      { error: `Erro ao publicar no marketplace: ${message}` },
       { status: 500 },
     )
   }

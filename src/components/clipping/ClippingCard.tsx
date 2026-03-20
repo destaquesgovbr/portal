@@ -134,7 +134,7 @@ export function ClippingCard({
 
   return (
     <>
-      <Card className="flex flex-col">
+      <Card className="flex flex-col" data-testid="clipping-card">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">

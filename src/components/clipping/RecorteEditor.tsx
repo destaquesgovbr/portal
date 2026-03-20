@@ -99,7 +99,7 @@ export function RecorteEditor({
         </p>
         <Input
           type="text"
-          value={recorte.title}
+          value={recorte.title ?? ''}
           onChange={handleTitleChange}
           placeholder="Ex: Educação Superior, Meio Ambiente..."
           required

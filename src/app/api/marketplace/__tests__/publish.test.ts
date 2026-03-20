@@ -37,6 +37,7 @@ const mockAuth = vi.mocked(auth)
 
 const validPayload = {
   clippingId: 'clip-1',
+  description: 'Um clipping sobre meio ambiente',
 }
 
 function makeRequest(body: unknown) {
@@ -98,25 +99,13 @@ describe('POST /api/marketplace/publish', () => {
     expect(response.status).toBe(401)
   })
 
-  it('returns 400 when clipping has no description', async () => {
+  it('returns 400 when description is empty', async () => {
     mockAuth.mockResolvedValue({
       user: { id: 'user-1', email: 'u@e.com' },
     } as never)
-    mockClippingDoc({
-      name: 'Meio Ambiente',
-      description: '',
-      recortes: [
-        {
-          id: 'r1',
-          title: 'Políticas ambientais',
-          themes: ['08'],
-          agencies: [],
-          keywords: [],
-        },
-      ],
-      prompt: '',
-    })
-    const response = await POST(makeRequest(validPayload))
+    const response = await POST(
+      makeRequest({ ...validPayload, description: '' }),
+    )
     expect(response.status).toBe(400)
   })
 

@@ -1,7 +1,6 @@
 'use client'
 
-import { AlertTriangle, Loader2 } from 'lucide-react'
-import Link from 'next/link'
+import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import type { Clipping } from '@/types/clipping'
 
 type Props = {
@@ -30,8 +30,9 @@ export function PublishDialog({
   onPublished,
 }: Props) {
   const [isPublishing, setIsPublishing] = useState(false)
+  const [description, setDescription] = useState(clipping.description ?? '')
 
-  const missingDescription = !clipping.description?.trim()
+  const missingDescription = !description.trim()
 
   const handlePublish = async () => {
     setIsPublishing(true)
@@ -42,6 +43,7 @@ export function PublishDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clippingId: clipping.id,
+          description: description.trim(),
         }),
       })
 
@@ -72,69 +74,56 @@ export function PublishDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {missingDescription && (
-          <div className="flex items-start gap-2 rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
-            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            <p>
-              Adicione uma descrição ao clipping antes de publicar.{' '}
-              <Link
-                href={`/minha-conta/clipping/${clipping.id}/editar`}
-                className="underline font-medium"
-              >
-                Editar clipping
-              </Link>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium text-foreground">
+              Descrição para o marketplace{' '}
+              <span className="text-destructive">*</span>
+            </p>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+              placeholder="Descreva o propósito do seu clipping para que outros usuários entendam o conteúdo..."
+              rows={3}
+              maxLength={500}
+              disabled={isPublishing}
+            />
+            <p className="text-xs text-muted-foreground text-right">
+              {description.length}/500
             </p>
           </div>
-        )}
 
-        {!missingDescription && (
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">Descrição</p>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {clipping.description}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Recortes</p>
-              {clipping.recortes.map((recorte, index) => (
-                <div
-                  key={recorte.id}
-                  className="border rounded-md p-3 space-y-2"
-                >
-                  <p className="text-sm font-medium">
-                    {recorte.title || `Recorte ${index + 1}`}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {recorte.themes.map((theme) => (
-                      <Badge
-                        key={theme}
-                        variant="secondary"
-                        className="text-xs"
-                      >
-                        {theme}
-                      </Badge>
-                    ))}
-                    {recorte.agencies.map((agency) => (
-                      <Badge key={agency} variant="outline" className="text-xs">
-                        {agency}
-                      </Badge>
-                    ))}
-                    {recorte.keywords.map((keyword) => (
-                      <Badge
-                        key={keyword}
-                        className="text-xs bg-muted text-muted-foreground"
-                      >
-                        {keyword}
-                      </Badge>
-                    ))}
-                  </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">Recortes</p>
+            {clipping.recortes.map((recorte, index) => (
+              <div key={recorte.id} className="border rounded-md p-3 space-y-2">
+                <p className="text-sm font-medium">
+                  {recorte.title || `Recorte ${index + 1}`}
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {recorte.themes.map((theme) => (
+                    <Badge key={theme} variant="secondary" className="text-xs">
+                      {theme}
+                    </Badge>
+                  ))}
+                  {recorte.agencies.map((agency) => (
+                    <Badge key={agency} variant="outline" className="text-xs">
+                      {agency}
+                    </Badge>
+                  ))}
+                  {recorte.keywords.map((keyword) => (
+                    <Badge
+                      key={keyword}
+                      className="text-xs bg-muted text-muted-foreground"
+                    >
+                      {keyword}
+                    </Badge>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
 
         <DialogFooter>
           <Button
