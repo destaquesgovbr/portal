@@ -61,9 +61,9 @@ function makeDocChain(exists: boolean, data: object = {}) {
 // Helper to build a marketplace listing doc ref
 function makeMarketplaceListingRef() {
   const listingDocRef = { update: vi.fn(), delete: vi.fn() }
-  // When mockCollection is called with 'marketplaceListings', return chain
+  // When mockCollection is called with 'marketplace', return chain
   mockCollection.mockImplementation((name: string) => {
-    if (name === 'marketplaceListings') {
+    if (name === 'marketplace') {
       return { doc: vi.fn().mockReturnValue(listingDocRef) }
     }
     // Default: users collection chain
