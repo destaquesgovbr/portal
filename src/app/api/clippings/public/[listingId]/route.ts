@@ -96,12 +96,6 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Find all follower clippings
-    const followersSnap = await db
-      .collectionGroup('clippings')
-      .where('followsListingId', '==', listingId)
-      .get()
-
     const batch = db.batch()
 
     // Deactivate the listing
@@ -119,9 +113,20 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       marketplaceListingId: null,
     })
 
-    // Deactivate all follower clippings
-    for (const doc of followersSnap.docs) {
-      batch.update(doc.ref, { active: false })
+    // Deactivate all follower clippings (best-effort — index may not exist yet)
+    try {
+      const followersSnap = await db
+        .collectionGroup('clippings')
+        .where('followsListingId', '==', listingId)
+        .get()
+      for (const doc of followersSnap.docs) {
+        batch.update(doc.ref, { active: false })
+      }
+    } catch (indexError) {
+      console.warn(
+        'Could not query followers (index may be building):',
+        indexError,
+      )
     }
 
     await batch.commit()

@@ -1,6 +1,7 @@
-import { Copy, Heart, Users } from 'lucide-react'
+import { Copy, FileJson, Heart, Rss, Users } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { auth } from '@/auth'
+import { ReleaseList } from '@/components/clipping/ReleaseList'
 import { ListingActions } from '@/components/marketplace/ListingActions'
 import { Badge } from '@/components/ui/badge'
 import { getAgencyField } from '@/data/agencies-utils'
@@ -110,6 +111,38 @@ export default async function ListingDetailPage({ params }: Props) {
 
   const resolvedRecortes = await resolveRecorteLabels(listing.recortes)
 
+  // Fetch initial releases for the listing
+  let initialReleases: Array<{
+    id: string
+    clippingName: string
+    articlesCount: number
+    createdAt: string
+    releaseUrl: string
+  }> = []
+  let hasMoreReleases = false
+  try {
+    const db = getFirestoreDb()
+    const releasesSnap = await db
+      .collection('releases')
+      .where('clippingId', '==', listing.sourceClippingId)
+      .orderBy('createdAt', 'desc')
+      .limit(11)
+      .get()
+    hasMoreReleases = releasesSnap.docs.length > 10
+    initialReleases = releasesSnap.docs.slice(0, 10).map((doc) => {
+      const d = doc.data()
+      return {
+        id: doc.id,
+        clippingName: d.clippingName ?? listing.name,
+        articlesCount: d.articlesCount ?? 0,
+        createdAt: d.createdAt?.toDate?.()?.toISOString?.() ?? '',
+        releaseUrl: d.releaseUrl ?? `/clipping/release/${doc.id}`,
+      }
+    })
+  } catch (error) {
+    console.error('Failed to load releases:', error)
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <h1 className="text-3xl font-bold tracking-tight">{listing.name}</h1>
@@ -145,6 +178,28 @@ export default async function ListingDetailPage({ params }: Props) {
           userFollowsId={userFollowsId}
           userHasLiked={userHasLiked}
         />
+      </div>
+
+      {/* Feed links */}
+      <div className="mt-6 flex items-center gap-3">
+        <a
+          href={`/api/clippings/public/${listing.id}/feed.xml`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Rss className="h-4 w-4" />
+          RSS
+        </a>
+        <a
+          href={`/api/clippings/public/${listing.id}/feed.json`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <FileJson className="h-4 w-4" />
+          JSON
+        </a>
       </div>
 
       {/* Recortes */}
@@ -185,6 +240,14 @@ export default async function ListingDetailPage({ params }: Props) {
           </div>
         </section>
       )}
+      {/* Releases */}
+      <section className="mt-8">
+        <ReleaseList
+          listingId={listing.id}
+          initialReleases={initialReleases}
+          hasMore={hasMoreReleases}
+        />
+      </section>
     </div>
   )
 }

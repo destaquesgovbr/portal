@@ -114,7 +114,7 @@ test.describe('Marketplace — Detalhe do Listing', () => {
     // First go to marketplace to find a listing
     await page.goto('/marketplace')
 
-    const cards = page.locator('a[href^="/marketplace/"]')
+    const cards = page.locator('a[href^="/clippings/"]')
     const count = await cards.count()
     if (count === 0) {
       test.skip(true, 'Nenhum listing no marketplace')
@@ -142,7 +142,7 @@ test.describe('Marketplace — Follow', () => {
   test('botão seguir abre dialog com horário e canais', async ({ page }) => {
     await page.goto('/marketplace')
 
-    const cards = page.locator('a[href^="/marketplace/"]')
+    const cards = page.locator('a[href^="/clippings/"]')
     const count = await cards.count()
     if (count === 0) {
       test.skip(true, 'Nenhum listing')
@@ -169,7 +169,7 @@ test.describe('Marketplace — Like', () => {
   test('clicar like altera estado do botão', async ({ page }) => {
     await page.goto('/marketplace')
 
-    const cards = page.locator('a[href^="/marketplace/"]')
+    const cards = page.locator('a[href^="/clippings/"]')
     const count = await cards.count()
     if (count === 0) {
       test.skip(true, 'Nenhum listing')

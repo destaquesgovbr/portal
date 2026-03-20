@@ -50,7 +50,7 @@ export function FollowDialog({
     setIsSubmitting(true)
 
     try {
-      const res = await fetch(`/api/marketplace/${listingId}/follow`, {
+      const res = await fetch(`/api/clippings/public/${listingId}/follow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

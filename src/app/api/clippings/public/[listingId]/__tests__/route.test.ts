@@ -82,9 +82,9 @@ function mockListingDoc(data: Record<string, unknown> | null, exists = true) {
   return { listingDocRef, marketplaceCol }
 }
 
-// ---------- GET /api/marketplace/[listingId] ----------
+// ---------- GET /api/clippings/public/[listingId] ----------
 
-describe('GET /api/marketplace/[listingId]', () => {
+describe('GET /api/clippings/public/[listingId]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -94,7 +94,7 @@ describe('GET /api/marketplace/[listingId]', () => {
     mockListingDoc(data)
 
     const response = await GET(
-      new NextRequest('http://localhost/api/marketplace/listing-1'),
+      new NextRequest('http://localhost/api/clippings/public/listing-1'),
       makeParams('listing-1'),
     )
     expect(response.status).toBe(200)
@@ -109,7 +109,7 @@ describe('GET /api/marketplace/[listingId]', () => {
     mockListingDoc(null, false)
 
     const response = await GET(
-      new NextRequest('http://localhost/api/marketplace/nonexistent'),
+      new NextRequest('http://localhost/api/clippings/public/nonexistent'),
       makeParams('nonexistent'),
     )
     expect(response.status).toBe(404)
@@ -119,7 +119,7 @@ describe('GET /api/marketplace/[listingId]', () => {
     mockListingDoc(makeListing({ active: false }))
 
     const response = await GET(
-      new NextRequest('http://localhost/api/marketplace/listing-1'),
+      new NextRequest('http://localhost/api/clippings/public/listing-1'),
       makeParams('listing-1'),
     )
     expect(response.status).toBe(404)
@@ -147,7 +147,7 @@ describe('GET /api/marketplace/[listingId]', () => {
     mockListingDoc(data)
 
     const response = await GET(
-      new NextRequest('http://localhost/api/marketplace/listing-1'),
+      new NextRequest('http://localhost/api/clippings/public/listing-1'),
       makeParams('listing-1'),
     )
     expect(response.status).toBe(200)
@@ -163,7 +163,7 @@ describe('GET /api/marketplace/[listingId]', () => {
     mockAuth.mockResolvedValue(null as never)
 
     const response = await GET(
-      new NextRequest('http://localhost/api/marketplace/listing-1'),
+      new NextRequest('http://localhost/api/clippings/public/listing-1'),
       makeParams('listing-1'),
     )
     expect(response.status).toBe(200)
@@ -242,7 +242,7 @@ describe('GET /api/marketplace/[listingId]', () => {
     })
 
     const response = await GET(
-      new NextRequest('http://localhost/api/marketplace/listing-1'),
+      new NextRequest('http://localhost/api/clippings/public/listing-1'),
       makeParams('listing-1'),
     )
     expect(response.status).toBe(200)
@@ -252,9 +252,9 @@ describe('GET /api/marketplace/[listingId]', () => {
   })
 })
 
-// ---------- DELETE /api/marketplace/[listingId] ----------
+// ---------- DELETE /api/clippings/public/[listingId] ----------
 
-describe('DELETE /api/marketplace/[listingId]', () => {
+describe('DELETE /api/clippings/public/[listingId]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -263,7 +263,7 @@ describe('DELETE /api/marketplace/[listingId]', () => {
     mockAuth.mockResolvedValue(null as never)
 
     const response = await DELETE(
-      new NextRequest('http://localhost/api/marketplace/listing-1', {
+      new NextRequest('http://localhost/api/clippings/public/listing-1', {
         method: 'DELETE',
       }),
       makeParams('listing-1'),
@@ -280,7 +280,7 @@ describe('DELETE /api/marketplace/[listingId]', () => {
     mockListingDoc(data)
 
     const response = await DELETE(
-      new NextRequest('http://localhost/api/marketplace/listing-1', {
+      new NextRequest('http://localhost/api/clippings/public/listing-1', {
         method: 'DELETE',
       }),
       makeParams('listing-1'),
@@ -296,7 +296,7 @@ describe('DELETE /api/marketplace/[listingId]', () => {
     mockListingDoc(null, false)
 
     const response = await DELETE(
-      new NextRequest('http://localhost/api/marketplace/listing-1', {
+      new NextRequest('http://localhost/api/clippings/public/listing-1', {
         method: 'DELETE',
       }),
       makeParams('listing-1'),
@@ -355,7 +355,7 @@ describe('DELETE /api/marketplace/[listingId]', () => {
     })
 
     const response = await DELETE(
-      new NextRequest('http://localhost/api/marketplace/listing-1', {
+      new NextRequest('http://localhost/api/clippings/public/listing-1', {
         method: 'DELETE',
       }),
       makeParams('listing-1'),
@@ -419,7 +419,7 @@ describe('DELETE /api/marketplace/[listingId]', () => {
     })
 
     await DELETE(
-      new NextRequest('http://localhost/api/marketplace/listing-1', {
+      new NextRequest('http://localhost/api/clippings/public/listing-1', {
         method: 'DELETE',
       }),
       makeParams('listing-1'),
@@ -481,7 +481,7 @@ describe('DELETE /api/marketplace/[listingId]', () => {
     })
 
     await DELETE(
-      new NextRequest('http://localhost/api/marketplace/listing-1', {
+      new NextRequest('http://localhost/api/clippings/public/listing-1', {
         method: 'DELETE',
       }),
       makeParams('listing-1'),

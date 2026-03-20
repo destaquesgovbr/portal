@@ -33,9 +33,12 @@ import { POST } from '../route'
 const mockAuth = vi.mocked(auth)
 
 function makeRequest() {
-  return new NextRequest('http://localhost/api/marketplace/listing-1/like', {
-    method: 'POST',
-  })
+  return new NextRequest(
+    'http://localhost/api/clippings/public/listing-1/like',
+    {
+      method: 'POST',
+    },
+  )
 }
 
 const routeParams = { params: Promise.resolve({ listingId: 'listing-1' }) }
@@ -94,7 +97,7 @@ function setupFirestoreMocks(options: {
   return { listingDocRef: listingDocWithSubs, likeDocRef, likesCollection }
 }
 
-describe('POST /api/marketplace/[listingId]/like', () => {
+describe('POST /api/clippings/public/[listingId]/like', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })

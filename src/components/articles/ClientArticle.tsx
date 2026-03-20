@@ -97,7 +97,7 @@ export default function ClientArticle({
             >
               {copied ? (
                 <>
-                  <Check className="w-4 h-4 mr-1 text-[#2D9B78]" />
+                  <Check className="w-4 h-4 mr-1 text-green-600" />
                   Link copiado!
                 </>
               ) : (
@@ -179,7 +179,7 @@ export default function ClientArticle({
             <a href={article.url} target="_blank" rel="noopener noreferrer">
               <Button
                 size="lg"
-                className="bg-[#0D4C92] hover:bg-[#0D4C92]/90 text-white text-base px-8 py-6 rounded-lg shadow-md"
+                className="bg-government-blue hover:bg-government-blue/90 text-white text-base px-8 py-6 rounded-lg shadow-md"
               >
                 <ExternalLink className="w-5 h-5 mr-2" />
                 Ler notícia completa em {baseUrl}
