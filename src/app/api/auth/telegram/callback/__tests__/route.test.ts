@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mockGet = vi.fn()
+const _mockGet = vi.fn()
 const mockSet = vi.fn()
 const mockDelete = vi.fn()
 const mockCommit = vi.fn()

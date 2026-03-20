@@ -2,11 +2,11 @@ import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock Firestore
-const mockGet = vi.fn()
-const mockDoc = vi.fn()
+const _mockGet = vi.fn()
+const _mockDoc = vi.fn()
 const mockCollection = vi.fn()
-const mockWhere = vi.fn()
-const mockLimit = vi.fn()
+const _mockWhere = vi.fn()
+const _mockLimit = vi.fn()
 const mockBatchSet = vi.fn()
 const mockBatchUpdate = vi.fn()
 const mockBatchDelete = vi.fn()
@@ -102,12 +102,10 @@ function setupFirestoreMocks(options: {
   const clippingsCollection = {
     doc: vi.fn().mockReturnValue(followerClippingRef),
     where: vi.fn().mockReturnThis(),
-    get: vi
-      .fn()
-      .mockResolvedValue({
-        empty: existingFollowDocs.length === 0,
-        docs: existingFollowDocs,
-      }),
+    get: vi.fn().mockResolvedValue({
+      empty: existingFollowDocs.length === 0,
+      docs: existingFollowDocs,
+    }),
     count: vi.fn().mockReturnValue({
       get: vi
         .fn()

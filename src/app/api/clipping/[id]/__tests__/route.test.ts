@@ -5,10 +5,20 @@ const mockUpdate = vi.fn()
 const mockDelete = vi.fn()
 const mockGetDoc = vi.fn()
 const mockCollection = vi.fn()
+const mockBatchUpdate = vi.fn()
+const mockBatchDelete = vi.fn()
+const mockBatchCommit = vi.fn().mockResolvedValue(undefined)
+const mockCollectionGroup = vi.fn()
 
 vi.mock('@/lib/firebase-admin', () => ({
   getFirestoreDb: vi.fn(() => ({
     collection: mockCollection,
+    batch: vi.fn(() => ({
+      update: mockBatchUpdate,
+      delete: mockBatchDelete,
+      commit: mockBatchCommit,
+    })),
+    collectionGroup: mockCollectionGroup,
   })),
 }))
 
@@ -46,6 +56,31 @@ function makeDocChain(exists: boolean, data: object = {}) {
   }
   mockCollection.mockReturnValue(outerCollectionRef)
   return innerDocRef
+}
+
+// Helper to build a marketplace listing doc ref
+function makeMarketplaceListingRef() {
+  const listingDocRef = { update: vi.fn(), delete: vi.fn() }
+  // When mockCollection is called with 'marketplaceListings', return chain
+  mockCollection.mockImplementation((name: string) => {
+    if (name === 'marketplaceListings') {
+      return { doc: vi.fn().mockReturnValue(listingDocRef) }
+    }
+    // Default: users collection chain
+    const innerDocRef = {
+      get: mockGetDoc,
+      update: mockUpdate,
+      delete: mockDelete,
+    }
+    const innerCollectionRef = {
+      doc: vi.fn().mockReturnValue(innerDocRef),
+    }
+    const outerDocRef = {
+      collection: vi.fn().mockReturnValue(innerCollectionRef),
+    }
+    return { doc: vi.fn().mockReturnValue(outerDocRef) }
+  })
+  return listingDocRef
 }
 
 describe('PUT /api/clipping/[id]', () => {
@@ -104,6 +139,59 @@ describe('PUT /api/clipping/[id]', () => {
     expect(body.name).toBe('Updated Clipping')
   })
 
+  it('cascades update to marketplace listing when published', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
+    const listingDocRef = makeMarketplaceListingRef()
+    mockGetDoc.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        name: 'Old Clipping',
+        publishedToMarketplace: true,
+        marketplaceListingId: 'listing-123',
+      }),
+    })
+
+    const request = new NextRequest('http://localhost/api/clipping/clip-1', {
+      method: 'PUT',
+      body: JSON.stringify(validPayload),
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    const response = await PUT(request, {
+      params: Promise.resolve({ id: 'clip-1' }),
+    })
+    expect(response.status).toBe(200)
+    expect(mockBatchCommit).toHaveBeenCalled()
+    // Should have two batch.update calls: one for clipping, one for listing
+    expect(mockBatchUpdate).toHaveBeenCalledTimes(2)
+    expect(mockBatchUpdate).toHaveBeenCalledWith(
+      listingDocRef,
+      expect.objectContaining({
+        name: 'Updated Clipping',
+        prompt: 'Updated prompt',
+      }),
+    )
+  })
+
+  it('does NOT touch marketplace when clipping is not published', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
+    makeDocChain(true, { name: 'Old Clipping', publishedToMarketplace: false })
+    mockUpdate.mockResolvedValue(undefined)
+
+    const request = new NextRequest('http://localhost/api/clipping/clip-1', {
+      method: 'PUT',
+      body: JSON.stringify(validPayload),
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    const response = await PUT(request, {
+      params: Promise.resolve({ id: 'clip-1' }),
+    })
+    expect(response.status).toBe(200)
+    // Only one batch.update for the clipping itself, none for marketplace
+    expect(mockBatchUpdate).toHaveBeenCalledTimes(1)
+  })
+
   it('returns 404 for clipping not owned by user', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
     makeDocChain(false)
@@ -157,6 +245,97 @@ describe('DELETE /api/clipping/[id]', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.ok).toBe(true)
+  })
+
+  it('deactivates marketplace listing when deleting published clipping', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
+    const listingDocRef = makeMarketplaceListingRef()
+    mockGetDoc.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        name: 'Published Clipping',
+        publishedToMarketplace: true,
+        marketplaceListingId: 'listing-456',
+      }),
+    })
+    mockCollectionGroup.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        get: vi.fn().mockResolvedValue({ docs: [] }),
+      }),
+    })
+
+    const request = new NextRequest('http://localhost/api/clipping/clip-1', {
+      method: 'DELETE',
+    })
+
+    const response = await DELETE(request, {
+      params: Promise.resolve({ id: 'clip-1' }),
+    })
+    expect(response.status).toBe(200)
+    expect(mockBatchCommit).toHaveBeenCalled()
+    // batch.update for listing (active:false) + batch.update for source (publishedToMarketplace:false) + batch.delete for clipping
+    expect(mockBatchUpdate).toHaveBeenCalledWith(listingDocRef, {
+      active: false,
+    })
+    expect(mockBatchDelete).toHaveBeenCalledTimes(1)
+  })
+
+  it('deactivates follower clippings when deleting published clipping', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
+    makeMarketplaceListingRef()
+    mockGetDoc.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        name: 'Published Clipping',
+        publishedToMarketplace: true,
+        marketplaceListingId: 'listing-789',
+      }),
+    })
+    const followerRef1 = { id: 'f1' }
+    const followerRef2 = { id: 'f2' }
+    mockCollectionGroup.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        get: vi.fn().mockResolvedValue({
+          docs: [{ ref: followerRef1 }, { ref: followerRef2 }],
+        }),
+      }),
+    })
+
+    const request = new NextRequest('http://localhost/api/clipping/clip-1', {
+      method: 'DELETE',
+    })
+
+    const response = await DELETE(request, {
+      params: Promise.resolve({ id: 'clip-1' }),
+    })
+    expect(response.status).toBe(200)
+    // Should deactivate both followers
+    expect(mockBatchUpdate).toHaveBeenCalledWith(followerRef1, {
+      active: false,
+    })
+    expect(mockBatchUpdate).toHaveBeenCalledWith(followerRef2, {
+      active: false,
+    })
+  })
+
+  it('deletes non-published clipping without marketplace cascade', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
+    makeDocChain(true, {
+      name: 'Simple Clipping',
+      publishedToMarketplace: false,
+    })
+    mockDelete.mockResolvedValue(undefined)
+
+    const request = new NextRequest('http://localhost/api/clipping/clip-1', {
+      method: 'DELETE',
+    })
+
+    const response = await DELETE(request, {
+      params: Promise.resolve({ id: 'clip-1' }),
+    })
+    expect(response.status).toBe(200)
+    expect(mockCollectionGroup).not.toHaveBeenCalled()
+    expect(mockBatchDelete).toHaveBeenCalledTimes(1)
   })
 
   it('returns 404 for clipping not owned by user', async () => {

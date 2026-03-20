@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockGet = vi.fn()
 const mockCollection = vi.fn()
-const mockDoc = vi.fn()
+const _mockDoc = vi.fn()
 const mockRedirect = vi.fn()
 
 vi.mock('@/lib/firebase-admin', () => ({

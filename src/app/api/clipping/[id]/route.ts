@@ -54,10 +54,31 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     const payload = result.data
-    await docRef.update({
+    const existingData = doc.data() ?? {}
+
+    const batch = db.batch()
+    batch.update(docRef, {
       ...payload,
       updatedAt: FieldValue.serverTimestamp(),
     })
+
+    if (
+      existingData.publishedToMarketplace &&
+      existingData.marketplaceListingId
+    ) {
+      const listingRef = db
+        .collection('marketplaceListings')
+        .doc(existingData.marketplaceListingId)
+      batch.update(listingRef, {
+        name: payload.name,
+        description: payload.description ?? '',
+        recortes: payload.recortes,
+        prompt: payload.prompt,
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+    }
+
+    await batch.commit()
 
     return NextResponse.json({ id, ...payload })
   } catch (error) {
@@ -92,7 +113,33 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
       )
     }
 
-    await docRef.delete()
+    const existingData = doc.data() ?? {}
+    const batch = db.batch()
+
+    if (
+      existingData.publishedToMarketplace &&
+      existingData.marketplaceListingId
+    ) {
+      const listingId = existingData.marketplaceListingId
+
+      const listingRef = db.collection('marketplaceListings').doc(listingId)
+      batch.update(listingRef, { active: false })
+
+      const followersSnap = await db
+        .collectionGroup('clippings')
+        .where('followsListingId', '==', listingId)
+        .get()
+
+      for (const followerDoc of followersSnap.docs) {
+        batch.update(followerDoc.ref, { active: false })
+      }
+
+      batch.update(docRef, { publishedToMarketplace: false })
+    }
+
+    batch.delete(docRef)
+    await batch.commit()
+
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('Error deleting clipping:', error)

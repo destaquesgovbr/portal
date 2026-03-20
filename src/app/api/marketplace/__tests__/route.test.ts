@@ -2,13 +2,13 @@ import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock Firestore
-const mockGet = vi.fn()
+const _mockGet = vi.fn()
 const mockCollection = vi.fn()
-const mockOrderBy = vi.fn()
-const mockWhere = vi.fn()
-const mockLimit = vi.fn()
-const mockOffset = vi.fn()
-const mockCountGet = vi.fn()
+const _mockOrderBy = vi.fn()
+const _mockWhere = vi.fn()
+const _mockLimit = vi.fn()
+const _mockOffset = vi.fn()
+const _mockCountGet = vi.fn()
 
 vi.mock('@/lib/firebase-admin', () => ({
   getFirestoreDb: vi.fn(() => ({

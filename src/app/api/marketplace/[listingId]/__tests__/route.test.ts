@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock Firestore
-const mockGet = vi.fn()
+const _mockGet = vi.fn()
 const mockCollection = vi.fn()
 const mockCollectionGroup = vi.fn()
 const mockBatchUpdate = vi.fn()
@@ -190,7 +190,7 @@ describe('GET /api/marketplace/[listingId]', () => {
     }
 
     // Mock the follow query
-    const followQuery = {
+    const _followQuery = {
       where: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       get: vi.fn().mockResolvedValue({
