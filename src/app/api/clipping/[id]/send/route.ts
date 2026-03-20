@@ -1,4 +1,3 @@
-import { GoogleAuth } from 'google-auth-library'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getFirestoreDb } from '@/lib/firebase-admin'
@@ -29,7 +28,7 @@ async function callWorker(userId: string, clippingId: string) {
       throw new Error(`Failed to get identity token: ${tokenRes.status}`)
     }
     const token = await tokenRes.text()
-    headers['Authorization'] = `Bearer ${token}`
+    headers.Authorization = `Bearer ${token}`
   }
 
   const response = await fetch(url, { method: 'POST', headers, body })
@@ -42,7 +41,7 @@ async function callWorker(userId: string, clippingId: string) {
   return response.json()
 }
 
-export async function POST(request: Request, { params }: RouteParams) {
+export async function POST(_request: Request, { params }: RouteParams) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
