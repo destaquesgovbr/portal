@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import type { DeliveryChannels } from '@/types/clipping'
 import { ExtraEmailsInput } from './ExtraEmailsInput'
 
@@ -31,7 +32,7 @@ export function ChannelSelector({
       const res = await fetch('/api/auth/telegram/initiate', { method: 'POST' })
       const data = await res.json()
       if (!res.ok || !data.url) {
-        alert(data.error ?? 'Erro ao gerar link do Telegram')
+        toast.error(data.error ?? 'Erro ao gerar link do Telegram')
         return
       }
       window.open(data.url, '_blank')
