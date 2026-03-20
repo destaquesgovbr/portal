@@ -143,7 +143,7 @@ describe('PushSubscriber', () => {
     await user.click(screen.getByRole('button'))
 
     await waitFor(() => {
-      expect(screen.getByText('Notificações')).toBeInTheDocument()
+      expect(screen.getByText('Notificações WebPush')).toBeInTheDocument()
     })
   })
 
