@@ -31,7 +31,7 @@ vi.mock('@/auth', () => ({
 }))
 
 import { auth } from '@/auth'
-import { POST } from '../publish/route'
+import { POST } from '../route'
 
 const mockAuth = vi.mocked(auth)
 
@@ -41,7 +41,7 @@ const validPayload = {
 }
 
 function makeRequest(body: unknown) {
-  return new NextRequest('http://localhost/api/marketplace/publish', {
+  return new NextRequest('http://localhost/api/clippings/publish', {
     method: 'POST',
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' },
@@ -88,7 +88,7 @@ function mockClippingDoc(data: Record<string, unknown> | null, exists = true) {
   return { clippingRef, userDoc, marketplaceDoc }
 }
 
-describe('POST /api/marketplace/publish', () => {
+describe('POST /api/clippings/publish', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })

@@ -67,7 +67,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       existingData.marketplaceListingId
     ) {
       const listingRef = db
-        .collection('marketplaceListings')
+        .collection('marketplace')
         .doc(existingData.marketplaceListingId)
       batch.update(listingRef, {
         name: payload.name,
@@ -122,16 +122,19 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     ) {
       const listingId = existingData.marketplaceListingId
 
-      const listingRef = db.collection('marketplaceListings').doc(listingId)
+      const listingRef = db.collection('marketplace').doc(listingId)
       batch.update(listingRef, { active: false })
 
-      const followersSnap = await db
-        .collectionGroup('clippings')
-        .where('followsListingId', '==', listingId)
-        .get()
-
-      for (const followerDoc of followersSnap.docs) {
-        batch.update(followerDoc.ref, { active: false })
+      try {
+        const followersSnap = await db
+          .collectionGroup('clippings')
+          .where('followsListingId', '==', listingId)
+          .get()
+        for (const followerDoc of followersSnap.docs) {
+          batch.update(followerDoc.ref, { active: false })
+        }
+      } catch (indexError) {
+        console.warn('Could not query followers:', indexError)
       }
 
       batch.update(docRef, { publishedToMarketplace: false })

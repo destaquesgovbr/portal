@@ -47,17 +47,23 @@ const validPayload = {
 }
 
 function makeRequest(body: unknown) {
-  return new NextRequest('http://localhost/api/marketplace/listing-1/follow', {
-    method: 'POST',
-    body: JSON.stringify(body),
-    headers: { 'Content-Type': 'application/json' },
-  })
+  return new NextRequest(
+    'http://localhost/api/clippings/public/listing-1/follow',
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json' },
+    },
+  )
 }
 
 function makeDeleteRequest() {
-  return new NextRequest('http://localhost/api/marketplace/listing-1/follow', {
-    method: 'DELETE',
-  })
+  return new NextRequest(
+    'http://localhost/api/clippings/public/listing-1/follow',
+    {
+      method: 'DELETE',
+    },
+  )
 }
 
 const routeParams = { params: Promise.resolve({ listingId: 'listing-1' }) }
@@ -134,7 +140,7 @@ function setupFirestoreMocks(options: {
   }
 }
 
-describe('POST /api/marketplace/[listingId]/follow', () => {
+describe('POST /api/clippings/public/[listingId]/follow', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -260,7 +266,7 @@ describe('POST /api/marketplace/[listingId]/follow', () => {
   })
 })
 
-describe('DELETE /api/marketplace/[listingId]/follow', () => {
+describe('DELETE /api/clippings/public/[listingId]/follow', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })

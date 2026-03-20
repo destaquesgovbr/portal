@@ -73,12 +73,12 @@ test.describe('Marketplace — Fluxo completo de publicação', () => {
 
     // 8. Go to marketplace and verify listing appears
     await page.goto('/marketplace')
-    await expect(page.locator('a[href^="/marketplace/"]')).toBeVisible({
+    await expect(page.locator('a[href^="/clippings/"]')).toBeVisible({
       timeout: 5000,
     })
 
     // 9. Click listing and verify detail page
-    await page.locator('a[href^="/marketplace/"]').first().click()
+    await page.locator('a[href^="/clippings/"]').first().click()
     await expect(page.locator('h1')).toBeVisible()
     await expect(page.getByText(/clipping de teste/i)).toBeVisible()
 

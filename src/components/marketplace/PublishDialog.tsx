@@ -42,7 +42,7 @@ export function PublishDialog({
     setIsPublishing(true)
 
     try {
-      const res = await fetch('/api/marketplace/publish', {
+      const res = await fetch('/api/clippings/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
