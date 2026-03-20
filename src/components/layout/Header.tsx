@@ -14,7 +14,6 @@ const routeLinks = [
   { href: '/artigos', label: 'Notícias' },
   { href: '/temas', label: 'Temas' },
   { href: '/orgaos', label: 'Órgãos' },
-  { href: '/dados-editoriais', label: 'Dados' },
 ]
 
 const themeLinks = [
@@ -73,7 +72,7 @@ const Header = () => {
               <h1 className="text-sm md:text-lg font-bold leading-tight">
                 DestaquesGovBr
               </h1>
-              <p className="text-xs text-muted-foreground">Governo Federal</p>
+              <p className="text-xs text-muted-foreground">Web Difusora</p>
             </div>
           </Link>
 

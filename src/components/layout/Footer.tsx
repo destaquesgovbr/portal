@@ -1,12 +1,9 @@
-import { ExternalLink, MapPin, Phone, Rss } from 'lucide-react'
+import { ExternalLink, Rss } from 'lucide-react'
 import Image from 'next/image'
 
 const Footer = () => {
-  const currentYear = new Date().getFullYear()
-
   return (
     <footer className="layout-footer relative">
-      {/* Conteúdo principal */}
       <div className="bg-government-gray border-t pt-12 pb-8">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 md:gap-24">
           {/* Government info */}
@@ -25,23 +22,6 @@ const Footer = () => {
                 <p className="text-sm text-muted-foreground">
                   Portal de Notícias Oficiais
                 </p>
-              </div>
-            </div>
-
-            <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-              Este portal é mantido pelo Governo Federal do Brasil e apresenta
-              notícias oficiais sobre as ações e políticas públicas
-              implementadas pelos órgãos governamentais.
-            </p>
-
-            <div className="space-y-2 text-sm text-foreground">
-              <div className="flex items-center space-x-2">
-                <MapPin className="w-4 h-4 text-muted-foreground" />
-                <span>Brasília - DF, Brasil</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Phone className="w-4 h-4 text-muted-foreground" />
-                <span>0800 123 4567</span>
               </div>
             </div>
           </div>
@@ -94,14 +74,6 @@ const Footer = () => {
               </li>
             </ul>
           </div>
-        </div>
-
-        {/* Divider and copyright */}
-        <div className="border-t mt-12 pt-6 text-center text-sm text-muted-foreground">
-          <p>
-            © {currentYear} Governo Federal do Brasil. Todos os direitos
-            reservados.
-          </p>
         </div>
       </div>
     </footer>
