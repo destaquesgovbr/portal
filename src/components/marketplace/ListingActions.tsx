@@ -47,7 +47,7 @@ export function ListingActions({
     setLiking(true)
 
     try {
-      const res = await fetch(`/api/marketplace/${listing.id}/like`, {
+      const res = await fetch(`/api/clippings/public/${listing.id}/like`, {
         method: 'POST',
       })
 
@@ -80,7 +80,7 @@ export function ListingActions({
     setUnfollowing(true)
 
     try {
-      const res = await fetch(`/api/marketplace/${listing.id}/follow`, {
+      const res = await fetch(`/api/clippings/public/${listing.id}/follow`, {
         method: 'DELETE',
       })
 
@@ -112,7 +112,7 @@ export function ListingActions({
     setCloning(true)
 
     try {
-      const res = await fetch(`/api/marketplace/${listing.id}/clone`, {
+      const res = await fetch(`/api/clippings/public/${listing.id}/clone`, {
         method: 'POST',
       })
 

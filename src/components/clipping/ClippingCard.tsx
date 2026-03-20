@@ -111,7 +111,7 @@ export function ClippingCard({
 
     try {
       const res = await fetch(
-        `/api/marketplace/${clipping.marketplaceListingId}`,
+        `/api/clippings/public/${clipping.marketplaceListingId}`,
         { method: 'DELETE' },
       )
 

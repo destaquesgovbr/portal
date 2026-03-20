@@ -49,7 +49,7 @@ export default async function ClippingPage() {
         <h1 className="text-2xl font-bold">Meus Clippings</h1>
         <div className="flex items-center gap-2">
           <Link
-            href="/marketplace"
+            href="/clippings"
             className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             Explorar Marketplace
