@@ -2,7 +2,7 @@
 
 import { Bell, BellOff, Loader2 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { AgencyGroupedSelect } from '@/components/push/AgencyGroupedSelect'
 import { Button } from '@/components/ui/button'

@@ -7,9 +7,15 @@ import type { Clipping } from '@/types/clipping'
 
 type Props = {
   initialClippings: Clipping[]
+  themeMap?: Record<string, string>
+  agencyMap?: Record<string, string>
 }
 
-export function ClippingListClient({ initialClippings }: Props) {
+export function ClippingListClient({
+  initialClippings,
+  themeMap = {},
+  agencyMap = {},
+}: Props) {
   const [clippings, setClippings] = useState<Clipping[]>(initialClippings)
 
   const handleDelete = async (id: string) => {
@@ -45,6 +51,18 @@ export function ClippingListClient({ initialClippings }: Props) {
     }
   }
 
+  const refreshClippings = async () => {
+    try {
+      const res = await fetch('/api/clipping')
+      if (res.ok) {
+        const data = await res.json()
+        setClippings(data)
+      }
+    } catch (err) {
+      console.error('Failed to refresh clippings:', err)
+    }
+  }
+
   if (clippings.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center gap-6">
@@ -75,6 +93,9 @@ export function ClippingListClient({ initialClippings }: Props) {
           onDelete={handleDelete}
           onToggleActive={handleToggleActive}
           onSend={handleSend}
+          onUnpublished={refreshClippings}
+          themeMap={themeMap}
+          agencyMap={agencyMap}
         />
       ))}
     </div>

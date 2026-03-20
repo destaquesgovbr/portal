@@ -76,6 +76,13 @@ export function RecorteEditor({
     [addKeyword],
   )
 
+  const handleTitleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onChange({ ...recorte, title: e.target.value.slice(0, 100) })
+    },
+    [recorte, onChange],
+  )
+
   return (
     <div className="border border-border rounded-lg p-4 space-y-4 bg-card">
       {estimatedCount !== undefined && (
@@ -83,6 +90,22 @@ export function RecorteEditor({
           <ArticleCountBadge count={estimatedCount} />
         </div>
       )}
+
+      {/* Title */}
+      <div className="space-y-1.5">
+        <p className="text-sm font-medium text-foreground">
+          Título do recorte{' '}
+          <span className="text-destructive font-normal">*</span>
+        </p>
+        <Input
+          type="text"
+          value={recorte.title ?? ''}
+          onChange={handleTitleChange}
+          placeholder="Ex: Educação Superior, Meio Ambiente..."
+          required
+          maxLength={100}
+        />
+      </div>
 
       {/* Themes */}
       <div className="space-y-1.5">

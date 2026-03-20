@@ -1,5 +1,5 @@
 import { screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render } from '@/__tests__/test-utils'
 import type { ClippingPayload } from '@/types/clipping'
 
@@ -19,6 +19,7 @@ vi.mock('../RecorteEditor', () => ({
   }: {
     recorte: {
       id: string
+      title: string
       themes: string[]
       agencies: string[]
       keywords: string[]
@@ -31,7 +32,13 @@ vi.mock('../RecorteEditor', () => ({
       <button
         type="button"
         data-testid={`add-theme-${recorte.id}`}
-        onClick={() => onChange({ ...recorte, themes: ['01'] })}
+        onClick={() =>
+          onChange({
+            ...recorte,
+            title: recorte.title || 'Recorte de teste',
+            themes: ['01'],
+          })
+        }
       >
         Adicionar tema
       </button>
