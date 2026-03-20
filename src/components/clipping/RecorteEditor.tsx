@@ -95,13 +95,14 @@ export function RecorteEditor({
       <div className="space-y-1.5">
         <p className="text-sm font-medium text-foreground">
           Título do recorte{' '}
-          <span className="text-muted-foreground font-normal">(opcional)</span>
+          <span className="text-destructive font-normal">*</span>
         </p>
         <Input
           type="text"
-          value={recorte.title ?? ''}
+          value={recorte.title}
           onChange={handleTitleChange}
           placeholder="Ex: Educação Superior, Meio Ambiente..."
+          required
           maxLength={100}
         />
       </div>

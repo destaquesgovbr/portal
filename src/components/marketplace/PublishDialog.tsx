@@ -1,6 +1,7 @@
 'use client'
 
-import { Loader2 } from 'lucide-react'
+import { AlertTriangle, Loader2 } from 'lucide-react'
+import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -13,9 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import type { Clipping } from '@/types/clipping'
 
 type Props = {
@@ -31,27 +29,11 @@ export function PublishDialog({
   onOpenChange,
   onPublished,
 }: Props) {
-  const [description, setDescription] = useState('')
-  const [recorteTitles, setRecorteTitles] = useState<Record<string, string>>(
-    () =>
-      Object.fromEntries(clipping.recortes.map((r) => [r.id, r.title ?? ''])),
-  )
   const [isPublishing, setIsPublishing] = useState(false)
 
-  const isValid =
-    description.trim().length > 0 &&
-    description.length <= 500 &&
-    clipping.recortes.every((r) => {
-      const title = recorteTitles[r.id] ?? ''
-      return title.trim().length > 0 && title.length <= 100
-    })
-
-  const handleRecorteTitleChange = (id: string, value: string) => {
-    setRecorteTitles((prev) => ({ ...prev, [id]: value }))
-  }
+  const missingDescription = !clipping.description?.trim()
 
   const handlePublish = async () => {
-    if (!isValid) return
     setIsPublishing(true)
 
     try {
@@ -60,14 +42,6 @@ export function PublishDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clippingId: clipping.id,
-          description,
-          recortes: clipping.recortes.map((r) => ({
-            id: r.id,
-            title: recorteTitles[r.id]?.trim() ?? '',
-            themes: r.themes,
-            agencies: r.agencies,
-            keywords: r.keywords,
-          })),
         }),
       })
 
@@ -94,69 +68,73 @@ export function PublishDialog({
         <DialogHeader>
           <DialogTitle>Publicar no Marketplace</DialogTitle>
           <DialogDescription>
-            Publicar <strong>{clipping.name}</strong> para que outros usuários
-            possam seguir este clipping.
+            Publicar <strong>{clipping.name}</strong> no marketplace?
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="publish-description">Descrição</Label>
-            <Textarea
-              id="publish-description"
-              placeholder="Descreva o clipping para outros usuários..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={500}
-              disabled={isPublishing}
-            />
-            <p className="text-xs text-muted-foreground text-right">
-              {description.length}/500
+        {missingDescription && (
+          <div className="flex items-start gap-2 rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <p>
+              Adicione uma descrição ao clipping antes de publicar.{' '}
+              <Link
+                href={`/minha-conta/clipping/${clipping.id}/editar`}
+                className="underline font-medium"
+              >
+                Editar clipping
+              </Link>
             </p>
           </div>
+        )}
 
-          {clipping.recortes.map((recorte, index) => (
-            <div key={recorte.id} className="space-y-2 border rounded-md p-3">
-              <Label htmlFor={`recorte-title-${recorte.id}`}>
-                Título do Recorte {index + 1}
-              </Label>
-              <Input
-                id={`recorte-title-${recorte.id}`}
-                placeholder="Título do recorte"
-                value={recorteTitles[recorte.id] ?? ''}
-                onChange={(e) =>
-                  handleRecorteTitleChange(recorte.id, e.target.value)
-                }
-                maxLength={100}
-                disabled={isPublishing}
-              />
-              <p className="text-xs text-muted-foreground text-right">
-                {(recorteTitles[recorte.id] ?? '').length}/100
+        {!missingDescription && (
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Descrição</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {clipping.description}
               </p>
-
-              <div className="flex flex-wrap gap-1">
-                {recorte.themes.map((theme) => (
-                  <Badge key={theme} variant="secondary" className="text-xs">
-                    {theme}
-                  </Badge>
-                ))}
-                {recorte.agencies.map((agency) => (
-                  <Badge key={agency} variant="outline" className="text-xs">
-                    {agency}
-                  </Badge>
-                ))}
-                {recorte.keywords.map((keyword) => (
-                  <Badge
-                    key={keyword}
-                    className="text-xs bg-muted text-muted-foreground"
-                  >
-                    {keyword}
-                  </Badge>
-                ))}
-              </div>
             </div>
-          ))}
-        </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Recortes</p>
+              {clipping.recortes.map((recorte, index) => (
+                <div
+                  key={recorte.id}
+                  className="border rounded-md p-3 space-y-2"
+                >
+                  <p className="text-sm font-medium">
+                    {recorte.title || `Recorte ${index + 1}`}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {recorte.themes.map((theme) => (
+                      <Badge
+                        key={theme}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        {theme}
+                      </Badge>
+                    ))}
+                    {recorte.agencies.map((agency) => (
+                      <Badge key={agency} variant="outline" className="text-xs">
+                        {agency}
+                      </Badge>
+                    ))}
+                    {recorte.keywords.map((keyword) => (
+                      <Badge
+                        key={keyword}
+                        className="text-xs bg-muted text-muted-foreground"
+                      >
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <DialogFooter>
           <Button
@@ -168,7 +146,7 @@ export function PublishDialog({
           </Button>
           <Button
             onClick={handlePublish}
-            disabled={!isValid || isPublishing}
+            disabled={missingDescription || isPublishing}
             className="cursor-pointer"
           >
             {isPublishing ? (

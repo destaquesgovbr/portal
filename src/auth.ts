@@ -1,7 +1,31 @@
 import NextAuth from 'next-auth'
+import Credentials from 'next-auth/providers/credentials'
 import Google from 'next-auth/providers/google'
 
 const providers = []
+
+// Dev-only: login com email fixo (sem OAuth)
+if (process.env.AUTH_DEV_LOGIN === 'true') {
+  providers.push(
+    Credentials({
+      id: 'dev-login',
+      name: 'Dev Login',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+      },
+      async authorize(credentials) {
+        const email = credentials?.email as string
+        if (!email) return null
+        return {
+          id: email,
+          email,
+          name: email.split('@')[0],
+          roles: ['admin'],
+        }
+      },
+    }),
+  )
+}
 
 // Google para desenvolvimento
 if (process.env.AUTH_GOOGLE_ID) {

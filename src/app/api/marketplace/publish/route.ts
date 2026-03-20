@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { clippingId, description, recortes } = result.data
+    const { clippingId } = result.data
     const db = getFirestoreDb()
 
     const clippingRef = db
@@ -55,6 +55,32 @@ export async function POST(request: Request) {
       )
     }
 
+    const description = clippingData.description
+    if (!description || !description.trim()) {
+      return NextResponse.json(
+        { error: 'Clipping precisa ter uma descrição para ser publicado' },
+        { status: 400 },
+      )
+    }
+
+    const recortes = clippingData.recortes
+    if (!recortes || !Array.isArray(recortes) || recortes.length === 0) {
+      return NextResponse.json(
+        { error: 'Clipping precisa ter ao menos um recorte' },
+        { status: 400 },
+      )
+    }
+
+    const missingTitle = recortes.some(
+      (r: { title?: string }) => !r.title || !r.title.trim(),
+    )
+    if (missingTitle) {
+      return NextResponse.json(
+        { error: 'Todos os recortes precisam ter um título para publicar' },
+        { status: 400 },
+      )
+    }
+
     const listingRef = db.collection('marketplace').doc()
 
     const batch = db.batch()
@@ -76,7 +102,6 @@ export async function POST(request: Request) {
     batch.update(clippingRef, {
       publishedToMarketplace: true,
       marketplaceListingId: listingRef.id,
-      description,
     })
     await batch.commit()
 

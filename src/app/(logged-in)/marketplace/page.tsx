@@ -5,18 +5,27 @@ import type { MarketplaceListing } from '@/types/clipping'
 export const revalidate = 600
 
 export default async function MarketplacePage() {
-  const db = getFirestoreDb()
-  const snapshot = await db
-    .collection('marketplace')
-    .where('active', '==', true)
-    .orderBy('publishedAt', 'desc')
-    .limit(12)
-    .get()
-
-  const listings = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as MarketplaceListing[]
+  let listings: MarketplaceListing[] = []
+  try {
+    const db = getFirestoreDb()
+    const snapshot = await db
+      .collection('marketplace')
+      .where('active', '==', true)
+      .orderBy('publishedAt', 'desc')
+      .limit(12)
+      .get()
+    listings = snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        ...data,
+        publishedAt: data.publishedAt?.toDate?.()?.toISOString?.() ?? '',
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? '',
+      } as MarketplaceListing
+    })
+  } catch (error) {
+    console.error('Failed to load marketplace:', error)
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -14,64 +14,80 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { listingId } = await params
-  const db = getFirestoreDb()
-  const snap = await db.collection('marketplace').doc(listingId).get()
+  try {
+    const db = getFirestoreDb()
+    const snap = await db.collection('marketplace').doc(listingId).get()
 
-  if (!snap.exists || !snap.data()?.active) {
-    return { title: 'Listing não encontrado — DestaquesGovBr' }
-  }
+    if (!snap.exists || !snap.data()?.active) {
+      return { title: 'Listing não encontrado — DestaquesGovBr' }
+    }
 
-  const data = snap.data()!
-  return {
-    title: `${data.name} — Marketplace — DestaquesGovBr`,
-    description: data.description,
+    const data = snap.data()!
+    return {
+      title: `${data.name} — Marketplace — DestaquesGovBr`,
+      description: data.description,
+    }
+  } catch (error) {
+    console.error('Failed to load listing metadata:', error)
+    return { title: 'Marketplace — DestaquesGovBr' }
   }
 }
 
 export default async function ListingDetailPage({ params }: Props) {
   const { listingId } = await params
-  const db = getFirestoreDb()
 
-  const snap = await db.collection('marketplace').doc(listingId).get()
-
-  if (!snap.exists) {
-    notFound()
-  }
-
-  const data = snap.data()!
-
-  if (!data.active) {
-    notFound()
-  }
-
-  const listing = { id: snap.id, ...data } as MarketplaceListing
-
-  // Check if user is authenticated for personalized state
+  let listing: MarketplaceListing
   let userFollowsId: string | null = null
   let userHasLiked = false
 
-  const session = await auth()
-  if (session?.user?.id) {
-    const userId = session.user.id
+  try {
+    const db = getFirestoreDb()
+    const snap = await db.collection('marketplace').doc(listingId).get()
 
-    const [likeSnap, followSnap] = await Promise.all([
-      db
-        .collection('marketplace')
-        .doc(listingId)
-        .collection('likes')
-        .doc(userId)
-        .get(),
-      db
-        .collection('users')
-        .doc(userId)
-        .collection('clippings')
-        .where('followsListingId', '==', listingId)
-        .limit(1)
-        .get(),
-    ])
+    if (!snap.exists) {
+      notFound()
+    }
 
-    userHasLiked = likeSnap.exists
-    userFollowsId = followSnap.empty ? null : followSnap.docs[0].id
+    const data = snap.data()!
+
+    if (!data.active) {
+      notFound()
+    }
+
+    listing = {
+      id: snap.id,
+      ...data,
+      publishedAt: data.publishedAt?.toDate?.()?.toISOString?.() ?? '',
+      updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? '',
+    } as MarketplaceListing
+
+    // Check if user is authenticated for personalized state
+    const session = await auth()
+    if (session?.user?.id) {
+      const userId = session.user.id
+
+      const [likeSnap, followSnap] = await Promise.all([
+        db
+          .collection('marketplace')
+          .doc(listingId)
+          .collection('likes')
+          .doc(userId)
+          .get(),
+        db
+          .collection('users')
+          .doc(userId)
+          .collection('clippings')
+          .where('followsListingId', '==', listingId)
+          .limit(1)
+          .get(),
+      ])
+
+      userHasLiked = likeSnap.exists
+      userFollowsId = followSnap.empty ? null : followSnap.docs[0].id
+    }
+  } catch (error) {
+    console.error('Failed to load listing:', error)
+    notFound()
   }
 
   return (

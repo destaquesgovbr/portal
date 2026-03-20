@@ -135,6 +135,8 @@ export function ClippingWizard({
       if (recortes.length === 0) return 'Adicione ao menos um recorte.'
       if (!recortes.some(hasAnyFilter))
         return 'Cada recorte precisa ter ao menos um filtro (tema, órgão ou palavra-chave).'
+      if (recortes.some((r) => !r.title.trim()))
+        return 'Cada recorte precisa ter um título.'
       if (estimatedTotal > MAX_DAILY_ARTICLES)
         return `Seus recortes retornam ~${estimatedTotal} notícias/dia. O limite é ${MAX_DAILY_ARTICLES}.`
     }
@@ -168,6 +170,8 @@ export function ClippingWizard({
     if (recortes.length === 0) return 'Adicione ao menos um recorte.'
     if (!recortes.some(hasAnyFilter))
       return 'Cada recorte precisa ter ao menos um filtro (tema, órgão ou palavra-chave).'
+    if (recortes.some((r) => !r.title.trim()))
+      return 'Cada recorte precisa ter um título.'
     if (estimatedTotal > MAX_DAILY_ARTICLES)
       return `Seus recortes retornam ~${estimatedTotal} notícias/dia. O limite é ${MAX_DAILY_ARTICLES}.`
     const anyChannel =

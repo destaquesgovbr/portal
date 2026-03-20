@@ -1,6 +1,6 @@
 export type Recorte = {
   id: string
-  title?: string
+  title: string
   themes: string[]
   agencies: string[]
   keywords: string[]

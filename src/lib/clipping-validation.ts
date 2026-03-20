@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const RecorteSchema = z
   .object({
     id: z.string().min(1),
-    title: z.string().max(100).optional(),
+    title: z.string().min(1, 'Título do recorte é obrigatório').max(100),
     themes: z.array(z.string()),
     agencies: z.array(z.string()),
     keywords: z.array(z.string().max(100)),
@@ -32,21 +32,6 @@ export const ClippingPayloadSchema = z.object({
 
 export const PublishToMarketplaceSchema = z.object({
   clippingId: z.string().min(1),
-  description: z
-    .string()
-    .min(1, 'Descrição é obrigatória para publicar')
-    .max(500),
-  recortes: z
-    .array(
-      z.object({
-        id: z.string().min(1),
-        title: z.string().min(1, 'Título é obrigatório para publicar').max(100),
-        themes: z.array(z.string()),
-        agencies: z.array(z.string()),
-        keywords: z.array(z.string().max(100)),
-      }),
-    )
-    .min(1),
 })
 
 export const FollowListingSchema = z.object({

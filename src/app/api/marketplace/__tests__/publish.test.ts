@@ -37,16 +37,6 @@ const mockAuth = vi.mocked(auth)
 
 const validPayload = {
   clippingId: 'clip-1',
-  description: 'Um clipping sobre meio ambiente',
-  recortes: [
-    {
-      id: 'r1',
-      title: 'Políticas ambientais',
-      themes: ['08'],
-      agencies: [],
-      keywords: [],
-    },
-  ],
 }
 
 function makeRequest(body: unknown) {
@@ -108,13 +98,25 @@ describe('POST /api/marketplace/publish', () => {
     expect(response.status).toBe(401)
   })
 
-  it('returns 400 when description is empty', async () => {
+  it('returns 400 when clipping has no description', async () => {
     mockAuth.mockResolvedValue({
       user: { id: 'user-1', email: 'u@e.com' },
     } as never)
-    const response = await POST(
-      makeRequest({ ...validPayload, description: '' }),
-    )
+    mockClippingDoc({
+      name: 'Meio Ambiente',
+      description: '',
+      recortes: [
+        {
+          id: 'r1',
+          title: 'Políticas ambientais',
+          themes: ['08'],
+          agencies: [],
+          keywords: [],
+        },
+      ],
+      prompt: '',
+    })
+    const response = await POST(makeRequest(validPayload))
     expect(response.status).toBe(400)
   })
 
@@ -122,12 +124,13 @@ describe('POST /api/marketplace/publish', () => {
     mockAuth.mockResolvedValue({
       user: { id: 'user-1', email: 'u@e.com' },
     } as never)
-    const response = await POST(
-      makeRequest({
-        ...validPayload,
-        recortes: [{ id: 'r1', themes: ['08'], agencies: [], keywords: [] }],
-      }),
-    )
+    mockClippingDoc({
+      name: 'Meio Ambiente',
+      description: 'Um clipping sobre meio ambiente',
+      recortes: [{ id: 'r1', themes: ['08'], agencies: [], keywords: [] }],
+      prompt: '',
+    })
+    const response = await POST(makeRequest(validPayload))
     expect(response.status).toBe(400)
   })
 
@@ -146,7 +149,16 @@ describe('POST /api/marketplace/publish', () => {
     } as never)
     mockClippingDoc({
       name: 'Meio Ambiente',
-      recortes: validPayload.recortes,
+      description: 'Um clipping sobre meio ambiente',
+      recortes: [
+        {
+          id: 'r1',
+          title: 'Políticas ambientais',
+          themes: ['08'],
+          agencies: [],
+          keywords: [],
+        },
+      ],
       prompt: '',
       publishedToMarketplace: true,
       marketplaceListingId: 'existing-listing',
@@ -161,7 +173,16 @@ describe('POST /api/marketplace/publish', () => {
     } as never)
     mockClippingDoc({
       name: 'Meio Ambiente',
-      recortes: validPayload.recortes,
+      description: 'Um clipping sobre meio ambiente',
+      recortes: [
+        {
+          id: 'r1',
+          title: 'Políticas ambientais',
+          themes: ['08'],
+          agencies: [],
+          keywords: [],
+        },
+      ],
       prompt: '',
       followsListingId: 'some-listing',
     })
@@ -175,8 +196,15 @@ describe('POST /api/marketplace/publish', () => {
     } as never)
     mockClippingDoc({
       name: 'Meio Ambiente',
+      description: 'Um clipping sobre meio ambiente',
       recortes: [
-        { id: 'r1', title: 'Old', themes: ['08'], agencies: [], keywords: [] },
+        {
+          id: 'r1',
+          title: 'Políticas ambientais',
+          themes: ['08'],
+          agencies: [],
+          keywords: [],
+        },
       ],
       prompt: 'Summarize',
     })
