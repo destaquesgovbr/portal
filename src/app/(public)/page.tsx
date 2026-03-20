@@ -335,69 +335,6 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
-      {/* 5️⃣ ESTATÍSTICAS RÁPIDAS */}
-      <section className="pt-12 pb-28 bg-muted/50">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-12">
-            <div className="flex items-start">
-              <img
-                src="/vertical-ribbon.svg"
-                alt="decorativo"
-                className="w-2 h-14 mr-4 mt-1"
-              />
-              <div>
-                <h2 className="text-2xl font-bold">Dados editoriais</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Acompanhe a distribuição de temas, órgãos e publicações no
-                  ecossistema oficial de notícias do Governo Federal.
-                </p>
-              </div>
-            </div>
-
-            <Link href="/dados-editoriais">
-              <Button variant="outline" className="cursor-pointer">
-                Ver todos
-              </Button>
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold text-government-red mb-1">
-                {new Intl.NumberFormat('pt-BR').format(newsThisMonth.data ?? 0)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Notícias publicadas este mês
-              </div>
-            </div>
-            <div className="border-l md:border-l md:pl-8">
-              <div className="text-3xl font-bold text-government-blue mb-1">
-                {new Intl.NumberFormat('pt-BR').format(totalNews.data ?? 0)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Total de notícias no portal
-              </div>
-            </div>
-            <div className="border-l md:border-l md:pl-8">
-              <div className="text-3xl font-bold text-government-green mb-1">
-                31
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Ministérios ativos
-              </div>
-            </div>
-            <div className="border-l md:border-l md:pl-8">
-              <div className="text-3xl font-bold text-government-blue mb-1">
-                24h
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Atualização contínua
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
     </main>
   )
 }
