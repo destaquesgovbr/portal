@@ -21,6 +21,8 @@ type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onPublished: () => void
+  themeMap?: Record<string, string>
+  agencyMap?: Record<string, string>
 }
 
 export function PublishDialog({
@@ -28,6 +30,8 @@ export function PublishDialog({
   open,
   onOpenChange,
   onPublished,
+  themeMap = {},
+  agencyMap = {},
 }: Props) {
   const [isPublishing, setIsPublishing] = useState(false)
   const [description, setDescription] = useState(clipping.description ?? '')
@@ -103,12 +107,12 @@ export function PublishDialog({
                 <div className="flex flex-wrap gap-1">
                   {recorte.themes.map((theme) => (
                     <Badge key={theme} variant="secondary" className="text-xs">
-                      {theme}
+                      {themeMap[theme] ?? theme}
                     </Badge>
                   ))}
                   {recorte.agencies.map((agency) => (
                     <Badge key={agency} variant="outline" className="text-xs">
-                      {agency}
+                      {agencyMap[agency] ?? agency}
                     </Badge>
                   ))}
                   {recorte.keywords.map((keyword) => (

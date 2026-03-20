@@ -54,6 +54,8 @@ type Props = {
   onToggleActive: (id: string, active: boolean) => void
   onSend: (id: string) => Promise<void>
   onUnpublished?: () => void
+  themeMap?: Record<string, string>
+  agencyMap?: Record<string, string>
 }
 
 export function ClippingCard({
@@ -62,6 +64,8 @@ export function ClippingCard({
   onToggleActive,
   onSend,
   onUnpublished,
+  themeMap = {},
+  agencyMap = {},
 }: Props) {
   const [sendStatus, setSendStatus] = useState<SendStatus>('idle')
   const [sendError, setSendError] = useState<string | null>(null)
@@ -383,6 +387,8 @@ export function ClippingCard({
         clipping={clipping}
         open={publishDialogOpen}
         onOpenChange={setPublishDialogOpen}
+        themeMap={themeMap}
+        agencyMap={agencyMap}
         onPublished={onUnpublished ?? (() => {})}
       />
 
