@@ -170,7 +170,11 @@ export function ClippingCard({
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            {cronToHumanReadable(clipping.schedule)}
+            {clipping.schedule
+              ? cronToHumanReadable(clipping.schedule)
+              : clipping.scheduleTime
+                ? `Todos os dias às ${clipping.scheduleTime}`
+                : ''}
           </p>
         </CardHeader>
 

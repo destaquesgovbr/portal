@@ -19,6 +19,7 @@ export type Clipping = {
   recortes: Recorte[]
   prompt: string
   schedule: string
+  scheduleTime?: string // legacy — clippings antigos usam este campo
   nextRunAt?: string | null
   startDate?: string | null
   endDate?: string | null
