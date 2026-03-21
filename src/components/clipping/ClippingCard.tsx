@@ -44,6 +44,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { cronToHumanReadable } from '@/lib/cron-utils'
 import type { Clipping } from '@/types/clipping'
 
 type SendStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -168,7 +169,9 @@ export function ClippingCard({
               {clipping.active ? 'Ativo' : 'Inativo'}
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">{clipping.schedule}</p>
+          <p className="text-sm text-muted-foreground">
+            {cronToHumanReadable(clipping.schedule)}
+          </p>
         </CardHeader>
 
         <CardContent className="pb-3">
