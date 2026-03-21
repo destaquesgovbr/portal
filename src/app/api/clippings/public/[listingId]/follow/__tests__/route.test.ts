@@ -232,7 +232,12 @@ describe('POST /api/clippings/public/[listingId]/follow', () => {
         followsListingId: 'listing-1',
         followsAuthorUserId: 'other-user',
         scheduleTime: '08:00',
-        deliveryChannels: { email: true, telegram: false, push: false },
+        deliveryChannels: {
+          email: true,
+          telegram: false,
+          push: false,
+          webhook: false,
+        },
         active: true,
         name: 'Meio Ambiente News',
         recortes: [],

@@ -84,6 +84,7 @@ export function EditarClippingClient({
     deliveryChannels: clipping.deliveryChannels,
     active: clipping.active,
     extraEmails: clipping.extraEmails ?? [],
+    webhookUrl: clipping.webhookUrl ?? '',
     includeHistory: clipping.includeHistory ?? false,
   }
 

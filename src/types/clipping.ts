@@ -10,6 +10,7 @@ export type DeliveryChannels = {
   email: boolean
   telegram: boolean
   push: boolean
+  webhook: boolean
 }
 
 export type Clipping = {
@@ -22,6 +23,7 @@ export type Clipping = {
   deliveryChannels: DeliveryChannels
   active: boolean
   extraEmails: string[]
+  webhookUrl?: string
   includeHistory: boolean
   createdAt: string
   updatedAt: string
@@ -50,7 +52,12 @@ export type MarketplaceListing = {
   active: boolean
 }
 
-export type ClippingPayload = Omit<Clipping, 'id' | 'createdAt' | 'updatedAt'>
+export type ClippingPayload = Omit<
+  Clipping,
+  'id' | 'createdAt' | 'updatedAt'
+> & {
+  webhookUrl: string
+}
 
 export type Release = {
   id: string

@@ -24,9 +24,11 @@ export const ClippingPayloadSchema = z.object({
     email: z.boolean(),
     telegram: z.boolean(),
     push: z.boolean(),
+    webhook: z.boolean().optional().default(false),
   }),
   active: z.boolean(),
   extraEmails: z.array(z.string().email()).max(3).default([]),
+  webhookUrl: z.string().url().optional().or(z.literal('')).default(''),
   includeHistory: z.boolean().optional().default(false),
 })
 
@@ -44,5 +46,6 @@ export const FollowListingSchema = z.object({
     email: z.boolean(),
     telegram: z.boolean(),
     push: z.boolean(),
+    webhook: z.boolean().optional().default(false),
   }),
 })
