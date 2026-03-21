@@ -16,9 +16,12 @@ import type {
   Recorte,
 } from '@/types/clipping'
 import { ChannelSelector } from './ChannelSelector'
+import {
+  CronScheduleBuilder,
+  type CronScheduleValue,
+} from './CronScheduleBuilder'
 import { PromptEditor } from './PromptEditor'
 import { RecorteEditor } from './RecorteEditor'
-import { ScheduleSelect } from './ScheduleSelect'
 
 // NOTE: this prompt must be kept in sync with clipping worker consolidator.py DEFAULT_PROMPT
 const DEFAULT_PROMPT = `Consolide os artigos a seguir em um digest editorial para o clipping "{clipping_name}".
@@ -70,8 +73,8 @@ const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
 const PUSH_WORKER_URL = process.env.NEXT_PUBLIC_PUSH_WORKER_URL || ''
 
 const STEPS = SHOW_PROMPT_STEP
-  ? (['Recortes', 'Prompt', 'Horário', 'Canais'] as const)
-  : (['Recortes', 'Horário', 'Canais'] as const)
+  ? (['Recortes', 'Prompt', 'Agendamento', 'Canais'] as const)
+  : (['Recortes', 'Agendamento', 'Canais'] as const)
 
 export function ClippingWizard({
   initialData,
@@ -92,9 +95,11 @@ export function ClippingWizard({
     initialData?.recortes?.length ? initialData.recortes : [createRecorte()],
   )
   const [prompt, setPrompt] = useState(initialData?.prompt ?? DEFAULT_PROMPT)
-  const [scheduleTime, setScheduleTime] = useState(
-    initialData?.scheduleTime ?? '08:00',
-  )
+  const [cronValue, setCronValue] = useState<CronScheduleValue>({
+    schedule: initialData?.schedule ?? '0 8 * * *',
+    startDate: initialData?.startDate ?? null,
+    endDate: initialData?.endDate ?? null,
+  })
   const [deliveryChannels, setDeliveryChannels] = useState<DeliveryChannels>(
     initialData?.deliveryChannels ?? {
       email: false,
@@ -249,7 +254,9 @@ export function ClippingWizard({
         description: description || undefined,
         recortes,
         prompt: SHOW_PROMPT_STEP ? prompt : '',
-        scheduleTime,
+        schedule: cronValue.schedule,
+        startDate: cronValue.startDate,
+        endDate: cronValue.endDate,
         deliveryChannels,
         active: initialData?.active ?? true,
         extraEmails,
@@ -268,7 +275,7 @@ export function ClippingWizard({
     description,
     recortes,
     prompt,
-    scheduleTime,
+    cronValue,
     deliveryChannels,
     initialData?.active,
     extraEmails,
@@ -434,15 +441,13 @@ export function ClippingWizard({
         )}
 
         {/* Step: Horário */}
-        {currentStepLabel === 'Horário' && (
+        {currentStepLabel === 'Agendamento' && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Horário de envio</h2>
+            <h2 className="text-lg font-semibold">Agendamento</h2>
             <p className="text-sm text-muted-foreground">
-              Escolha o horário em que deseja receber o resumo diário.
+              Configure a frequência e o horário de envio do seu clipping.
             </p>
-            <div className="max-w-xs">
-              <ScheduleSelect value={scheduleTime} onChange={setScheduleTime} />
-            </div>
+            <CronScheduleBuilder value={cronValue} onChange={setCronValue} />
           </div>
         )}
 

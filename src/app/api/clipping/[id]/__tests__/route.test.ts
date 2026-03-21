@@ -33,6 +33,17 @@ vi.mock('@/lib/estimate-recorte-count', () => ({
   MAX_DAILY_ARTICLES: 100,
 }))
 
+vi.mock('@/lib/cron-utils', () => ({
+  isValidCron: vi.fn((expr: string) => {
+    try {
+      return expr.trim().split(/\s+/).length === 5
+    } catch {
+      return false
+    }
+  }),
+  calculateNextRun: vi.fn(() => new Date('2026-03-22T09:00:00.000Z')),
+}))
+
 import { auth } from '@/auth'
 import { DELETE, PUT } from '../route'
 
@@ -100,7 +111,7 @@ describe('PUT /api/clipping/[id]', () => {
       },
     ],
     prompt: 'Updated prompt',
-    scheduleTime: '09:00',
+    schedule: '0 9 * * *',
     deliveryChannels: { email: false, telegram: true, push: false },
     active: true,
   }

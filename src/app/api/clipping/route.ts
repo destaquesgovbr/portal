@@ -2,6 +2,7 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { ClippingPayloadSchema } from '@/lib/clipping-validation'
+import { calculateNextRun } from '@/lib/cron-utils'
 import {
   estimateTotalCount,
   MAX_DAILY_ARTICLES,
@@ -84,6 +85,14 @@ export async function POST(request: Request) {
     }
 
     const payload = result.data
+    const nextRunAt =
+      calculateNextRun(
+        payload.schedule,
+        new Date(),
+        payload.startDate ? new Date(payload.startDate) : undefined,
+        payload.endDate ? new Date(payload.endDate) : undefined,
+      )?.toISOString() ?? null
+
     const userRef = db.collection('users').doc(session.user.id)
     const clippingRef = clippingsRef.doc()
 
@@ -95,13 +104,14 @@ export async function POST(request: Request) {
     )
     batch.set(clippingRef, {
       ...payload,
+      nextRunAt,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     })
     await batch.commit()
 
     return NextResponse.json(
-      { id: clippingRef.id, ...payload },
+      { id: clippingRef.id, ...payload, nextRunAt },
       { status: 201 },
     )
   } catch (error) {

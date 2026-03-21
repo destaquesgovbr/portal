@@ -26,7 +26,7 @@ export async function POST(
       )
     }
 
-    const { scheduleTime, deliveryChannels } = result.data
+    const { schedule, deliveryChannels } = result.data
 
     // At least one delivery channel must be selected
     if (
@@ -107,7 +107,7 @@ export async function POST(
     batch.set(followerClippingRef, {
       followsListingId: listingId,
       followsAuthorUserId: listingData.authorUserId,
-      scheduleTime,
+      schedule,
       deliveryChannels,
       active: true,
       name: listingData.name,
