@@ -10,6 +10,7 @@ export type DeliveryChannels = {
   email: boolean
   telegram: boolean
   push: boolean
+  webhook: boolean
 }
 
 export type Clipping = {
@@ -18,10 +19,15 @@ export type Clipping = {
   description?: string
   recortes: Recorte[]
   prompt: string
-  scheduleTime: string
+  schedule: string
+  scheduleTime?: string // legacy — clippings antigos usam este campo
+  nextRunAt?: string | null
+  startDate?: string | null
+  endDate?: string | null
   deliveryChannels: DeliveryChannels
   active: boolean
   extraEmails: string[]
+  webhookUrl?: string
   includeHistory: boolean
   createdAt: string
   updatedAt: string
@@ -50,7 +56,12 @@ export type MarketplaceListing = {
   active: boolean
 }
 
-export type ClippingPayload = Omit<Clipping, 'id' | 'createdAt' | 'updatedAt'>
+export type ClippingPayload = Omit<
+  Clipping,
+  'id' | 'createdAt' | 'updatedAt'
+> & {
+  webhookUrl: string
+}
 
 export type Release = {
   id: string

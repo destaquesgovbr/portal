@@ -80,10 +80,11 @@ export function EditarClippingClient({
     name: clipping.name,
     recortes: clipping.recortes,
     prompt: clipping.prompt,
-    scheduleTime: clipping.scheduleTime,
+    schedule: clipping.schedule,
     deliveryChannels: clipping.deliveryChannels,
     active: clipping.active,
     extraEmails: clipping.extraEmails ?? [],
+    webhookUrl: clipping.webhookUrl ?? '',
     includeHistory: clipping.includeHistory ?? false,
   }
 

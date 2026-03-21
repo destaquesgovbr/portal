@@ -11,6 +11,17 @@ type Props = {
   hasTelegram: boolean
   extraEmails: string[]
   onExtraEmailsChange: (emails: string[]) => void
+  webhookUrl: string
+  onWebhookUrlChange: (url: string) => void
+}
+
+function isValidUrl(str: string): boolean {
+  try {
+    new URL(str)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function ChannelSelector({
@@ -19,8 +30,15 @@ export function ChannelSelector({
   hasTelegram,
   extraEmails,
   onExtraEmailsChange,
+  webhookUrl,
+  onWebhookUrlChange,
 }: Props) {
   const [linkLoading, setLinkLoading] = useState(false)
+  const [webhookTouched, setWebhookTouched] = useState(false)
+  const webhookUrlError =
+    webhookTouched && webhookUrl !== '' && !isValidUrl(webhookUrl)
+      ? 'URL inválida'
+      : null
 
   const toggle = (channel: keyof DeliveryChannels) => {
     onChange({ ...value, [channel]: !value[channel] })
@@ -119,6 +137,40 @@ export function ChannelSelector({
           </p>
         </div>
       </label>
+
+      {/* Webhook */}
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={value.webhook}
+          onChange={() => toggle('webhook')}
+          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+          aria-label="Webhook"
+        />
+        <div>
+          <span className="text-sm font-medium">Webhook</span>
+          <p className="text-xs text-muted-foreground">
+            Receba o resumo via POST JSON em uma URL
+          </p>
+        </div>
+      </label>
+
+      {value.webhook && (
+        <div className="pl-7 space-y-1">
+          <input
+            type="url"
+            value={webhookUrl}
+            onChange={(e) => onWebhookUrlChange(e.target.value)}
+            onBlur={() => setWebhookTouched(true)}
+            placeholder="https://exemplo.com/webhook"
+            aria-label="Webhook URL"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+          {webhookUrlError && (
+            <p className="text-xs text-destructive">{webhookUrlError}</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
