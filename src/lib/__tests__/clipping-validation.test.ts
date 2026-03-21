@@ -8,7 +8,7 @@ function validPayload(overrides: Record<string, unknown> = {}) {
       { id: '1', title: 'R1', themes: ['01'], agencies: [], keywords: [] },
     ],
     prompt: '',
-    scheduleTime: '08:00',
+    schedule: '0 8 * * *',
     deliveryChannels: { email: true, telegram: false, push: false },
     active: true,
     ...overrides,

@@ -19,7 +19,11 @@ export type Clipping = {
   description?: string
   recortes: Recorte[]
   prompt: string
-  scheduleTime: string
+  schedule: string
+  scheduleTime?: string // legacy — clippings antigos usam este campo
+  nextRunAt?: string | null
+  startDate?: string | null
+  endDate?: string | null
   deliveryChannels: DeliveryChannels
   active: boolean
   extraEmails: string[]

@@ -31,7 +31,7 @@ export function FollowDialog({
   onOpenChange,
   onFollowed,
 }: Props) {
-  const [scheduleTime, setScheduleTime] = useState('08:00')
+  const [schedule, setSchedule] = useState('0 8 * * *')
   const [channels, setChannels] = useState({
     email: true,
     telegram: false,
@@ -54,7 +54,7 @@ export function FollowDialog({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          scheduleTime,
+          schedule,
           deliveryChannels: channels,
         }),
       })
@@ -87,7 +87,7 @@ export function FollowDialog({
         <div className="space-y-6">
           <div className="space-y-2">
             <Label>Horário de entrega</Label>
-            <ScheduleSelect value={scheduleTime} onChange={setScheduleTime} />
+            <ScheduleSelect value={schedule} onChange={setSchedule} />
           </div>
 
           <div className="space-y-3">

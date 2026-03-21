@@ -66,7 +66,7 @@ describe('getClippings', () => {
           name: 'Meu Clipping',
           recortes: [],
           prompt: '',
-          scheduleTime: '08:00',
+          schedule: '0 8 * * *',
           deliveryChannels: { email: true, telegram: false, push: false },
           active: true,
           createdAt: { toDate: () => new Date('2026-03-12T10:00:00Z') },

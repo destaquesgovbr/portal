@@ -44,6 +44,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { cronToHumanReadable } from '@/lib/cron-utils'
 import type { Clipping } from '@/types/clipping'
 
 type SendStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -169,7 +170,11 @@ export function ClippingCard({
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Envio diário às {clipping.scheduleTime}
+            {clipping.schedule
+              ? cronToHumanReadable(clipping.schedule)
+              : clipping.scheduleTime
+                ? `Todos os dias às ${clipping.scheduleTime}`
+                : ''}
           </p>
         </CardHeader>
 

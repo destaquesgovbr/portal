@@ -29,6 +29,16 @@ vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }))
 
+vi.mock('@/lib/cron-utils', () => ({
+  isValidCron: vi.fn((expr: string) => {
+    try {
+      return expr.trim().split(/\s+/).length === 5
+    } catch {
+      return false
+    }
+  }),
+}))
+
 vi.mock('firebase-admin/firestore', () => ({
   FieldValue: {
     increment: (n: number) => mockIncrement(n),
@@ -42,7 +52,7 @@ import { DELETE, POST } from '../route'
 const mockAuth = vi.mocked(auth)
 
 const validPayload = {
-  scheduleTime: '08:00',
+  schedule: '0 8 * * *',
   deliveryChannels: { email: true, telegram: false, push: false },
 }
 
@@ -151,10 +161,10 @@ describe('POST /api/clippings/public/[listingId]/follow', () => {
     expect(response.status).toBe(401)
   })
 
-  it('returns 400 for invalid scheduleTime', async () => {
+  it('returns 400 for invalid schedule', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
     const response = await POST(
-      makeRequest({ ...validPayload, scheduleTime: '08:15' }),
+      makeRequest({ ...validPayload, schedule: 'not a cron' }),
       routeParams,
     )
     expect(response.status).toBe(400)
@@ -231,7 +241,7 @@ describe('POST /api/clippings/public/[listingId]/follow', () => {
       expect.objectContaining({
         followsListingId: 'listing-1',
         followsAuthorUserId: 'other-user',
-        scheduleTime: '08:00',
+        schedule: '0 8 * * *',
         deliveryChannels: {
           email: true,
           telegram: false,
