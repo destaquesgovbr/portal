@@ -27,8 +27,9 @@ describe('calculateNextRun', () => {
     const now = new Date('2026-03-21T10:00:00-03:00')
     const next = calculateNextRun('0 14 * * *', now)
     expect(next).not.toBeNull()
-    expect(next!.getHours()).toBe(14)
-    expect(next!.getMinutes()).toBe(0)
+    // 14:00 BRT = 17:00 UTC
+    expect(next!.getUTCHours()).toBe(17)
+    expect(next!.getUTCMinutes()).toBe(0)
   })
 
   it('returns next day when time already passed', () => {
@@ -74,7 +75,8 @@ describe('calculateNextRun', () => {
     const now = new Date('2026-03-21T09:00:00-03:00')
     const next = calculateNextRun('0 8,14,20 * * *', now)
     expect(next).not.toBeNull()
-    expect(next!.getHours()).toBe(14)
+    // 14:00 BRT = 17:00 UTC
+    expect(next!.getUTCHours()).toBe(17)
   })
 })
 
