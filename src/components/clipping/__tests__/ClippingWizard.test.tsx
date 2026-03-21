@@ -97,10 +97,19 @@ vi.mock('../ChannelSelector', () => ({
   ChannelSelector: ({
     value,
     onChange,
+    webhookUrl,
+    onWebhookUrlChange,
   }: {
-    value: { email: boolean; telegram: boolean; push: boolean }
+    value: {
+      email: boolean
+      telegram: boolean
+      push: boolean
+      webhook: boolean
+    }
     onChange: (v: typeof value) => void
     hasTelegram: boolean
+    webhookUrl: string
+    onWebhookUrlChange: (url: string) => void
   }) => (
     <div data-testid="channel-selector">
       <input
@@ -109,6 +118,20 @@ vi.mock('../ChannelSelector', () => ({
         checked={value.email}
         onChange={() => onChange({ ...value, email: !value.email })}
         aria-label="email"
+      />
+      <input
+        type="checkbox"
+        data-testid="channel-webhook"
+        checked={value.webhook}
+        onChange={() => onChange({ ...value, webhook: !value.webhook })}
+        aria-label="webhook"
+      />
+      <input
+        type="text"
+        data-testid="webhook-url"
+        value={webhookUrl}
+        onChange={(e) => onWebhookUrlChange(e.target.value)}
+        aria-label="webhook url"
       />
     </div>
   ),
@@ -216,5 +239,39 @@ describe('ClippingWizard (3-step flow, prompt step hidden)', () => {
     })
 
     resolveSubmit()
+  })
+
+  it('includes webhookUrl in submit payload', async () => {
+    const handleSubmit = vi.fn().mockResolvedValue(undefined)
+    const { user } = render(
+      <ClippingWizard onSubmit={handleSubmit} themes={[]} agencies={[]} />,
+    )
+
+    await fillRecorteAndName(user)
+
+    // Navigate to Canais (2 clicks: Recortes -> Horário -> Canais)
+    await user.click(screen.getByRole('button', { name: /próximo/i }))
+    await user.click(screen.getByRole('button', { name: /próximo/i }))
+
+    // Enable webhook channel
+    await user.click(screen.getByTestId('channel-webhook'))
+
+    // Set webhook URL
+    const urlInput = screen.getByTestId('webhook-url')
+    await user.clear(urlInput)
+    await user.type(urlInput, 'https://example.com/hook')
+
+    await user.click(screen.getByRole('button', { name: /confirmar/i }))
+
+    await waitFor(() => {
+      expect(handleSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          webhookUrl: 'https://example.com/hook',
+          deliveryChannels: expect.objectContaining({
+            webhook: true,
+          }),
+        }),
+      )
+    })
   })
 })

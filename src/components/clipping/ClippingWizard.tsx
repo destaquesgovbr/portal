@@ -105,11 +105,13 @@ export function ClippingWizard({
       email: false,
       telegram: false,
       push: false,
+      webhook: false,
     },
   )
   const [extraEmails, setExtraEmails] = useState<string[]>(
     initialData?.extraEmails ?? [],
   )
+  const [webhookUrl, setWebhookUrl] = useState(initialData?.webhookUrl ?? '')
   const [includeHistory, setIncludeHistory] = useState(
     initialData?.includeHistory ?? false,
   )
@@ -149,7 +151,8 @@ export function ClippingWizard({
       const anyEnabled =
         deliveryChannels.email ||
         deliveryChannels.telegram ||
-        deliveryChannels.push
+        deliveryChannels.push ||
+        deliveryChannels.webhook
       if (!anyEnabled) return 'Selecione ao menos um canal de entrega.'
     }
     return null
@@ -182,7 +185,8 @@ export function ClippingWizard({
     const anyChannel =
       deliveryChannels.email ||
       deliveryChannels.telegram ||
-      deliveryChannels.push
+      deliveryChannels.push ||
+      deliveryChannels.webhook
     if (!anyChannel) return 'Selecione ao menos um canal de entrega.'
     return null
   }, [name, recortes, deliveryChannels, estimatedTotal])
@@ -260,6 +264,7 @@ export function ClippingWizard({
         deliveryChannels,
         active: initialData?.active ?? true,
         extraEmails,
+        webhookUrl,
         includeHistory: SHOW_PROMPT_STEP ? includeHistory : false,
       })
     } finally {
@@ -279,6 +284,7 @@ export function ClippingWizard({
     deliveryChannels,
     initialData?.active,
     extraEmails,
+    webhookUrl,
     includeHistory,
   ])
 
@@ -461,6 +467,8 @@ export function ClippingWizard({
               hasTelegram={hasTelegram}
               extraEmails={extraEmails}
               onExtraEmailsChange={setExtraEmails}
+              webhookUrl={webhookUrl}
+              onWebhookUrlChange={setWebhookUrl}
             />
           </div>
         )}
