@@ -73,8 +73,8 @@ const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
 const PUSH_WORKER_URL = process.env.NEXT_PUBLIC_PUSH_WORKER_URL || ''
 
 const STEPS = SHOW_PROMPT_STEP
-  ? (['Recortes', 'Prompt', 'Horário', 'Canais'] as const)
-  : (['Recortes', 'Horário', 'Canais'] as const)
+  ? (['Recortes', 'Prompt', 'Agendamento', 'Canais'] as const)
+  : (['Recortes', 'Agendamento', 'Canais'] as const)
 
 export function ClippingWizard({
   initialData,
@@ -441,7 +441,7 @@ export function ClippingWizard({
         )}
 
         {/* Step: Horário */}
-        {currentStepLabel === 'Horário' && (
+        {currentStepLabel === 'Agendamento' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Agendamento</h2>
             <p className="text-sm text-muted-foreground">
