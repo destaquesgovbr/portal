@@ -1,7 +1,14 @@
 'use client'
 
+import { HelpCircle } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { DeliveryChannels } from '@/types/clipping'
 import { ExtraEmailsInput } from './ExtraEmailsInput'
 
@@ -139,21 +146,62 @@ export function ChannelSelector({
       </label>
 
       {/* Webhook */}
-      <label className="flex items-center gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={value.webhook}
-          onChange={() => toggle('webhook')}
-          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-          aria-label="Webhook"
-        />
-        <div>
-          <span className="text-sm font-medium">Webhook</span>
-          <p className="text-xs text-muted-foreground">
-            Receba o resumo via POST JSON em uma URL
-          </p>
-        </div>
-      </label>
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={value.webhook}
+            onChange={() => toggle('webhook')}
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+            aria-label="Webhook"
+          />
+          <div>
+            <span className="text-sm font-medium">Webhook</span>
+            <p className="text-xs text-muted-foreground">
+              Receba o resumo via POST JSON em uma URL
+            </p>
+          </div>
+        </label>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-xs text-xs">
+              <p>
+                A cada envio do clipping, o digest completo (JSON estruturado) é
+                enviado via POST para a URL configurada. Ideal para integrações
+                com sistemas internos, bots ou automações.
+              </p>
+              <p className="mt-1">
+                Para testar, use{' '}
+                <a
+                  href="https://webhook.site"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline"
+                >
+                  webhook.site
+                </a>{' '}
+                — exemplo:{' '}
+                <a
+                  href="https://webhook.site/#!/view/f0b30e73-c432-47ee-b18b-78c0b7d22a74"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline"
+                >
+                  ver payload recebido
+                </a>
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
 
       {value.webhook && (
         <div className="pl-7 space-y-1">

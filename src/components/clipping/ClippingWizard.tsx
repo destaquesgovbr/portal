@@ -299,21 +299,25 @@ export function ClippingWizard({
                 type="button"
                 onClick={() => isEditing && setStep(i)}
                 disabled={!isEditing}
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
-                  i < step
-                    ? 'bg-primary text-primary-foreground'
-                    : i === step
-                      ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2'
-                      : 'bg-muted text-muted-foreground'
-                } ${isEditing ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 hover:ring-offset-1' : ''}`}
+                className={`flex items-center gap-2 transition-colors ${isEditing ? 'cursor-pointer' : ''}`}
               >
-                {i + 1}
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                    i < step
+                      ? 'bg-primary text-primary-foreground'
+                      : i === step
+                        ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2'
+                        : 'bg-muted text-muted-foreground'
+                  } ${isEditing ? 'group-hover:ring-2 group-hover:ring-primary/50' : ''}`}
+                >
+                  {i + 1}
+                </span>
+                <span
+                  className={`hidden sm:inline text-sm ${i === step ? 'font-semibold' : 'text-muted-foreground'} ${isEditing ? 'hover:text-foreground' : ''}`}
+                >
+                  {label}
+                </span>
               </button>
-              <span
-                className={`hidden sm:inline text-sm ${i === step ? 'font-semibold' : 'text-muted-foreground'}`}
-              >
-                {label}
-              </span>
               {i < STEPS.length - 1 && (
                 <div className="hidden sm:block h-px w-6 bg-border" />
               )}
