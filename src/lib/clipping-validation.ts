@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidCron } from '@/lib/cron-utils'
 
 export const RecorteSchema = z
   .object({
@@ -19,7 +20,9 @@ export const ClippingPayloadSchema = z.object({
   description: z.string().max(500).optional(),
   recortes: z.array(RecorteSchema).min(1),
   prompt: z.string().max(2000),
-  scheduleTime: z.string().regex(/^([01]\d|2[0-3]):[03]0$/),
+  schedule: z.string().refine((v) => isValidCron(v), 'Expressão cron inválida'),
+  startDate: z.string().datetime().nullable().optional(),
+  endDate: z.string().datetime().nullable().optional(),
   deliveryChannels: z.object({
     email: z.boolean(),
     telegram: z.boolean(),
@@ -39,7 +42,9 @@ export const PublishToMarketplaceSchema = z.object({
 })
 
 export const FollowListingSchema = z.object({
-  scheduleTime: z.string().regex(/^([01]\d|2[0-3]):[03]0$/),
+  schedule: z.string().refine((v) => isValidCron(v), 'Expressão cron inválida'),
+  startDate: z.string().datetime().nullable().optional(),
+  endDate: z.string().datetime().nullable().optional(),
   deliveryChannels: z.object({
     email: z.boolean(),
     telegram: z.boolean(),

@@ -168,9 +168,7 @@ export function ClippingCard({
               {clipping.active ? 'Ativo' : 'Inativo'}
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Envio diário às {clipping.scheduleTime}
-          </p>
+          <p className="text-sm text-muted-foreground">{clipping.schedule}</p>
         </CardHeader>
 
         <CardContent className="pb-3">

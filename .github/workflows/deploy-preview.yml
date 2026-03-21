@@ -247,8 +247,10 @@ jobs:
             2>/dev/null || true)
 
           if [ -z "$SERVICES" ]; then
+            echo "No active preview services found."
             echo "No active preview services found." >> "$GITHUB_STEP_SUMMARY"
           else
+            echo "$SERVICES"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             echo "$SERVICES" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"

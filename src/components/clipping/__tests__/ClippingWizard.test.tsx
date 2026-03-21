@@ -68,22 +68,28 @@ vi.mock('../PromptEditor', () => ({
   ),
 }))
 
-vi.mock('../ScheduleSelect', () => ({
-  ScheduleSelect: ({
+vi.mock('../CronScheduleBuilder', () => ({
+  CronScheduleBuilder: ({
     value,
     onChange,
   }: {
-    value: string
-    onChange: (v: string) => void
+    value: {
+      schedule: string
+      startDate: string | null
+      endDate: string | null
+    }
+    onChange: (v: typeof value) => void
   }) => (
-    <select
-      data-testid="schedule-select"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="08:00">08:00</option>
-      <option value="09:00">09:00</option>
-    </select>
+    <div data-testid="schedule-select">
+      <span>{value.schedule}</span>
+      <button
+        type="button"
+        data-testid="change-schedule"
+        onClick={() => onChange({ ...value, schedule: '0 9 * * 1-5' })}
+      >
+        change
+      </button>
+    </div>
   ),
 }))
 

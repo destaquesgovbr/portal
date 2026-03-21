@@ -180,7 +180,7 @@ describe('POST /api/clippings/public/[listingId]/clone', () => {
         prompt: 'Resuma as notícias ambientais',
         clonedFrom: 'listing-1',
         active: false,
-        scheduleTime: '08:00',
+        schedule: '0 8 * * *',
         deliveryChannels: { email: false, telegram: false, push: false },
         createdAt: 'SERVER_TIMESTAMP',
         updatedAt: 'SERVER_TIMESTAMP',

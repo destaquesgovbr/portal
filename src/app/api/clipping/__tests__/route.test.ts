@@ -36,6 +36,17 @@ vi.mock('@/lib/estimate-recorte-count', () => ({
   MAX_DAILY_ARTICLES: 100,
 }))
 
+vi.mock('@/lib/cron-utils', () => ({
+  isValidCron: vi.fn((expr: string) => {
+    try {
+      return expr.trim().split(/\s+/).length === 5
+    } catch {
+      return false
+    }
+  }),
+  calculateNextRun: vi.fn(() => new Date('2026-03-22T08:00:00.000Z')),
+}))
+
 import { auth } from '@/auth'
 import { GET, POST } from '../route'
 
@@ -76,7 +87,7 @@ describe('GET /api/clipping', () => {
       name: 'My Clipping',
       recortes: [],
       prompt: '',
-      scheduleTime: '08:00',
+      schedule: '0 8 * * *',
       deliveryChannels: { email: true, telegram: false, push: false },
       active: true,
       createdAt: '2024-01-01T00:00:00.000Z',
@@ -127,7 +138,7 @@ describe('POST /api/clipping', () => {
       },
     ],
     prompt: 'Summarize the news',
-    scheduleTime: '08:00',
+    schedule: '0 8 * * *',
     deliveryChannels: { email: true, telegram: false, push: false },
     active: true,
   }
@@ -204,12 +215,12 @@ describe('POST /api/clipping', () => {
     expect(response.status).toBe(400)
   })
 
-  it('returns 400 for invalid scheduleTime', async () => {
+  it('returns 400 for invalid schedule', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
 
     const request = new NextRequest('http://localhost/api/clipping', {
       method: 'POST',
-      body: JSON.stringify({ ...validPayload, scheduleTime: '08:15' }),
+      body: JSON.stringify({ ...validPayload, schedule: 'not a cron' }),
       headers: { 'Content-Type': 'application/json' },
     })
 

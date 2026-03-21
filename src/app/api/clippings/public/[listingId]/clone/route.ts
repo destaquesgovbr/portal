@@ -65,7 +65,7 @@ export async function POST(
       prompt: listingData.prompt ?? '',
       clonedFrom: listingId,
       active: false,
-      scheduleTime: '08:00',
+      schedule: '0 8 * * *',
       deliveryChannels: { email: false, telegram: false, push: false },
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
