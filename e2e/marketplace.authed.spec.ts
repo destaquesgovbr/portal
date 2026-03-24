@@ -139,7 +139,9 @@ test.describe('Marketplace — Detalhe do Listing', () => {
 })
 
 test.describe('Marketplace — Follow', () => {
-  test('botão seguir abre dialog com horário e canais', async ({ page }) => {
+  test('botão seguir abre dialog com canais (sem horário)', async ({
+    page,
+  }) => {
     await page.goto('/marketplace')
 
     const cards = page.locator('a[href^="/clippings/"]')
@@ -158,10 +160,11 @@ test.describe('Marketplace — Follow', () => {
     }
     await followButton.click()
 
-    // Dialog should show schedule select and channel checkboxes
-    await expect(page.getByText(/configure quando/i)).toBeVisible()
-    await expect(page.getByText(/horário/i)).toBeVisible()
+    // Dialog should show channel checkboxes but NOT schedule
+    await expect(page.getByText(/como deseja receber/i)).toBeVisible()
     await expect(page.getByText(/canais de entrega/i)).toBeVisible()
+    // Schedule select should NOT be present
+    await expect(page.getByText(/horário/i)).not.toBeVisible()
   })
 })
 
