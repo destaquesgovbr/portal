@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { ClippingPayloadSchema } from '../clipping-validation'
+import {
+  ClippingPayloadSchema,
+  FollowListingSchema,
+} from '../clipping-validation'
 
 function validPayload(overrides: Record<string, unknown> = {}) {
   return {
@@ -55,7 +58,37 @@ describe('ClippingPayloadSchema – deliveryChannels.webhook', () => {
     }
   })
 
-  it('accepts webhook: true', () => {
+  it('accepts webhook: true with valid URL', () => {
+    const result = ClippingPayloadSchema.safeParse(
+      validPayload({
+        deliveryChannels: {
+          email: true,
+          telegram: false,
+          push: false,
+          webhook: true,
+        },
+        webhookUrl: 'https://example.com/hook',
+      }),
+    )
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects webhook: true without URL', () => {
+    const result = ClippingPayloadSchema.safeParse(
+      validPayload({
+        deliveryChannels: {
+          email: true,
+          telegram: false,
+          push: false,
+          webhook: true,
+        },
+        webhookUrl: '',
+      }),
+    )
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects webhook: true with undefined URL', () => {
     const result = ClippingPayloadSchema.safeParse(
       validPayload({
         deliveryChannels: {
@@ -66,6 +99,57 @@ describe('ClippingPayloadSchema – deliveryChannels.webhook', () => {
         },
       }),
     )
+    expect(result.success).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// FollowListingSchema — webhook requires URL
+// ---------------------------------------------------------------------------
+
+describe('FollowListingSchema — webhook requires URL', () => {
+  it('accepts follow without webhook', () => {
+    const result = FollowListingSchema.safeParse({
+      deliveryChannels: { email: true, telegram: false, push: false },
+    })
     expect(result.success).toBe(true)
+  })
+
+  it('accepts follow with webhook and valid URL', () => {
+    const result = FollowListingSchema.safeParse({
+      deliveryChannels: {
+        email: false,
+        telegram: false,
+        push: false,
+        webhook: true,
+      },
+      webhookUrl: 'https://example.com/hook',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects follow with webhook but empty URL', () => {
+    const result = FollowListingSchema.safeParse({
+      deliveryChannels: {
+        email: false,
+        telegram: false,
+        push: false,
+        webhook: true,
+      },
+      webhookUrl: '',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects follow with webhook but no URL', () => {
+    const result = FollowListingSchema.safeParse({
+      deliveryChannels: {
+        email: false,
+        telegram: false,
+        push: false,
+        webhook: true,
+      },
+    })
+    expect(result.success).toBe(false)
   })
 })
