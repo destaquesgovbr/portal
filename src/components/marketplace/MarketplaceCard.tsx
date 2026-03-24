@@ -30,6 +30,15 @@ export function MarketplaceCard({
       <Card
         className={`flex flex-col h-full hover:shadow-md transition-shadow cursor-pointer ${isFollowing ? 'ring-2 ring-primary/30' : ''}`}
       >
+        {listing.coverImageUrl && (
+          <div className="relative aspect-[1200/630] overflow-hidden rounded-t-lg">
+            <img
+              src={listing.coverImageUrl}
+              alt={listing.name}
+              className="object-cover w-full h-full"
+            />
+          </div>
+        )}
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-base font-semibold leading-tight">
