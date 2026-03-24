@@ -26,6 +26,9 @@ export async function getClippings(): Promise<Clipping[]> {
         ...data,
         createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? '',
         updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? '',
+        nextRunAt: data.nextRunAt?.toDate?.()?.toISOString?.() ?? null,
+        startDate: data.startDate?.toDate?.()?.toISOString?.() ?? null,
+        endDate: data.endDate?.toDate?.()?.toISOString?.() ?? null,
       }
     }) as Clipping[]
   } catch (error) {
