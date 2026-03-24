@@ -44,13 +44,9 @@ export const PublishToMarketplaceSchema = z.object({
 })
 
 export const FollowListingSchema = z.object({
-  schedule: z.string().refine((v) => isValidCron(v), 'Expressão cron inválida'),
-  startDate: z.string().datetime().nullable().optional(),
-  endDate: z.string().datetime().nullable().optional(),
   deliveryChannels: z.object({
     email: z.boolean(),
     telegram: z.boolean(),
     push: z.boolean(),
-    webhook: z.boolean().optional().default(false),
   }),
 })

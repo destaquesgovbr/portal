@@ -78,7 +78,6 @@ export function ClippingCard({
 
   const isPublished =
     clipping.publishedToMarketplace && clipping.marketplaceListingId
-  const isFollow = !!clipping.followsListingId
 
   const hasChannels =
     clipping.deliveryChannels.email ||
@@ -150,13 +149,6 @@ export function ClippingCard({
                 <Badge className="text-xs bg-indigo-100 text-indigo-700 border-indigo-200">
                   Publicado
                 </Badge>
-              )}
-              {isFollow && (
-                <Link href={`/marketplace/${clipping.followsListingId}`}>
-                  <Badge className="text-xs bg-teal-100 text-teal-700 border-teal-200 cursor-pointer hover:bg-teal-200">
-                    Seguindo
-                  </Badge>
-                </Link>
               )}
             </div>
             <Badge
@@ -283,7 +275,7 @@ export function ClippingCard({
                 <DropdownMenuSeparator />
 
                 {/* Marketplace actions */}
-                {!isPublished && !isFollow && (
+                {!isPublished && (
                   <DropdownMenuItem
                     onSelect={() => setPublishDialogOpen(true)}
                     className="cursor-pointer gap-2"
@@ -345,7 +337,7 @@ export function ClippingCard({
                   </>
                 )}
 
-                {(!isPublished || isFollow) && <DropdownMenuSeparator />}
+                {!isPublished && <DropdownMenuSeparator />}
                 {isPublished && <DropdownMenuSeparator />}
 
                 {confirmDelete ? (

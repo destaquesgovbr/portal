@@ -34,9 +34,13 @@ export type Clipping = {
   // Marketplace
   publishedToMarketplace?: boolean
   marketplaceListingId?: string | null
-  followsListingId?: string | null
-  followsAuthorUserId?: string | null
   clonedFrom?: string | null
+}
+
+export type MarketplaceFollower = {
+  userId: string
+  deliveryChannels: { email: boolean; telegram: boolean; push: boolean }
+  followedAt: string
 }
 
 export type MarketplaceListing = {

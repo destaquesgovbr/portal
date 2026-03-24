@@ -156,29 +156,6 @@ describe('POST /api/clippings/publish', () => {
     expect(response.status).toBe(409)
   })
 
-  it('returns 400 when clipping is a follow', async () => {
-    mockAuth.mockResolvedValue({
-      user: { id: 'user-1', email: 'u@e.com' },
-    } as never)
-    mockClippingDoc({
-      name: 'Meio Ambiente',
-      description: 'Um clipping sobre meio ambiente',
-      recortes: [
-        {
-          id: 'r1',
-          title: 'Políticas ambientais',
-          themes: ['08'],
-          agencies: [],
-          keywords: [],
-        },
-      ],
-      prompt: '',
-      followsListingId: 'some-listing',
-    })
-    const response = await POST(makeRequest(validPayload))
-    expect(response.status).toBe(400)
-  })
-
   it('publishes clipping successfully', async () => {
     mockAuth.mockResolvedValue({
       user: { id: 'user-1', email: 'u@e.com', name: 'Nitai' },

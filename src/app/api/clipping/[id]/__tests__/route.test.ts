@@ -270,12 +270,6 @@ describe('DELETE /api/clipping/[id]', () => {
         marketplaceListingId: 'listing-456',
       }),
     })
-    mockCollectionGroup.mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        get: vi.fn().mockResolvedValue({ docs: [] }),
-      }),
-    })
-
     const request = new NextRequest('http://localhost/api/clipping/clip-1', {
       method: 'DELETE',
     })
@@ -292,7 +286,7 @@ describe('DELETE /api/clipping/[id]', () => {
     expect(mockBatchDelete).toHaveBeenCalledTimes(1)
   })
 
-  it('deactivates follower clippings when deleting published clipping', async () => {
+  it('does NOT query collectionGroup for followers when deleting published clipping', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
     makeMarketplaceListingRef()
     mockGetDoc.mockResolvedValue({
@@ -301,15 +295,6 @@ describe('DELETE /api/clipping/[id]', () => {
         name: 'Published Clipping',
         publishedToMarketplace: true,
         marketplaceListingId: 'listing-789',
-      }),
-    })
-    const followerRef1 = { id: 'f1' }
-    const followerRef2 = { id: 'f2' }
-    mockCollectionGroup.mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        get: vi.fn().mockResolvedValue({
-          docs: [{ ref: followerRef1 }, { ref: followerRef2 }],
-        }),
       }),
     })
 
@@ -321,13 +306,8 @@ describe('DELETE /api/clipping/[id]', () => {
       params: Promise.resolve({ id: 'clip-1' }),
     })
     expect(response.status).toBe(200)
-    // Should deactivate both followers
-    expect(mockBatchUpdate).toHaveBeenCalledWith(followerRef1, {
-      active: false,
-    })
-    expect(mockBatchUpdate).toHaveBeenCalledWith(followerRef2, {
-      active: false,
-    })
+    // Should NOT use collectionGroup — followers are now in marketplace subcollection
+    expect(mockCollectionGroup).not.toHaveBeenCalled()
   })
 
   it('deletes non-published clipping without marketplace cascade', async () => {

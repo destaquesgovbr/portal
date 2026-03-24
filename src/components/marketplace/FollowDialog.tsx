@@ -3,7 +3,6 @@
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { ScheduleSelect } from '@/components/clipping/ScheduleSelect'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -31,7 +30,6 @@ export function FollowDialog({
   onOpenChange,
   onFollowed,
 }: Props) {
-  const [schedule, setSchedule] = useState('0 8 * * *')
   const [channels, setChannels] = useState({
     email: true,
     telegram: false,
@@ -54,7 +52,6 @@ export function FollowDialog({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          schedule,
           deliveryChannels: channels,
         }),
       })
@@ -64,7 +61,7 @@ export function FollowDialog({
         throw new Error(data?.error ?? 'Erro ao seguir listing')
       }
 
-      toast.success('Agora você está seguindo este clipping!')
+      toast.success('Agora voce esta seguindo este clipping!')
       onOpenChange(false)
       onFollowed()
     } catch (err) {
@@ -80,16 +77,11 @@ export function FollowDialog({
         <DialogHeader>
           <DialogTitle>Seguir {listingName}</DialogTitle>
           <DialogDescription>
-            Configure quando e como deseja receber este clipping
+            Escolha como deseja receber este clipping
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="space-y-2">
-            <Label>Horário de entrega</Label>
-            <ScheduleSelect value={schedule} onChange={setSchedule} />
-          </div>
-
           <div className="space-y-3">
             <Label>Canais de entrega</Label>
 
@@ -130,7 +122,7 @@ export function FollowDialog({
               <div>
                 <span className="text-sm font-medium">Push</span>
                 <p className="text-xs text-muted-foreground">
-                  Receba notificação push no navegador
+                  Receba notificacao push no navegador
                 </p>
               </div>
             </div>

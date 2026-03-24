@@ -56,7 +56,7 @@ export default async function ListingDetailPage({ params }: Props) {
   const { listingId } = await params
 
   let listing: MarketplaceListing
-  let userFollowsId: string | null = null
+  let userFollows = false
   let userHasLiked = false
 
   try {
@@ -85,7 +85,7 @@ export default async function ListingDetailPage({ params }: Props) {
     if (session?.user?.id) {
       const userId = session.user.id
 
-      const [likeSnap, followSnap] = await Promise.all([
+      const [likeSnap, followerSnap] = await Promise.all([
         db
           .collection('marketplace')
           .doc(listingId)
@@ -93,16 +93,15 @@ export default async function ListingDetailPage({ params }: Props) {
           .doc(userId)
           .get(),
         db
-          .collection('users')
+          .collection('marketplace')
+          .doc(listingId)
+          .collection('followers')
           .doc(userId)
-          .collection('clippings')
-          .where('followsListingId', '==', listingId)
-          .limit(1)
           .get(),
       ])
 
       userHasLiked = likeSnap.exists
-      userFollowsId = followSnap.empty ? null : followSnap.docs[0].id
+      userFollows = followerSnap.exists
     }
   } catch (error) {
     console.error('Failed to load listing:', error)
@@ -175,7 +174,7 @@ export default async function ListingDetailPage({ params }: Props) {
       <div className="mt-6">
         <ListingActions
           listing={listing}
-          userFollowsId={userFollowsId}
+          userFollows={userFollows}
           userHasLiked={userHasLiked}
         />
       </div>
