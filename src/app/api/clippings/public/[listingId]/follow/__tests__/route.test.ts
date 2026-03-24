@@ -199,7 +199,10 @@ describe('POST /api/clippings/public/[listingId]/follow', () => {
           email: true,
           telegram: false,
           push: false,
+          webhook: false,
         },
+        extraEmails: [],
+        webhookUrl: '',
         followedAt: 'SERVER_TIMESTAMP',
       }),
     )

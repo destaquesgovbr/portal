@@ -39,7 +39,9 @@ export type Clipping = {
 
 export type MarketplaceFollower = {
   userId: string
-  deliveryChannels: { email: boolean; telegram: boolean; push: boolean }
+  deliveryChannels: DeliveryChannels
+  extraEmails: string[]
+  webhookUrl: string
   followedAt: string
 }
 

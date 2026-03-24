@@ -13,12 +13,14 @@ type Props = {
   listing: MarketplaceListing
   userFollows: boolean
   userHasLiked: boolean
+  hasTelegram: boolean
 }
 
 export function ListingActions({
   listing,
   userFollows: initialFollows,
   userHasLiked: initialHasLiked,
+  hasTelegram,
 }: Props) {
   const { data: session } = useSession()
   const router = useRouter()
@@ -190,6 +192,7 @@ export function ListingActions({
         open={followDialogOpen}
         onOpenChange={setFollowDialogOpen}
         onFollowed={handleFollowed}
+        hasTelegram={hasTelegram}
       />
     </>
   )

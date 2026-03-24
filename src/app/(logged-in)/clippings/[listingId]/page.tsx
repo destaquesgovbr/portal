@@ -61,6 +61,7 @@ export default async function ListingDetailPage({ params }: Props) {
   let listing: MarketplaceListing
   let userFollows = false
   let userHasLiked = false
+  let hasTelegram = false
 
   try {
     const db = getFirestoreDb()
@@ -105,6 +106,16 @@ export default async function ListingDetailPage({ params }: Props) {
 
       userHasLiked = likeSnap.exists
       userFollows = followerSnap.exists
+
+      try {
+        const tgDoc = await db
+          .collection('users')
+          .doc(userId)
+          .collection('telegramLink')
+          .doc('account')
+          .get()
+        hasTelegram = tgDoc.exists
+      } catch {}
     }
   } catch (error) {
     console.error('Failed to load listing:', error)
@@ -198,6 +209,7 @@ export default async function ListingDetailPage({ params }: Props) {
           listing={listing}
           userFollows={userFollows}
           userHasLiked={userHasLiked}
+          hasTelegram={hasTelegram}
         />
       </div>
 

@@ -36,9 +36,11 @@ export function ChannelSelector({
   const [linkLoading, setLinkLoading] = useState(false)
   const [webhookTouched, setWebhookTouched] = useState(false)
   const webhookUrlError =
-    webhookTouched && webhookUrl !== '' && !isValidUrl(webhookUrl)
-      ? 'URL inválida'
-      : null
+    webhookTouched && value.webhook && webhookUrl === ''
+      ? 'URL do webhook é obrigatória'
+      : webhookTouched && webhookUrl !== '' && !isValidUrl(webhookUrl)
+        ? 'URL inválida'
+        : null
 
   const toggle = (channel: keyof DeliveryChannels) => {
     onChange({ ...value, [channel]: !value[channel] })

@@ -24,13 +24,14 @@ export async function POST(
       )
     }
 
-    const { deliveryChannels } = result.data
+    const { deliveryChannels, extraEmails, webhookUrl } = result.data
 
     // At least one delivery channel must be selected
     if (
       !deliveryChannels.email &&
       !deliveryChannels.telegram &&
-      !deliveryChannels.push
+      !deliveryChannels.push &&
+      !deliveryChannels.webhook
     ) {
       return NextResponse.json(
         { error: 'Selecione ao menos um canal de entrega' },
@@ -86,6 +87,8 @@ export async function POST(
     batch.set(followerRef, {
       userId: session.user.id,
       deliveryChannels,
+      extraEmails,
+      webhookUrl,
       followedAt: FieldValue.serverTimestamp(),
     })
 
@@ -100,6 +103,73 @@ export async function POST(
     console.error('Error following listing:', error)
     return NextResponse.json(
       { error: 'Erro ao seguir listing' },
+      { status: 500 },
+    )
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ listingId: string }> },
+) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  }
+
+  try {
+    const body = await request.json()
+    const result = FollowListingSchema.safeParse(body)
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Dados inválidos', details: result.error.flatten() },
+        { status: 400 },
+      )
+    }
+
+    const { deliveryChannels, extraEmails, webhookUrl } = result.data
+
+    if (
+      !deliveryChannels.email &&
+      !deliveryChannels.telegram &&
+      !deliveryChannels.push &&
+      !deliveryChannels.webhook
+    ) {
+      return NextResponse.json(
+        { error: 'Selecione ao menos um canal de entrega' },
+        { status: 400 },
+      )
+    }
+
+    const { listingId } = await params
+    const db = getFirestoreDb()
+
+    const followerRef = db
+      .collection('marketplace')
+      .doc(listingId)
+      .collection('followers')
+      .doc(session.user.id)
+
+    const followerSnap = await followerRef.get()
+    if (!followerSnap.exists) {
+      return NextResponse.json(
+        { error: 'Você não segue este listing' },
+        { status: 404 },
+      )
+    }
+
+    await followerRef.update({
+      deliveryChannels,
+      extraEmails,
+      webhookUrl,
+    })
+
+    return NextResponse.json({ ok: true }, { status: 200 })
+  } catch (error) {
+    console.error('Error updating follow:', error)
+    return NextResponse.json(
+      { error: 'Erro ao atualizar configurações' },
       { status: 500 },
     )
   }

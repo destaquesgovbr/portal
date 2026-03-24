@@ -1,3 +1,4 @@
+import { auth } from '@/auth'
 import { MarketplaceCard } from '@/components/marketplace/MarketplaceCard'
 import { getFirestoreDb } from '@/lib/firebase-admin'
 import type { MarketplaceListing } from '@/types/clipping'
@@ -5,12 +6,14 @@ import type { MarketplaceListing } from '@/types/clipping'
 export const revalidate = 600
 
 export default async function MarketplacePage() {
+  const session = await auth()
+  const userId = session?.user?.id
   let listings: MarketplaceListing[] = []
+
   try {
     const db = getFirestoreDb()
     let snapshot: FirebaseFirestore.QuerySnapshot
     try {
-      // Composite index: active + publishedAt (preferred)
       snapshot = await db
         .collection('marketplace')
         .where('active', '==', true)
@@ -18,7 +21,6 @@ export default async function MarketplacePage() {
         .limit(12)
         .get()
     } catch {
-      // Fallback: query without composite index, filter in memory
       snapshot = await db
         .collection('marketplace')
         .where('active', '==', true)
@@ -41,6 +43,40 @@ export default async function MarketplacePage() {
     console.error('Failed to load marketplace:', error)
   }
 
+  // Fetch user's follows and likes for all visible listings
+  let followedIds = new Set<string>()
+  let likedIds = new Set<string>()
+
+  if (userId && listings.length > 0) {
+    const db = getFirestoreDb()
+    const checks = listings.map(async (listing) => {
+      const [followerSnap, likeSnap] = await Promise.all([
+        db
+          .collection('marketplace')
+          .doc(listing.id)
+          .collection('followers')
+          .doc(userId)
+          .get(),
+        db
+          .collection('marketplace')
+          .doc(listing.id)
+          .collection('likes')
+          .doc(userId)
+          .get(),
+      ])
+      return {
+        listingId: listing.id,
+        follows: followerSnap.exists,
+        liked: likeSnap.exists,
+      }
+    })
+    const results = await Promise.all(checks)
+    followedIds = new Set(
+      results.filter((r) => r.follows).map((r) => r.listingId),
+    )
+    likedIds = new Set(results.filter((r) => r.liked).map((r) => r.listingId))
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -59,7 +95,12 @@ export default async function MarketplacePage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {listings.map((listing) => (
-            <MarketplaceCard key={listing.id} listing={listing} />
+            <MarketplaceCard
+              key={listing.id}
+              listing={listing}
+              isFollowing={followedIds.has(listing.id)}
+              isLiked={likedIds.has(listing.id)}
+            />
           ))}
         </div>
       )}
