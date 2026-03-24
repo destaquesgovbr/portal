@@ -48,13 +48,6 @@ export async function POST(request: Request) {
       )
     }
 
-    if (clippingData.followsListingId) {
-      return NextResponse.json(
-        { error: 'Não é possível publicar um clipping que é um follow' },
-        { status: 400 },
-      )
-    }
-
     const description = submittedDescription.trim()
 
     const recortes = clippingData.recortes
@@ -86,6 +79,7 @@ export async function POST(request: Request) {
       description,
       recortes,
       prompt: clippingData.prompt,
+      schedule: clippingData.schedule || '',
       likeCount: 0,
       followerCount: 0,
       cloneCount: 0,

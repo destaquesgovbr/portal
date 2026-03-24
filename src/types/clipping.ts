@@ -34,9 +34,15 @@ export type Clipping = {
   // Marketplace
   publishedToMarketplace?: boolean
   marketplaceListingId?: string | null
-  followsListingId?: string | null
-  followsAuthorUserId?: string | null
   clonedFrom?: string | null
+}
+
+export type MarketplaceFollower = {
+  userId: string
+  deliveryChannels: DeliveryChannels
+  extraEmails: string[]
+  webhookUrl: string
+  followedAt: string
 }
 
 export type MarketplaceListing = {
@@ -51,6 +57,7 @@ export type MarketplaceListing = {
   likeCount: number
   followerCount: number
   cloneCount: number
+  schedule?: string
   publishedAt: string
   updatedAt: string
   active: boolean

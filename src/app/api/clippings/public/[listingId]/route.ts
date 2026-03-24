@@ -37,7 +37,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     if (session?.user?.id) {
       const userId = session.user.id
 
-      const [likeSnap, followSnap] = await Promise.all([
+      const [likeSnap, followerSnap] = await Promise.all([
         db
           .collection('marketplace')
           .doc(listingId)
@@ -45,16 +45,15 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
           .doc(userId)
           .get(),
         db
-          .collection('users')
+          .collection('marketplace')
+          .doc(listingId)
+          .collection('followers')
           .doc(userId)
-          .collection('clippings')
-          .where('followsListingId', '==', listingId)
-          .limit(1)
           .get(),
       ])
 
       listing.userHasLiked = likeSnap.exists
-      listing.userFollowsId = followSnap.empty ? null : followSnap.docs[0].id
+      listing.userFollows = followerSnap.exists
     }
 
     return NextResponse.json(listing)
@@ -112,22 +111,6 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       publishedToMarketplace: false,
       marketplaceListingId: null,
     })
-
-    // Deactivate all follower clippings (best-effort — index may not exist yet)
-    try {
-      const followersSnap = await db
-        .collectionGroup('clippings')
-        .where('followsListingId', '==', listingId)
-        .get()
-      for (const doc of followersSnap.docs) {
-        batch.update(doc.ref, { active: false })
-      }
-    } catch (indexError) {
-      console.warn(
-        'Could not query followers (index may be building):',
-        indexError,
-      )
-    }
 
     await batch.commit()
 
