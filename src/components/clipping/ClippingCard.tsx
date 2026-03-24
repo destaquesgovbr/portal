@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cronToHumanReadable } from '@/lib/cron-utils'
 import type { Clipping } from '@/types/clipping'
+import { RecorteEstimationBadge } from './RecorteEstimationBadge'
 
 type SendStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -168,6 +169,7 @@ export function ClippingCard({
                 ? `Todos os dias às ${clipping.scheduleTime}`
                 : ''}
           </p>
+          <RecorteEstimationBadge recortes={clipping.recortes} />
         </CardHeader>
 
         <CardContent className="pb-3">
@@ -289,7 +291,7 @@ export function ClippingCard({
                   <>
                     <DropdownMenuItem asChild className="cursor-pointer gap-2">
                       <Link
-                        href={`/marketplace/${clipping.marketplaceListingId}`}
+                        href={`/clippings/${clipping.marketplaceListingId}`}
                       >
                         <ExternalLink className="h-4 w-4" />
                         Ver no Marketplace

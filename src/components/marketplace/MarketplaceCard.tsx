@@ -1,7 +1,8 @@
 'use client'
 
-import { Copy, Heart, Users } from 'lucide-react'
+import { Clock, Copy, Heart, Users } from 'lucide-react'
 import Link from 'next/link'
+import { RecorteEstimationBadge } from '@/components/clipping/RecorteEstimationBadge'
 import { Badge } from '@/components/ui/badge'
 import {
   Card,
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { cronToHumanReadable } from '@/lib/cron-utils'
 import type { MarketplaceListing } from '@/types/clipping'
 
 type Props = {
@@ -18,7 +20,7 @@ type Props = {
 
 export function MarketplaceCard({ listing }: Props) {
   return (
-    <Link href={`/marketplace/${listing.id}`}>
+    <Link href={`/clippings/${listing.id}`}>
       <Card className="flex flex-col h-full hover:shadow-md transition-shadow cursor-pointer">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold leading-tight">
@@ -28,6 +30,12 @@ export function MarketplaceCard({ listing }: Props) {
             <CardDescription className="line-clamp-2">
               {listing.description}
             </CardDescription>
+          )}
+          {listing.schedule && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+              <Clock className="h-3.5 w-3.5" />
+              {cronToHumanReadable(listing.schedule)}
+            </p>
           )}
         </CardHeader>
 
@@ -41,6 +49,10 @@ export function MarketplaceCard({ listing }: Props) {
               ))}
             </div>
           )}
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <RecorteEstimationBadge recortes={listing.recortes} />
+          </div>
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">

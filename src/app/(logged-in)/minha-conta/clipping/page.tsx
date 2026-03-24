@@ -52,7 +52,7 @@ export default async function ClippingPage() {
             href="/clippings"
             className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
           >
-            Explorar Marketplace
+            Explorar Clippings Públicos
           </Link>
           <Link
             href="/minha-conta/clipping/novo"

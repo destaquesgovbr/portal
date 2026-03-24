@@ -1,11 +1,14 @@
-import { Copy, FileJson, Heart, Rss, Users } from 'lucide-react'
+import { Clock, Copy, FileJson, Heart, Rss, Users } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { auth } from '@/auth'
+import { ArticleCountBadge } from '@/components/clipping/ArticleCountBadge'
 import { ReleaseList } from '@/components/clipping/ReleaseList'
 import { ListingActions } from '@/components/marketplace/ListingActions'
 import { Badge } from '@/components/ui/badge'
 import { getAgencyField } from '@/data/agencies-utils'
 import { getThemeNameByCode } from '@/data/themes-utils'
+import { cronToHumanReadable } from '@/lib/cron-utils'
+import { estimateTotalCount } from '@/lib/estimate-recorte-count'
 import { getFirestoreDb } from '@/lib/firebase-admin'
 import type { MarketplaceListing, Recorte } from '@/types/clipping'
 
@@ -142,6 +145,14 @@ export default async function ListingDetailPage({ params }: Props) {
     console.error('Failed to load releases:', error)
   }
 
+  let estimatedCount = 0
+  try {
+    const estimation = await estimateTotalCount(listing.recortes)
+    estimatedCount = estimation.total
+  } catch {
+    // non-critical
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <h1 className="text-3xl font-bold tracking-tight">{listing.name}</h1>
@@ -154,8 +165,19 @@ export default async function ListingDetailPage({ params }: Props) {
         <p className="mt-4 text-base leading-relaxed">{listing.description}</p>
       )}
 
+      {/* Schedule + estimation */}
+      <div className="mt-3 flex items-center gap-4 flex-wrap">
+        {listing.schedule && (
+          <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <Clock className="h-4 w-4" />
+            {cronToHumanReadable(listing.schedule)}
+          </span>
+        )}
+        <ArticleCountBadge count={estimatedCount} />
+      </div>
+
       {/* Stats */}
-      <div className="mt-4 flex items-center gap-5 text-sm text-muted-foreground">
+      <div className="mt-3 flex items-center gap-5 text-sm text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Heart className="h-4 w-4" />
           {listing.likeCount}

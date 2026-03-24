@@ -55,6 +55,7 @@ export type MarketplaceListing = {
   likeCount: number
   followerCount: number
   cloneCount: number
+  schedule?: string
   publishedAt: string
   updatedAt: string
   active: boolean

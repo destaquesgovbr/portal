@@ -79,6 +79,7 @@ export async function POST(request: Request) {
       description,
       recortes,
       prompt: clippingData.prompt,
+      schedule: clippingData.schedule || '',
       likeCount: 0,
       followerCount: 0,
       cloneCount: 0,
