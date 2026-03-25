@@ -25,14 +25,20 @@ export async function getClippings(): Promise<Clipping[]> {
 
     return snapshot.docs.map((doc) => {
       const data = doc.data()
+      const toISO = (v: unknown) =>
+        v && typeof v === 'object' && 'toDate' in v
+          ? (v as { toDate: () => Date }).toDate().toISOString()
+          : typeof v === 'string'
+            ? v
+            : null
       return {
         id: doc.id,
         ...data,
-        createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? '',
-        updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? '',
-        nextRunAt: data.nextRunAt?.toDate?.()?.toISOString?.() ?? null,
-        startDate: data.startDate?.toDate?.()?.toISOString?.() ?? null,
-        endDate: data.endDate?.toDate?.()?.toISOString?.() ?? null,
+        createdAt: toISO(data.createdAt) ?? '',
+        updatedAt: toISO(data.updatedAt) ?? '',
+        nextRunAt: toISO(data.nextRunAt) ?? null,
+        startDate: toISO(data.startDate) ?? null,
+        endDate: toISO(data.endDate) ?? null,
       }
     }) as Clipping[]
   } catch (error) {
