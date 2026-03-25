@@ -80,6 +80,15 @@ export function FollowCard({ follow, hasTelegram }: Props) {
   return (
     <>
       <Card className="flex flex-col">
+        {listing.coverImageUrl && (
+          <div className="relative aspect-[1200/630] overflow-hidden rounded-t-lg">
+            <img
+              src={listing.coverImageUrl}
+              alt={listing.name}
+              className="object-cover w-full h-full"
+            />
+          </div>
+        )}
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold leading-tight">
             <Link

@@ -166,6 +166,15 @@ export default async function ListingDetailPage({ params }: Props) {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
+      {listing.coverImageUrl && (
+        <div className="relative aspect-[1200/630] overflow-hidden rounded-lg mb-6">
+          <img
+            src={listing.coverImageUrl}
+            alt={listing.name}
+            className="object-cover w-full h-full"
+          />
+        </div>
+      )}
       <h1 className="text-3xl font-bold tracking-tight">{listing.name}</h1>
 
       <p className="mt-1 text-sm text-muted-foreground">

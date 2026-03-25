@@ -94,6 +94,19 @@ export async function POST(request: Request) {
     })
     await batch.commit()
 
+    // Fire-and-forget: publish Pub/Sub message for cover image generation
+    try {
+      const { PubSub } = await import('@google-cloud/pubsub')
+      const pubsub = new PubSub({
+        projectId: process.env.GOOGLE_CLOUD_PROJECT,
+      })
+      await pubsub.topic('dgb.marketplace.published').publishMessage({
+        json: { listingId: listingRef.id, action: 'published' },
+      })
+    } catch (err) {
+      console.error('Failed to publish cover generation event:', err)
+    }
+
     return NextResponse.json({ listingId: listingRef.id }, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
