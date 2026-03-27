@@ -14,8 +14,13 @@ if (process.env.AUTH_DEV_LOGIN === 'true') {
         email: { label: 'Email', type: 'email' },
       },
       async authorize(credentials) {
+        console.log('[dev-login] authorize called with:', credentials)
         const email = credentials?.email as string
-        if (!email) return null
+        if (!email) {
+          console.log('[dev-login] no email provided, returning null')
+          return null
+        }
+        console.log('[dev-login] authorizing user:', email)
         return {
           id: email,
           email,
@@ -71,7 +76,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers,
   callbacks: {
-    async jwt({ token, account, profile }) {
+    async jwt({ token, account, profile, user }) {
       if (account) {
         token.accessToken = account.access_token
         token.refreshToken = account.refresh_token
@@ -92,11 +97,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           )
           token.stableUserId = userId
 
-          // Roles: Keycloak realm_roles tem prioridade, Firestore role é fallback
+          // Roles: prioridade decrescente
+          // 1. Keycloak realm_roles (OAuth via Keycloak)
+          // 2. user.roles (Credentials provider como dev-login)
+          // 3. Firestore role (fallback para Google OAuth direto)
           const keycloakRoles = (profile as Record<string, unknown>)
             ?.realm_roles as string[] | undefined
+          const credentialsRoles = user?.roles as string[] | undefined
+
           if (keycloakRoles?.length) {
             token.roles = keycloakRoles
+          } else if (credentialsRoles?.length) {
+            token.roles = credentialsRoles
           } else if (role === 'admin') {
             token.roles = ['admin']
           } else {
