@@ -135,18 +135,6 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
       const listingRef = db.collection('marketplace').doc(listingId)
       batch.update(listingRef, { active: false })
 
-      try {
-        const followersSnap = await db
-          .collectionGroup('clippings')
-          .where('followsListingId', '==', listingId)
-          .get()
-        for (const followerDoc of followersSnap.docs) {
-          batch.update(followerDoc.ref, { active: false })
-        }
-      } catch (indexError) {
-        console.warn('Could not query followers:', indexError)
-      }
-
       batch.update(docRef, { publishedToMarketplace: false })
     }
 

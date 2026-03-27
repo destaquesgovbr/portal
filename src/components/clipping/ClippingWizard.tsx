@@ -188,8 +188,10 @@ export function ClippingWizard({
       deliveryChannels.push ||
       deliveryChannels.webhook
     if (!anyChannel) return 'Selecione ao menos um canal de entrega.'
+    if (deliveryChannels.webhook && !webhookUrl)
+      return 'URL do webhook é obrigatória quando webhook está ativo.'
     return null
-  }, [name, recortes, deliveryChannels, estimatedTotal])
+  }, [name, recortes, deliveryChannels, estimatedTotal, webhookUrl])
 
   const ensurePushSubscription = useCallback(async () => {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {

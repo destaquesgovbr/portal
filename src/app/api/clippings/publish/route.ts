@@ -48,13 +48,6 @@ export async function POST(request: Request) {
       )
     }
 
-    if (clippingData.followsListingId) {
-      return NextResponse.json(
-        { error: 'Não é possível publicar um clipping que é um follow' },
-        { status: 400 },
-      )
-    }
-
     const description = submittedDescription.trim()
 
     const recortes = clippingData.recortes
@@ -86,6 +79,7 @@ export async function POST(request: Request) {
       description,
       recortes,
       prompt: clippingData.prompt,
+      schedule: clippingData.schedule || '',
       likeCount: 0,
       followerCount: 0,
       cloneCount: 0,
@@ -99,6 +93,19 @@ export async function POST(request: Request) {
       description,
     })
     await batch.commit()
+
+    // Fire-and-forget: publish Pub/Sub message for cover image generation
+    try {
+      const { PubSub } = await import('@google-cloud/pubsub')
+      const pubsub = new PubSub({
+        projectId: process.env.GOOGLE_CLOUD_PROJECT,
+      })
+      await pubsub.topic('dgb.marketplace.published').publishMessage({
+        json: { listingId: listingRef.id, action: 'published' },
+      })
+    } catch (err) {
+      console.error('Failed to publish cover generation event:', err)
+    }
 
     return NextResponse.json({ listingId: listingRef.id }, { status: 201 })
   } catch (error) {

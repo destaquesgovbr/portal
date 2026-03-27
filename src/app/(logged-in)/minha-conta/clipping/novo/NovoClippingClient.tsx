@@ -34,7 +34,9 @@ export function NovoClippingClient({ agencies, themes, hasTelegram }: Props) {
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Novo Clipping</h1>
         <p className="text-muted-foreground mt-1">
-          Configure seu clipping personalizado em 4 passos.
+          Configure seu clipping personalizado em{' '}
+          {process.env.NEXT_PUBLIC_SHOW_PROMPT_STEP === 'true' ? '4' : '3'}{' '}
+          passos.
         </p>
       </div>
       <ClippingWizard

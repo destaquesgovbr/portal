@@ -3,9 +3,8 @@
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { ScheduleSelect } from '@/components/clipping/ScheduleSelect'
+import { ChannelSelector } from '@/components/clipping/ChannelSelector'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+import type { DeliveryChannels } from '@/types/clipping'
 
 type Props = {
   listingId: string
@@ -22,6 +21,11 @@ type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onFollowed: () => void
+  hasTelegram: boolean
+  initialChannels?: DeliveryChannels
+  initialExtraEmails?: string[]
+  initialWebhookUrl?: string
+  isEditing?: boolean
 }
 
 export function FollowDialog({
@@ -30,32 +34,42 @@ export function FollowDialog({
   open,
   onOpenChange,
   onFollowed,
+  hasTelegram,
+  initialChannels,
+  initialExtraEmails,
+  initialWebhookUrl,
+  isEditing = false,
 }: Props) {
-  const [schedule, setSchedule] = useState('0 8 * * *')
-  const [channels, setChannels] = useState({
-    email: true,
-    telegram: false,
-    push: false,
-  })
+  const [channels, setChannels] = useState<DeliveryChannels>(
+    initialChannels ?? {
+      email: true,
+      telegram: false,
+      push: false,
+      webhook: false,
+    },
+  )
+  const [extraEmails, setExtraEmails] = useState<string[]>(
+    initialExtraEmails ?? [],
+  )
+  const [webhookUrl, setWebhookUrl] = useState(initialWebhookUrl ?? '')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const hasChannel = channels.email || channels.telegram || channels.push
+  const hasChannel =
+    channels.email || channels.telegram || channels.push || channels.webhook
+  const webhookMissingUrl = channels.webhook && !webhookUrl
 
-  const toggleChannel = (channel: keyof typeof channels) => {
-    setChannels((prev) => ({ ...prev, [channel]: !prev[channel] }))
-  }
-
-  const handleFollow = async () => {
-    if (!hasChannel) return
+  const handleSubmit = async () => {
+    if (!hasChannel || webhookMissingUrl) return
     setIsSubmitting(true)
 
     try {
       const res = await fetch(`/api/clippings/public/${listingId}/follow`, {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          schedule,
           deliveryChannels: channels,
+          extraEmails,
+          webhookUrl,
         }),
       })
 
@@ -64,7 +78,11 @@ export function FollowDialog({
         throw new Error(data?.error ?? 'Erro ao seguir listing')
       }
 
-      toast.success('Agora você está seguindo este clipping!')
+      toast.success(
+        isEditing
+          ? 'Configurações de entrega atualizadas!'
+          : 'Agora voce esta seguindo este clipping!',
+      )
       onOpenChange(false)
       onFollowed()
     } catch (err) {
@@ -78,69 +96,30 @@ export function FollowDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Seguir {listingName}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? 'Editar entrega' : `Seguir ${listingName}`}
+          </DialogTitle>
           <DialogDescription>
-            Configure quando e como deseja receber este clipping
+            Escolha como deseja receber este clipping
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="space-y-2">
-            <Label>Horário de entrega</Label>
-            <ScheduleSelect value={schedule} onChange={setSchedule} />
-          </div>
+          <ChannelSelector
+            value={channels}
+            onChange={setChannels}
+            hasTelegram={hasTelegram}
+            extraEmails={extraEmails}
+            onExtraEmailsChange={setExtraEmails}
+            webhookUrl={webhookUrl}
+            onWebhookUrlChange={setWebhookUrl}
+          />
 
-          <div className="space-y-3">
-            <Label>Canais de entrega</Label>
-
-            <div className="flex items-center gap-3 cursor-pointer">
-              <Checkbox
-                checked={channels.email}
-                onCheckedChange={() => toggleChannel('email')}
-                disabled={isSubmitting}
-              />
-              <div>
-                <span className="text-sm font-medium">Email</span>
-                <p className="text-xs text-muted-foreground">
-                  Receba o resumo por e-mail
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 cursor-pointer">
-              <Checkbox
-                checked={channels.telegram}
-                onCheckedChange={() => toggleChannel('telegram')}
-                disabled={isSubmitting}
-              />
-              <div>
-                <span className="text-sm font-medium">Telegram</span>
-                <p className="text-xs text-muted-foreground">
-                  Receba o resumo via bot no Telegram
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 cursor-pointer">
-              <Checkbox
-                checked={channels.push}
-                onCheckedChange={() => toggleChannel('push')}
-                disabled={isSubmitting}
-              />
-              <div>
-                <span className="text-sm font-medium">Push</span>
-                <p className="text-xs text-muted-foreground">
-                  Receba notificação push no navegador
-                </p>
-              </div>
-            </div>
-
-            {!hasChannel && (
-              <p className="text-xs text-destructive">
-                Selecione ao menos um canal de entrega
-              </p>
-            )}
-          </div>
+          {!hasChannel && (
+            <p className="text-xs text-destructive">
+              Selecione ao menos um canal de entrega
+            </p>
+          )}
         </div>
 
         <DialogFooter>
@@ -152,15 +131,17 @@ export function FollowDialog({
             Cancelar
           </Button>
           <Button
-            onClick={handleFollow}
-            disabled={!hasChannel || isSubmitting}
+            onClick={handleSubmit}
+            disabled={!hasChannel || webhookMissingUrl || isSubmitting}
             className="cursor-pointer"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Seguindo...
+                {isEditing ? 'Salvando...' : 'Seguindo...'}
               </>
+            ) : isEditing ? (
+              'Salvar'
             ) : (
               'Seguir'
             )}

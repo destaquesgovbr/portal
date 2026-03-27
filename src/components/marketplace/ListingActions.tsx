@@ -11,14 +11,16 @@ import { FollowDialog } from './FollowDialog'
 
 type Props = {
   listing: MarketplaceListing
-  userFollowsId: string | null
+  userFollows: boolean
   userHasLiked: boolean
+  hasTelegram: boolean
 }
 
 export function ListingActions({
   listing,
-  userFollowsId: initialFollowsId,
+  userFollows: initialFollows,
   userHasLiked: initialHasLiked,
+  hasTelegram,
 }: Props) {
   const { data: session } = useSession()
   const router = useRouter()
@@ -27,7 +29,7 @@ export function ListingActions({
   const [likeCount, setLikeCount] = useState(listing.likeCount)
   const [liking, setLiking] = useState(false)
 
-  const [followsId, setFollowsId] = useState(initialFollowsId)
+  const [follows, setFollows] = useState(initialFollows)
   const [followerCount, setFollowerCount] = useState(listing.followerCount)
   const [followDialogOpen, setFollowDialogOpen] = useState(false)
   const [unfollowing, setUnfollowing] = useState(false)
@@ -69,7 +71,7 @@ export function ListingActions({
   const handleFollowClick = () => {
     if (requireAuth()) return
 
-    if (followsId) {
+    if (follows) {
       handleUnfollow()
     } else {
       setFollowDialogOpen(true)
@@ -89,7 +91,7 @@ export function ListingActions({
         throw new Error(data?.error ?? 'Erro ao deixar de seguir')
       }
 
-      setFollowsId(null)
+      setFollows(false)
       setFollowerCount((prev) => Math.max(0, prev - 1))
       toast.success('Você deixou de seguir este clipping')
     } catch (err) {
@@ -102,7 +104,7 @@ export function ListingActions({
   }
 
   const handleFollowed = () => {
-    setFollowsId('new')
+    setFollows(true)
     setFollowerCount((prev) => prev + 1)
     router.refresh()
   }
@@ -151,7 +153,7 @@ export function ListingActions({
         </Button>
 
         <Button
-          variant={followsId ? 'secondary' : 'outline'}
+          variant={follows ? 'secondary' : 'outline'}
           size="sm"
           onClick={handleFollowClick}
           disabled={unfollowing}
@@ -159,12 +161,12 @@ export function ListingActions({
         >
           {unfollowing ? (
             <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-          ) : followsId ? (
+          ) : follows ? (
             <UserCheck className="h-4 w-4 mr-1.5" />
           ) : (
             <UserPlus className="h-4 w-4 mr-1.5" />
           )}
-          {followsId ? 'Seguindo' : 'Seguir'}
+          {follows ? 'Seguindo' : 'Seguir'}
           <span className="ml-1 text-muted-foreground">{followerCount}</span>
         </Button>
 
@@ -190,6 +192,7 @@ export function ListingActions({
         open={followDialogOpen}
         onOpenChange={setFollowDialogOpen}
         onFollowed={handleFollowed}
+        hasTelegram={hasTelegram}
       />
     </>
   )
