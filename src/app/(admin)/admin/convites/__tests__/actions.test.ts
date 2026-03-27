@@ -15,22 +15,20 @@ vi.mock('@/auth', () => ({
 }))
 
 describe('admin convites actions', () => {
-  const originalEnv = process.env.ADMIN_EMAILS
-
   beforeEach(() => {
     vi.resetModules()
     vi.clearAllMocks()
-    process.env.ADMIN_EMAILS = 'admin@example.com'
-  })
-
-  afterEach(() => {
-    process.env.ADMIN_EMAILS = originalEnv
   })
 
   function setupAdminAuth() {
     return import('@/auth').then(({ auth }) => {
       vi.mocked(auth).mockResolvedValue({
-        user: { id: 'admin-1', name: 'Admin', email: 'admin@example.com' },
+        user: {
+          id: 'admin-1',
+          name: 'Admin',
+          email: 'admin@example.com',
+          roles: ['admin'],
+        },
         expires: '',
       })
     })
@@ -39,7 +37,12 @@ describe('admin convites actions', () => {
   function setupNonAdminAuth() {
     return import('@/auth').then(({ auth }) => {
       vi.mocked(auth).mockResolvedValue({
-        user: { id: 'user-1', name: 'User', email: 'user@example.com' },
+        user: {
+          id: 'user-1',
+          name: 'User',
+          email: 'user@example.com',
+          roles: [],
+        },
         expires: '',
       })
     })

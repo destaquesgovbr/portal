@@ -2,16 +2,16 @@ import { getFirestoreDb } from '@/lib/firebase-admin'
 import { normalizeEmail } from '@/lib/normalize-email'
 
 /**
- * Resolve a stable user ID from Firestore based on email.
- * If a user doc with this email already exists, return its ID.
- * Otherwise, create a user doc with the email and return the provider's sub.
+ * Resolve a stable user ID and role from Firestore based on email.
+ * If a user doc with this email already exists, return its ID and role.
+ * Otherwise, create a user doc with role 'user' and return the provider's sub.
  * This prevents duplicate user docs when the same email logs in
  * via different providers or deployments.
  */
-export async function resolveStableUserId(
+export async function resolveStableUser(
   email: string,
   providerSub: string,
-): Promise<string> {
+): Promise<{ userId: string; role: string }> {
   const normalized = normalizeEmail(email)
   try {
     const db = getFirestoreDb()
@@ -22,16 +22,17 @@ export async function resolveStableUserId(
       .get()
 
     if (!snapshot.empty) {
-      return snapshot.docs[0].id
+      const doc = snapshot.docs[0]
+      return { userId: doc.id, role: doc.data().role ?? 'user' }
     }
 
     // First login — create user doc so the next provider finds it by email
     await db
       .collection('users')
       .doc(providerSub)
-      .set({ email: normalized }, { merge: true })
+      .set({ email: normalized, role: 'user' }, { merge: true })
   } catch (error) {
-    console.error('Failed to resolve stable user ID:', error)
+    console.error('Failed to resolve stable user:', error)
   }
-  return providerSub
+  return { userId: providerSub, role: 'user' }
 }

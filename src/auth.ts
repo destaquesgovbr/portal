@@ -83,19 +83,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Dynamic import to avoid pulling firebase-admin into edge runtime (middleware)
         const email = token.email ?? profile?.email
         if (email) {
-          const { resolveStableUserId } = await import(
+          const { resolveStableUser } = await import(
             '@/lib/resolve-stable-user-id'
           )
-          token.stableUserId = await resolveStableUserId(
+          const { userId, role } = await resolveStableUser(
             email as string,
             token.sub ?? '',
           )
-        }
-      }
+          token.stableUserId = userId
 
-      if (profile) {
-        token.roles =
-          ((profile as Record<string, unknown>).realm_roles as string[]) ?? []
+          // Roles: Keycloak realm_roles tem prioridade, Firestore role é fallback
+          const keycloakRoles = (profile as Record<string, unknown>)
+            ?.realm_roles as string[] | undefined
+          if (keycloakRoles?.length) {
+            token.roles = keycloakRoles
+          } else if (role === 'admin') {
+            token.roles = ['admin']
+          } else {
+            token.roles = []
+          }
+        }
       }
 
       if (token.expiresAt && Date.now() < (token.expiresAt as number) * 1000) {
