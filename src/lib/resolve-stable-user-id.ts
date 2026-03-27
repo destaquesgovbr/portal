@@ -7,6 +7,9 @@ import { normalizeEmail } from '@/lib/normalize-email'
  * Otherwise, create a user doc with role 'user' and return the provider's sub.
  * This prevents duplicate user docs when the same email logs in
  * via different providers or deployments.
+ *
+ * Gracefully falls back to { userId: providerSub, role: 'user' } if Firestore
+ * is unavailable (e.g., no credentials in local dev).
  */
 export async function resolveStableUser(
   email: string,
@@ -32,7 +35,15 @@ export async function resolveStableUser(
       .doc(providerSub)
       .set({ email: normalized, role: 'user' }, { merge: true })
   } catch (error) {
-    console.error('Failed to resolve stable user:', error)
+    // Firestore unavailable (missing credentials, network issues, etc.)
+    // Suppress error in development to allow testing without Firestore
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        '[dev] Firestore unavailable, using fallback user ID. Configure FIREBASE_SERVICE_ACCOUNT_KEY or GOOGLE_APPLICATION_CREDENTIALS to enable Firestore.',
+      )
+    } else {
+      console.error('Failed to resolve stable user:', error)
+    }
   }
   return { userId: providerSub, role: 'user' }
 }
