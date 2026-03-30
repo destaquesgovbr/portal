@@ -518,6 +518,23 @@ Certifique-se de configurar:
 - `AUTH_URL` (URL pública do app, ex: `https://portal.exemplo.gov.br`) — necessário para Cloud Run pois o `trustHost: true` não infere a URL base automaticamente em todos os cenários
 - `AUTH_GOVBR_ID`, `AUTH_GOVBR_SECRET`, `AUTH_GOVBR_ISSUER` (para Gov.Br em produção)
 
+## Security Headers
+
+Configurados em `next.config.ts` via `headers()`. Aplicados globalmente a todas as rotas (`/(.*)`).
+
+| Header | Valor | Propósito |
+|--------|-------|-----------|
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` | Força HTTPS por 2 anos |
+| `X-Frame-Options` | `DENY` | Previne clickjacking |
+| `X-Content-Type-Options` | `nosniff` | Previne MIME sniffing |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Controla vazamento de Referer |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), interest-cohort=()` | Restringe APIs do navegador |
+| `Content-Security-Policy` | Política restritiva (ver `next.config.ts`) | Previne XSS e injeção de conteúdo |
+
+**Exceção**: A rota `/embed` sobrescreve `X-Frame-Options` (ALLOWALL) e `Content-Security-Policy` (`frame-ancestors *`) para permitir embedding em iframes de terceiros.
+
+**CSP dinâmico**: Os hosts de Umami (`NEXT_PUBLIC_UMAMI_SCRIPT_URL`) e GrowthBook (`NEXT_PUBLIC_GROWTHBOOK_API_HOST`) são incluídos automaticamente no CSP quando configurados via env vars.
+
 ## Deployment Gotchas
 
 ### 1. Edge Runtime — nunca importar módulos Node.js em `auth.ts`
