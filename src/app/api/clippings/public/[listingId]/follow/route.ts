@@ -4,8 +4,6 @@ import { auth } from '@/auth'
 import { FollowListingSchema } from '@/lib/clipping-validation'
 import { getFirestoreDb } from '@/lib/firebase-admin'
 
-const MAX_CLIPPINGS = 10
-
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ listingId: string }> },
@@ -26,13 +24,14 @@ export async function POST(
       )
     }
 
-    const { schedule, deliveryChannels } = result.data
+    const { deliveryChannels, extraEmails, webhookUrl } = result.data
 
     // At least one delivery channel must be selected
     if (
       !deliveryChannels.email &&
       !deliveryChannels.telegram &&
-      !deliveryChannels.push
+      !deliveryChannels.push &&
+      !deliveryChannels.webhook
     ) {
       return NextResponse.json(
         { error: 'Selecione ao menos um canal de entrega' },
@@ -71,50 +70,26 @@ export async function POST(
       )
     }
 
-    const clippingsRef = db
-      .collection('users')
-      .doc(session.user.id)
-      .collection('clippings')
+    // Check if already following via subcollection
+    const followerRef = listingRef.collection('followers').doc(session.user.id)
 
-    // Check if already following
-    const existingFollow = await clippingsRef
-      .where('followsListingId', '==', listingId)
-      .limit(1)
-      .get()
-
-    if (!existingFollow.empty) {
+    const existing = await followerRef.get()
+    if (existing.exists) {
       return NextResponse.json(
         { error: 'Você já segue este listing' },
         { status: 409 },
       )
     }
 
-    // Check clipping limit
-    const countSnapshot = await clippingsRef.count().get()
-    const count = countSnapshot.data().count
-
-    if (count >= MAX_CLIPPINGS) {
-      return NextResponse.json(
-        { error: `Limite máximo de ${MAX_CLIPPINGS} clippings atingido` },
-        { status: 400 },
-      )
-    }
-
-    // Create follower clipping + increment followerCount atomically
-    const followerClippingRef = clippingsRef.doc()
+    // Create follower doc + increment followerCount atomically
     const batch = db.batch()
 
-    batch.set(followerClippingRef, {
-      followsListingId: listingId,
-      followsAuthorUserId: listingData.authorUserId,
-      schedule,
+    batch.set(followerRef, {
+      userId: session.user.id,
       deliveryChannels,
-      active: true,
-      name: listingData.name,
-      recortes: [],
-      prompt: '',
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      extraEmails,
+      webhookUrl,
+      followedAt: FieldValue.serverTimestamp(),
     })
 
     batch.update(listingRef, {
@@ -123,11 +98,78 @@ export async function POST(
 
     await batch.commit()
 
-    return NextResponse.json({ id: followerClippingRef.id }, { status: 201 })
+    return NextResponse.json({ ok: true }, { status: 201 })
   } catch (error) {
     console.error('Error following listing:', error)
     return NextResponse.json(
       { error: 'Erro ao seguir listing' },
+      { status: 500 },
+    )
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ listingId: string }> },
+) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  }
+
+  try {
+    const body = await request.json()
+    const result = FollowListingSchema.safeParse(body)
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Dados inválidos', details: result.error.flatten() },
+        { status: 400 },
+      )
+    }
+
+    const { deliveryChannels, extraEmails, webhookUrl } = result.data
+
+    if (
+      !deliveryChannels.email &&
+      !deliveryChannels.telegram &&
+      !deliveryChannels.push &&
+      !deliveryChannels.webhook
+    ) {
+      return NextResponse.json(
+        { error: 'Selecione ao menos um canal de entrega' },
+        { status: 400 },
+      )
+    }
+
+    const { listingId } = await params
+    const db = getFirestoreDb()
+
+    const followerRef = db
+      .collection('marketplace')
+      .doc(listingId)
+      .collection('followers')
+      .doc(session.user.id)
+
+    const followerSnap = await followerRef.get()
+    if (!followerSnap.exists) {
+      return NextResponse.json(
+        { error: 'Você não segue este listing' },
+        { status: 404 },
+      )
+    }
+
+    await followerRef.update({
+      deliveryChannels,
+      extraEmails,
+      webhookUrl,
+    })
+
+    return NextResponse.json({ ok: true }, { status: 200 })
+  } catch (error) {
+    console.error('Error updating follow:', error)
+    return NextResponse.json(
+      { error: 'Erro ao atualizar configurações' },
       { status: 500 },
     )
   }
@@ -146,38 +188,23 @@ export async function DELETE(
     const { listingId } = await params
     const db = getFirestoreDb()
 
-    const clippingsRef = db
-      .collection('users')
-      .doc(session.user.id)
-      .collection('clippings')
+    const listingRef = db.collection('marketplace').doc(listingId)
+    const followerRef = listingRef.collection('followers').doc(session.user.id)
 
-    // Find the follower clipping
-    const followSnap = await clippingsRef
-      .where('followsListingId', '==', listingId)
-      .limit(1)
-      .get()
-
-    if (followSnap.empty) {
+    const followerSnap = await followerRef.get()
+    if (!followerSnap.exists) {
       return NextResponse.json(
         { error: 'Você não segue este listing' },
         { status: 404 },
       )
     }
 
-    const followerDoc = followSnap.docs[0]
     const batch = db.batch()
 
-    batch.delete(followerDoc.ref)
-
-    // Decrement followerCount only if listing still exists
-    const listingRef = db.collection('marketplace').doc(listingId)
-    const listingSnap = await listingRef.get()
-
-    if (listingSnap.exists) {
-      batch.update(listingRef, {
-        followerCount: FieldValue.increment(-1),
-      })
-    }
+    batch.delete(followerRef)
+    batch.update(listingRef, {
+      followerCount: FieldValue.increment(-1),
+    })
 
     await batch.commit()
 

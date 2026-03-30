@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cronToHumanReadable } from '@/lib/cron-utils'
 import type { Clipping } from '@/types/clipping'
+import { RecorteEstimationBadge } from './RecorteEstimationBadge'
 
 type SendStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -78,7 +79,6 @@ export function ClippingCard({
 
   const isPublished =
     clipping.publishedToMarketplace && clipping.marketplaceListingId
-  const isFollow = !!clipping.followsListingId
 
   const hasChannels =
     clipping.deliveryChannels.email ||
@@ -151,13 +151,6 @@ export function ClippingCard({
                   Publicado
                 </Badge>
               )}
-              {isFollow && (
-                <Link href={`/marketplace/${clipping.followsListingId}`}>
-                  <Badge className="text-xs bg-teal-100 text-teal-700 border-teal-200 cursor-pointer hover:bg-teal-200">
-                    Seguindo
-                  </Badge>
-                </Link>
-              )}
             </div>
             <Badge
               className={`shrink-0 text-xs ${
@@ -176,6 +169,7 @@ export function ClippingCard({
                 ? `Todos os dias às ${clipping.scheduleTime}`
                 : ''}
           </p>
+          <RecorteEstimationBadge recortes={clipping.recortes} />
         </CardHeader>
 
         <CardContent className="pb-3">
@@ -283,7 +277,7 @@ export function ClippingCard({
                 <DropdownMenuSeparator />
 
                 {/* Marketplace actions */}
-                {!isPublished && !isFollow && (
+                {!isPublished && (
                   <DropdownMenuItem
                     onSelect={() => setPublishDialogOpen(true)}
                     className="cursor-pointer gap-2"
@@ -297,7 +291,7 @@ export function ClippingCard({
                   <>
                     <DropdownMenuItem asChild className="cursor-pointer gap-2">
                       <Link
-                        href={`/marketplace/${clipping.marketplaceListingId}`}
+                        href={`/clippings/${clipping.marketplaceListingId}`}
                       >
                         <ExternalLink className="h-4 w-4" />
                         Ver no Marketplace
@@ -345,7 +339,7 @@ export function ClippingCard({
                   </>
                 )}
 
-                {(!isPublished || isFollow) && <DropdownMenuSeparator />}
+                {!isPublished && <DropdownMenuSeparator />}
                 {isPublished && <DropdownMenuSeparator />}
 
                 {confirmDelete ? (

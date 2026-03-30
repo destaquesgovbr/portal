@@ -4,14 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // Mock Firestore
 const _mockGet = vi.fn()
 const mockCollection = vi.fn()
-const mockCollectionGroup = vi.fn()
 const mockBatchUpdate = vi.fn()
 const mockBatchCommit = vi.fn().mockResolvedValue(undefined)
 
 vi.mock('@/lib/firebase-admin', () => ({
   getFirestoreDb: vi.fn(() => ({
     collection: mockCollection,
-    collectionGroup: mockCollectionGroup,
     batch: vi.fn(() => ({
       update: mockBatchUpdate,
       commit: mockBatchCommit,
@@ -38,17 +36,17 @@ function makeListing(overrides: Record<string, unknown> = {}) {
     authorDisplayName: 'Author',
     sourceClippingId: 'clip-1',
     name: 'Meio Ambiente',
-    description: 'Notícias ambientais',
+    description: 'Noticias ambientais',
     recortes: [
       {
         id: 'r1',
-        title: 'Políticas ambientais',
+        title: 'Politicas ambientais',
         themes: ['08'],
         agencies: [],
         keywords: [],
       },
     ],
-    prompt: 'Resuma as notícias',
+    prompt: 'Resuma as noticias',
     likeCount: 5,
     followerCount: 3,
     cloneCount: 1,
@@ -102,7 +100,7 @@ describe('GET /api/clippings/public/[listingId]', () => {
     expect(body.id).toBe('listing-1')
     expect(body.name).toBe('Meio Ambiente')
     expect(body.recortes).toHaveLength(1)
-    expect(body.recortes[0].title).toBe('Políticas ambientais')
+    expect(body.recortes[0].title).toBe('Politicas ambientais')
   })
 
   it('returns 404 for non-existent listing', async () => {
@@ -130,14 +128,14 @@ describe('GET /api/clippings/public/[listingId]', () => {
       recortes: [
         {
           id: 'r1',
-          title: 'Saúde Pública',
+          title: 'Saude Publica',
           themes: ['05'],
           agencies: [],
           keywords: [],
         },
         {
           id: 'r2',
-          title: 'Educação',
+          title: 'Educacao',
           themes: ['06'],
           agencies: [],
           keywords: [],
@@ -153,8 +151,8 @@ describe('GET /api/clippings/public/[listingId]', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.recortes).toHaveLength(2)
-    expect(body.recortes[0].title).toBe('Saúde Pública')
-    expect(body.recortes[1].title).toBe('Educação')
+    expect(body.recortes[0].title).toBe('Saude Publica')
+    expect(body.recortes[1].title).toBe('Educacao')
   })
 
   it('does NOT require authentication', async () => {
@@ -169,7 +167,7 @@ describe('GET /api/clippings/public/[listingId]', () => {
     expect(response.status).toBe(200)
   })
 
-  it('if user is authenticated, includes userHasLiked and userFollowsId', async () => {
+  it('if user is authenticated, includes userHasLiked and userFollows', async () => {
     mockAuth.mockResolvedValue({
       user: { id: 'user-2' },
     } as never)
@@ -189,55 +187,35 @@ describe('GET /api/clippings/public/[listingId]', () => {
       get: vi.fn().mockResolvedValue({ exists: true }),
     }
 
-    // Mock the follow query
-    const _followQuery = {
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      get: vi.fn().mockResolvedValue({
-        empty: false,
-        docs: [{ id: 'follow-clip-1' }],
-      }),
-    }
-
-    const marketplaceCol = {
-      doc: vi.fn().mockImplementation((id: string) => {
-        if (id === 'listing-1') return listingDocRef
-        return listingDocRef
-      }),
+    // Mock the follower doc (marketplace/{listingId}/followers/{userId})
+    const followerDocRef = {
+      get: vi.fn().mockResolvedValue({ exists: true }),
     }
 
     const likesCol = {
       doc: vi.fn().mockReturnValue(likeDocRef),
     }
 
-    // For the likes subcollection: marketplace/listing-1/likes/user-2
-    const listingWithLikes = {
-      ...listingDocRef,
-      collection: vi.fn().mockReturnValue(likesCol),
+    const followersCol = {
+      doc: vi.fn().mockReturnValue(followerDocRef),
     }
-    marketplaceCol.doc = vi.fn().mockReturnValue(listingWithLikes)
 
-    // Clippings subcollection for follows
-    const clippingsCol = {
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      get: vi.fn().mockResolvedValue({
-        empty: false,
-        docs: [{ id: 'follow-clip-1' }],
+    // For the marketplace doc with subcollections
+    const listingWithSubcollections = {
+      ...listingDocRef,
+      collection: vi.fn().mockImplementation((name: string) => {
+        if (name === 'likes') return likesCol
+        if (name === 'followers') return followersCol
+        return likesCol
       }),
     }
 
-    const userDoc = {
-      collection: vi.fn().mockReturnValue(clippingsCol),
-    }
-
-    const usersCol = {
-      doc: vi.fn().mockReturnValue(userDoc),
+    const marketplaceCol = {
+      doc: vi.fn().mockReturnValue(listingWithSubcollections),
     }
 
     mockCollection.mockImplementation((name: string) => {
       if (name === 'marketplace') return marketplaceCol
-      if (name === 'users') return usersCol
       return marketplaceCol
     })
 
@@ -248,7 +226,7 @@ describe('GET /api/clippings/public/[listingId]', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.userHasLiked).toBe(true)
-    expect(body.userFollowsId).toBe('follow-clip-1')
+    expect(body.userFollows).toBe(true)
   })
 })
 
@@ -304,7 +282,7 @@ describe('DELETE /api/clippings/public/[listingId]', () => {
     expect(response.status).toBe(404)
   })
 
-  it('removes listing (sets active: false)', async () => {
+  it('removes listing (sets active: false) without collectionGroup query', async () => {
     mockAuth.mockResolvedValue({
       user: { id: 'author-1' },
     } as never)
@@ -344,16 +322,6 @@ describe('DELETE /api/clippings/public/[listingId]', () => {
       return marketplaceCol
     })
 
-    // Mock collectionGroup for follower clippings
-    const followerDocs = [
-      { ref: { update: vi.fn() }, id: 'follower-1' },
-      { ref: { update: vi.fn() }, id: 'follower-2' },
-    ]
-    mockCollectionGroup.mockReturnValue({
-      where: vi.fn().mockReturnThis(),
-      get: vi.fn().mockResolvedValue({ docs: followerDocs }),
-    })
-
     const response = await DELETE(
       new NextRequest('http://localhost/api/clippings/public/listing-1', {
         method: 'DELETE',
@@ -365,72 +333,9 @@ describe('DELETE /api/clippings/public/[listingId]', () => {
     // Listing should be deactivated
     expect(mockBatchUpdate).toHaveBeenCalled()
     expect(mockBatchCommit).toHaveBeenCalled()
-  })
 
-  it('deactivates all follower clippings', async () => {
-    mockAuth.mockResolvedValue({
-      user: { id: 'author-1' },
-    } as never)
-
-    const data = makeListing({ authorUserId: 'author-1' })
-    const listingDocRef = {
-      get: vi.fn().mockResolvedValue({
-        exists: true,
-        data: () => data,
-        id: 'listing-1',
-      }),
-      update: vi.fn().mockResolvedValue(undefined),
-      id: 'listing-1',
-    }
-
-    const marketplaceCol = {
-      doc: vi.fn().mockReturnValue(listingDocRef),
-    }
-
-    const sourceClippingRef = {
-      update: vi.fn().mockResolvedValue(undefined),
-    }
-    const clippingsCol = {
-      doc: vi.fn().mockReturnValue(sourceClippingRef),
-    }
-    const userDoc = {
-      collection: vi.fn().mockReturnValue(clippingsCol),
-    }
-    const usersCol = {
-      doc: vi.fn().mockReturnValue(userDoc),
-    }
-
-    mockCollection.mockImplementation((name: string) => {
-      if (name === 'marketplace') return marketplaceCol
-      if (name === 'users') return usersCol
-      return marketplaceCol
-    })
-
-    const followerRef1 = { update: vi.fn() }
-    const followerRef2 = { update: vi.fn() }
-    const followerDocs = [
-      { ref: followerRef1, id: 'f1' },
-      { ref: followerRef2, id: 'f2' },
-    ]
-
-    mockCollectionGroup.mockReturnValue({
-      where: vi.fn().mockReturnThis(),
-      get: vi.fn().mockResolvedValue({ docs: followerDocs }),
-    })
-
-    await DELETE(
-      new NextRequest('http://localhost/api/clippings/public/listing-1', {
-        method: 'DELETE',
-      }),
-      makeParams('listing-1'),
-    )
-
-    // collectionGroup('clippings').where('followsListingId', '==', 'listing-1')
-    expect(mockCollectionGroup).toHaveBeenCalledWith('clippings')
-
-    // Each follower clipping should be deactivated via batch
-    // listing ref + source clipping ref + 2 follower refs = 4 batch updates
-    expect(mockBatchUpdate).toHaveBeenCalledTimes(4)
+    // Should only have 2 batch updates: listing active:false + source clipping
+    expect(mockBatchUpdate).toHaveBeenCalledTimes(2)
   })
 
   it('updates source clipping: publishedToMarketplace false, marketplaceListingId null', async () => {
@@ -473,11 +378,6 @@ describe('DELETE /api/clippings/public/[listingId]', () => {
       if (name === 'marketplace') return marketplaceCol
       if (name === 'users') return usersCol
       return marketplaceCol
-    })
-
-    mockCollectionGroup.mockReturnValue({
-      where: vi.fn().mockReturnThis(),
-      get: vi.fn().mockResolvedValue({ docs: [] }),
     })
 
     await DELETE(
