@@ -14,13 +14,8 @@ if (process.env.AUTH_DEV_LOGIN === 'true') {
         email: { label: 'Email', type: 'email' },
       },
       async authorize(credentials) {
-        console.log('[dev-login] authorize called with:', credentials)
         const email = credentials?.email as string
-        if (!email) {
-          console.log('[dev-login] no email provided, returning null')
-          return null
-        }
-        console.log('[dev-login] authorizing user:', email)
+        if (!email) return null
         return {
           id: email,
           email,
