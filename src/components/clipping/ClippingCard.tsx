@@ -193,9 +193,16 @@ export function ClippingCard({
                 Push
               </Badge>
             )}
+            {clipping.deliveryChannels.webhook && (
+              <Badge className="gap-1 text-xs bg-amber-50 text-amber-700 border-amber-200">
+                <Globe className="h-3 w-3" />
+                Webhook
+              </Badge>
+            )}
             {!clipping.deliveryChannels.email &&
               !clipping.deliveryChannels.telegram &&
-              !clipping.deliveryChannels.push && (
+              !clipping.deliveryChannels.push &&
+              !clipping.deliveryChannels.webhook && (
                 <span className="text-xs text-muted-foreground">
                   Nenhum canal ativo
                 </span>
