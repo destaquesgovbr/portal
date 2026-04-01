@@ -22,6 +22,12 @@ type AgentEvent =
       top_themes: { code: string; label: string; count: number }[]
       top_agencies: { key: string; name: string; count: number }[]
     }
+  | {
+      type: 'sample_result'
+      iteration: number
+      count: number
+      articles: { title: string; summary: string; agency_name: string }[]
+    }
   | { type: 'adjusting'; message: string }
   | { type: 'done'; result: AgentResult }
   | { type: 'error'; message: string }
@@ -234,6 +240,25 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {event.type === 'sample_result' && (
+                    <div className="space-y-0.5">
+                      <span className="text-muted-foreground">
+                        Amostra de artigos:
+                      </span>
+                      {event.articles.slice(0, 3).map((a) => (
+                        <div
+                          key={a.title}
+                          className="text-xs text-muted-foreground pl-2 border-l-2 border-muted"
+                        >
+                          {a.title}{' '}
+                          <span className="text-xs opacity-60">
+                            ({a.agency_name})
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   )}
 
