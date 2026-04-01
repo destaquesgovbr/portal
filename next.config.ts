@@ -17,6 +17,7 @@ const cspConnectSrc = [
   "'self'",
   umamiOrigin,
   process.env.NEXT_PUBLIC_GROWTHBOOK_API_HOST || '',
+  process.env.NEXT_PUBLIC_PUSH_WORKER_URL || '',
 ]
   .filter(Boolean)
   .join(' ')
