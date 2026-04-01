@@ -30,7 +30,7 @@ function buildCSP(frameAncestors: string = "'none'") {
     `default-src 'self'`,
     `script-src ${cspScriptSrc}`,
     `style-src 'self' 'unsafe-inline' fonts.googleapis.com cdngovbr-ds.estaleiro.serpro.gov.br cdnjs.cloudflare.com`,
-    `img-src 'self' data: blob: authjs.dev *.gov.br *.ebc.com.br *.flickr.com *.staticflickr.com *.googleusercontent.com i.ytimg.com *.fbcdn.net *.cnpq.br *.inpe.br *.on.br *.embrapa.br *.confap.org.br *.cta.br *.mast.br *.bigmidia.com *.agenciasebrae.com.br`,
+    `img-src 'self' data: blob: authjs.dev storage.googleapis.com *.gov.br *.ebc.com.br *.flickr.com *.staticflickr.com *.googleusercontent.com i.ytimg.com *.fbcdn.net *.cnpq.br *.inpe.br *.on.br *.embrapa.br *.confap.org.br *.cta.br *.mast.br *.bigmidia.com *.agenciasebrae.com.br`,
     `font-src 'self' data: fonts.gstatic.com cdngovbr-ds.estaleiro.serpro.gov.br cdnjs.cloudflare.com`,
     `connect-src ${cspConnectSrc}`,
     `frame-src 'self' *.youtube.com *.youtube-nocookie.com *.gov.br`,
