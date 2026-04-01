@@ -228,6 +228,43 @@ describe('POST /api/clipping', () => {
     expect(response.status).toBe(400)
   })
 
+  it('saves nextRunAt as Date object (not string) for Firestore Timestamp', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
+
+    const clippingsRef = {
+      doc: vi.fn().mockReturnValue({ id: 'new-clip-id' }),
+      count: vi.fn().mockReturnValue({
+        get: vi.fn().mockResolvedValue({ data: () => ({ count: 0 }) }),
+      }),
+    }
+    const userDocRef = {
+      collection: vi.fn().mockReturnValue(clippingsRef),
+    }
+    const usersCollectionRef = {
+      doc: vi.fn().mockReturnValue(userDocRef),
+    }
+    mockCollection.mockReturnValue(usersCollectionRef)
+
+    const request = new NextRequest('http://localhost/api/clipping', {
+      method: 'POST',
+      body: JSON.stringify(validPayload),
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    await POST(request)
+
+    const setCall = mockBatchSet.mock.calls.find(
+      (call: unknown[]) =>
+        call[1] &&
+        typeof call[1] === 'object' &&
+        'nextRunAt' in (call[1] as Record<string, unknown>),
+    )
+    expect(setCall).toBeDefined()
+    const savedData = setCall![1] as Record<string, unknown>
+    expect(savedData.nextRunAt).toBeInstanceOf(Date)
+    expect(typeof savedData.nextRunAt).not.toBe('string')
+  })
+
   it('enforces max 10 clippings per user', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
 
