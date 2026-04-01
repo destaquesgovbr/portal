@@ -51,6 +51,12 @@ vi.mock('../RecorteEditor', () => ({
   ),
 }))
 
+vi.mock('../AgentRecorteGenerator', () => ({
+  AgentRecorteGenerator: () => (
+    <div data-testid="agent-generator">Agent mode mock</div>
+  ),
+}))
+
 vi.mock('../PromptEditor', () => ({
   PromptEditor: ({
     value,
@@ -139,7 +145,15 @@ vi.mock('../ChannelSelector', () => ({
 
 const defaultOnSubmit = vi.fn().mockResolvedValue(undefined)
 
+async function switchToManualMode(user: ReturnType<typeof render>['user']) {
+  const manualBtn = screen.queryByText(/manual/i)
+  if (manualBtn) {
+    await user.click(manualBtn)
+  }
+}
+
 async function fillRecorteAndName(user: ReturnType<typeof render>['user']) {
+  await switchToManualMode(user)
   const recorteEditors = screen.getAllByTestId(/^recorte-editor-/)
   const firstId = recorteEditors[0]
     .getAttribute('data-testid')!

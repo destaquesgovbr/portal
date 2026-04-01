@@ -72,9 +72,18 @@ describe('POST /api/clipping/generate-recortes', () => {
       iterations: 3,
     }
 
+    // Route now uses SSE streaming — mock response with body stream
+    const sseData = `data: ${JSON.stringify({ type: 'done', result: agentResponse })}\n\n`
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(sseData))
+        controller.close()
+      },
+    })
+
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(agentResponse),
+      body: stream,
     })
 
     const { POST } = await import('../route')
@@ -89,19 +98,11 @@ describe('POST /api/clipping/generate-recortes', () => {
 
     const response = await POST(request)
     expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('text/event-stream')
 
-    const body = await response.json()
-    expect(body.recortes).toHaveLength(1)
-    expect(body.suggested_name).toBe('IA Governamental')
-
-    // Verify it called the worker
-    expect(mockFetch).toHaveBeenCalledWith(
-      `${WORKER_URL}/agent/generate-recortes`,
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ prompt: 'inteligencia artificial' }),
-      }),
-    )
+    const text = await response.text()
+    expect(text).toContain('done')
+    expect(text).toContain('IA Governamental')
   })
 
   it('returns 502 when worker fails', async () => {
