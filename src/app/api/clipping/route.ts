@@ -91,7 +91,7 @@ export async function POST(request: Request) {
         new Date(),
         payload.startDate ? new Date(payload.startDate) : undefined,
         payload.endDate ? new Date(payload.endDate) : undefined,
-      )?.toISOString() ?? null
+      ) ?? null
 
     const userRef = db.collection('users').doc(session.user.id)
     const clippingRef = clippingsRef.doc()
