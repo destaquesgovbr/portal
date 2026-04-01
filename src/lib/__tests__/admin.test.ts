@@ -16,68 +16,16 @@ describe('admin', () => {
   })
 
   describe('isAdmin', () => {
-    it('returns true when user email is in ADMIN_EMAILS', async () => {
-      process.env.ADMIN_EMAILS = 'admin@example.com,other@example.com'
-      const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: '1', name: 'Admin', email: 'admin@example.com' },
-        expires: '',
-      })
-
-      const { isAdmin } = await import('../admin')
-      expect(await isAdmin()).toBe(true)
-    })
-
-    it('returns false when user email is not in ADMIN_EMAILS', async () => {
-      process.env.ADMIN_EMAILS = 'admin@example.com'
-      const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: '1', name: 'User', email: 'user@example.com' },
-        expires: '',
-      })
-
-      const { isAdmin } = await import('../admin')
-      expect(await isAdmin()).toBe(false)
-    })
-
-    it('returns false when not authenticated', async () => {
-      process.env.ADMIN_EMAILS = 'admin@example.com'
-      const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue(null)
-
-      const { isAdmin } = await import('../admin')
-      expect(await isAdmin()).toBe(false)
-    })
-
-    it('returns false when ADMIN_EMAILS is empty', async () => {
+    it('returns true when user has admin role from Keycloak/Firestore', async () => {
       process.env.ADMIN_EMAILS = ''
       const { auth } = await import('@/auth')
       vi.mocked(auth).mockResolvedValue({
-        user: { id: '1', name: 'User', email: 'admin@example.com' },
-        expires: '',
-      })
-
-      const { isAdmin } = await import('../admin')
-      expect(await isAdmin()).toBe(false)
-    })
-
-    it('returns false when ADMIN_EMAILS is not set', async () => {
-      delete process.env.ADMIN_EMAILS
-      const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: '1', name: 'User', email: 'admin@example.com' },
-        expires: '',
-      })
-
-      const { isAdmin } = await import('../admin')
-      expect(await isAdmin()).toBe(false)
-    })
-
-    it('trims whitespace from email list', async () => {
-      process.env.ADMIN_EMAILS = '  admin@example.com , other@example.com  '
-      const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: '1', name: 'Admin', email: 'admin@example.com' },
+        user: {
+          id: '1',
+          name: 'Admin',
+          email: 'admin@example.com',
+          roles: ['admin'],
+        },
         expires: '',
       })
 
@@ -85,7 +33,7 @@ describe('admin', () => {
       expect(await isAdmin()).toBe(true)
     })
 
-    it('returns true when user has admin role from Keycloak', async () => {
+    it('returns true when user has admin among multiple roles', async () => {
       process.env.ADMIN_EMAILS = ''
       const { auth } = await import('@/auth')
       vi.mocked(auth).mockResolvedValue({
@@ -102,15 +50,32 @@ describe('admin', () => {
       expect(await isAdmin()).toBe(true)
     })
 
-    it('returns false when user has no admin role', async () => {
-      process.env.ADMIN_EMAILS = ''
+    it('returns true when user email is in ADMIN_EMAILS (fallback)', async () => {
+      process.env.ADMIN_EMAILS = 'admin@example.com,other@example.com'
+      const { auth } = await import('@/auth')
+      vi.mocked(auth).mockResolvedValue({
+        user: {
+          id: '1',
+          name: 'Admin',
+          email: 'admin@example.com',
+          roles: [],
+        },
+        expires: '',
+      })
+
+      const { isAdmin } = await import('../admin')
+      expect(await isAdmin()).toBe(true)
+    })
+
+    it('returns false when user has no admin role and not in ADMIN_EMAILS', async () => {
+      process.env.ADMIN_EMAILS = 'admin@example.com'
       const { auth } = await import('@/auth')
       vi.mocked(auth).mockResolvedValue({
         user: {
           id: '1',
           name: 'User',
           email: 'user@example.com',
-          roles: ['viewer'],
+          roles: [],
         },
         expires: '',
       })
@@ -119,7 +84,50 @@ describe('admin', () => {
       expect(await isAdmin()).toBe(false)
     })
 
-    it('returns true when user has admin role even without ADMIN_EMAILS match', async () => {
+    it('returns false when not authenticated', async () => {
+      process.env.ADMIN_EMAILS = 'admin@example.com'
+      const { auth } = await import('@/auth')
+      vi.mocked(auth).mockResolvedValue(null)
+
+      const { isAdmin } = await import('../admin')
+      expect(await isAdmin()).toBe(false)
+    })
+
+    it('returns false when ADMIN_EMAILS is empty and no roles', async () => {
+      process.env.ADMIN_EMAILS = ''
+      const { auth } = await import('@/auth')
+      vi.mocked(auth).mockResolvedValue({
+        user: {
+          id: '1',
+          name: 'User',
+          email: 'admin@example.com',
+          roles: [],
+        },
+        expires: '',
+      })
+
+      const { isAdmin } = await import('../admin')
+      expect(await isAdmin()).toBe(false)
+    })
+
+    it('trims whitespace from ADMIN_EMAILS list', async () => {
+      process.env.ADMIN_EMAILS = '  admin@example.com , other@example.com  '
+      const { auth } = await import('@/auth')
+      vi.mocked(auth).mockResolvedValue({
+        user: {
+          id: '1',
+          name: 'Admin',
+          email: 'admin@example.com',
+          roles: [],
+        },
+        expires: '',
+      })
+
+      const { isAdmin } = await import('../admin')
+      expect(await isAdmin()).toBe(true)
+    })
+
+    it('prioritizes roles over ADMIN_EMAILS', async () => {
       process.env.ADMIN_EMAILS = 'other@example.com'
       const { auth } = await import('@/auth')
       vi.mocked(auth).mockResolvedValue({
@@ -138,11 +146,33 @@ describe('admin', () => {
   })
 
   describe('requireAdmin', () => {
-    it('resolves when user is admin', async () => {
+    it('resolves when user has admin role', async () => {
+      process.env.ADMIN_EMAILS = ''
+      const { auth } = await import('@/auth')
+      vi.mocked(auth).mockResolvedValue({
+        user: {
+          id: '1',
+          name: 'Admin',
+          email: 'admin@example.com',
+          roles: ['admin'],
+        },
+        expires: '',
+      })
+
+      const { requireAdmin } = await import('../admin')
+      await expect(requireAdmin()).resolves.not.toThrow()
+    })
+
+    it('resolves when user is in ADMIN_EMAILS', async () => {
       process.env.ADMIN_EMAILS = 'admin@example.com'
       const { auth } = await import('@/auth')
       vi.mocked(auth).mockResolvedValue({
-        user: { id: '1', name: 'Admin', email: 'admin@example.com' },
+        user: {
+          id: '1',
+          name: 'Admin',
+          email: 'admin@example.com',
+          roles: [],
+        },
         expires: '',
       })
 
@@ -154,7 +184,12 @@ describe('admin', () => {
       process.env.ADMIN_EMAILS = 'admin@example.com'
       const { auth } = await import('@/auth')
       vi.mocked(auth).mockResolvedValue({
-        user: { id: '1', name: 'User', email: 'user@example.com' },
+        user: {
+          id: '1',
+          name: 'User',
+          email: 'user@example.com',
+          roles: [],
+        },
         expires: '',
       })
 
