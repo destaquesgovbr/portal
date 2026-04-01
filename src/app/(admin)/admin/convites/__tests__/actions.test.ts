@@ -22,7 +22,7 @@ describe('admin convites actions', () => {
 
   function setupAdminAuth() {
     return import('@/auth').then(({ auth }) => {
-      vi.mocked(auth).mockResolvedValue({
+      ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: {
           id: 'admin-1',
           name: 'Admin',
@@ -36,7 +36,7 @@ describe('admin convites actions', () => {
 
   function setupNonAdminAuth() {
     return import('@/auth').then(({ auth }) => {
-      vi.mocked(auth).mockResolvedValue({
+      ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: {
           id: 'user-1',
           name: 'User',
@@ -56,7 +56,6 @@ describe('admin convites actions', () => {
       waitlistCollection.get = vi.fn().mockResolvedValue({
         docs: [
           {
-            id: 'entry-1',
             ...createMockDocSnapshot('entry-1', {
               email: 'user1@example.com',
               name: 'User 1',
