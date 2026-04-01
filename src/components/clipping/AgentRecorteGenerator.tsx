@@ -1,11 +1,30 @@
 'use client'
 
-import { Loader2, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { Check, Loader2, Sparkles } from 'lucide-react'
+import { useCallback, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import type { Recorte } from '@/types/clipping'
+
+type AgentEvent =
+  | { type: 'thinking'; message: string }
+  | {
+      type: 'tool_call'
+      iteration: number
+      recorte: string
+      filters: { themes: string[]; agencies: string[]; keywords: string[] }
+    }
+  | {
+      type: 'tool_result'
+      iteration: number
+      count: number
+      top_themes: { code: string; label: string; count: number }[]
+      top_agencies: { key: string; name: string; count: number }[]
+    }
+  | { type: 'adjusting'; message: string }
+  | { type: 'done'; result: AgentResult }
+  | { type: 'error'; message: string }
 
 type AgentResult = {
   recortes: Recorte[]
@@ -27,9 +46,11 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [events, setEvents] = useState<AgentEvent[]>([])
   const [result, setResult] = useState<AgentResult | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
       setError('Descreva os assuntos que deseja acompanhar.')
       return
@@ -37,13 +58,17 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
 
     setLoading(true)
     setError(null)
+    setEvents([])
     setResult(null)
+
+    abortRef.current = new AbortController()
 
     try {
       const response = await fetch('/api/clipping/generate-recortes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: prompt.trim() }),
+        signal: abortRef.current.signal,
       })
 
       if (!response.ok) {
@@ -51,22 +76,53 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
         throw new Error(data?.error ?? 'Erro ao gerar recortes')
       }
 
-      const data: AgentResult = await response.json()
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('Stream não disponível')
 
-      const recortesWithIds = data.recortes.map((r) => ({
-        ...r,
-        id: crypto.randomUUID?.() ?? `recorte-${Date.now()}-${Math.random()}`,
-      }))
+      const decoder = new TextDecoder()
+      let buffer = ''
 
-      setResult({ ...data, recortes: recortesWithIds })
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const event: AgentEvent = JSON.parse(line.slice(6))
+            setEvents((prev) => [...prev, event])
+
+            if (event.type === 'done') {
+              const recortesWithIds = event.result.recortes.map((r) => ({
+                ...r,
+                id:
+                  crypto.randomUUID?.() ??
+                  `recorte-${Date.now()}-${Math.random()}`,
+              }))
+              setResult({ ...event.result, recortes: recortesWithIds })
+            }
+
+            if (event.type === 'error') {
+              setError(event.message)
+            }
+          } catch {
+            // skip malformed events
+          }
+        }
+      }
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
       setError(err instanceof Error ? err.message : 'Erro inesperado')
     } finally {
       setLoading(false)
     }
-  }
+  }, [prompt])
 
-  const handleAccept = () => {
+  const handleAccept = useCallback(() => {
     if (result) {
       onRecortesGenerated(
         result.recortes,
@@ -74,7 +130,7 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
         result.explanation,
       )
     }
-  }
+  }, [result, onRecortesGenerated])
 
   return (
     <div className="space-y-4">
@@ -101,7 +157,7 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
         {loading ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Analisando temas e órgãos...
+            Gerando recortes...
           </>
         ) : (
           <>
@@ -113,12 +169,98 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
+      {/* Timeline de eventos */}
+      {events.length > 0 && (
+        <div className="space-y-2 text-sm">
+          {events.map((event, idx) => {
+            const eventKey = `${event.type}-${'iteration' in event ? event.iteration : idx}`
+            const isLast = idx === events.length - 1
+            return (
+              <div
+                key={eventKey}
+                className="flex items-start gap-2 animate-in fade-in duration-300"
+              >
+                {event.type === 'done' ? (
+                  <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                ) : isLast && loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-primary mt-0.5 shrink-0" />
+                ) : (
+                  <Check className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                )}
+
+                <div>
+                  {event.type === 'thinking' && (
+                    <span className="text-muted-foreground">
+                      {event.message}
+                    </span>
+                  )}
+
+                  {event.type === 'tool_call' && (
+                    <span>
+                      Testando: <strong>&quot;{event.recorte}&quot;</strong>
+                      {event.filters.themes.length > 0 && (
+                        <> — temas: {event.filters.themes.join(', ')}</>
+                      )}
+                      {event.filters.agencies.length > 0 && (
+                        <> — órgãos: {event.filters.agencies.join(', ')}</>
+                      )}
+                    </span>
+                  )}
+
+                  {event.type === 'tool_result' && (
+                    <div>
+                      <span className="font-medium">{event.count} artigos</span>
+                      {event.top_themes.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {event.top_themes.slice(0, 3).map((t) => (
+                            <Badge
+                              key={t.code}
+                              className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                            >
+                              {t.label} ({t.count})
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      {event.top_agencies.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {event.top_agencies.slice(0, 3).map((a) => (
+                            <Badge
+                              key={a.key}
+                              className="text-xs bg-green-50 text-green-700 border-green-200"
+                            >
+                              {a.name} ({a.count})
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {event.type === 'adjusting' && (
+                    <span className="text-muted-foreground">
+                      {event.message}
+                    </span>
+                  )}
+
+                  {event.type === 'done' && (
+                    <span className="text-green-700 font-medium">
+                      Pronto! {event.result.recortes.length} recorte(s)
+                      gerado(s)
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Resultado final */}
       {result && (
         <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold">
-              Recortes gerados ({result.recortes.length})
-            </h3>
+            <h3 className="text-sm font-semibold">{result.suggested_name}</h3>
             {result.recortes.map((recorte) => (
               <div
                 key={recorte.id}

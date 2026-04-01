@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       {
         method: 'POST',
         headers,
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, stream: true }),
       },
     )
 
@@ -67,8 +67,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    // Forward SSE stream transparently
+    return new Response(response.body, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      },
+    })
   } catch (error) {
     console.error('Agent proxy error:', error)
     return NextResponse.json(
