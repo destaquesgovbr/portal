@@ -70,7 +70,7 @@ describe('convites actions', () => {
       vi.mocked(getFirestoreDb).mockReturnValue(mockDb as never)
 
       const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue({
+      ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: { id: 'user-1', name: 'Test', email: 'test@example.com' },
         expires: '',
       })
@@ -91,7 +91,7 @@ describe('convites actions', () => {
       vi.mocked(getFirestoreDb).mockReturnValue(mockDb as never)
 
       const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue(null)
+      ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue(null)
 
       const { getUserInvites } = await import('../actions')
       const result = await getUserInvites()
@@ -130,7 +130,7 @@ describe('convites actions', () => {
       vi.mocked(getFirestoreDb).mockReturnValue(mockDb as never)
 
       const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue({
+      ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: { id: 'user-1', name: 'Test', email: 'test@example.com' },
         expires: '',
       })
@@ -139,7 +139,6 @@ describe('convites actions', () => {
       const result = await createInviteCode()
 
       expect(result.type).toBe('ok')
-      expect(mockBatch.set).toHaveBeenCalled()
       expect(mockBatch.set).toHaveBeenCalledTimes(2)
       expect(mockBatch.commit).toHaveBeenCalled()
     })
@@ -162,7 +161,7 @@ describe('convites actions', () => {
       vi.mocked(getFirestoreDb).mockReturnValue(mockDb as never)
 
       const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue({
+      ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: { id: 'user-1', name: 'Test', email: 'test@example.com' },
         expires: '',
       })
@@ -179,7 +178,7 @@ describe('convites actions', () => {
       vi.mocked(getFirestoreDb).mockReturnValue(mockDb as never)
 
       const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue(null)
+      ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue(null)
 
       const { createInviteCode } = await import('../actions')
       const result = await createInviteCode()
@@ -209,7 +208,7 @@ describe('convites actions', () => {
       vi.mocked(getFirestoreDb).mockReturnValue(mockDb as never)
 
       const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue({
+      ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: { id: 'user-1', name: 'Test', email: 'test@example.com' },
         expires: '',
       })
@@ -243,7 +242,7 @@ describe('convites actions', () => {
       vi.mocked(getFirestoreDb).mockReturnValue(mockDb as never)
 
       const { auth } = await import('@/auth')
-      vi.mocked(auth).mockResolvedValue({
+      ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: { id: 'user-1', name: 'Test', email: 'test@example.com' },
         expires: '',
       })
