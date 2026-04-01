@@ -15,6 +15,7 @@ import type {
   DeliveryChannels,
   Recorte,
 } from '@/types/clipping'
+import { AgentRecorteGenerator } from './AgentRecorteGenerator'
 import { ChannelSelector } from './ChannelSelector'
 import {
   CronScheduleBuilder,
@@ -88,6 +89,9 @@ export function ClippingWizard({
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [creationMode, setCreationMode] = useState<'agent' | 'manual'>(
+    isEditing ? 'manual' : 'agent',
+  )
 
   const [name, setName] = useState(initialData?.name ?? '')
   const [description, setDescription] = useState(initialData?.description ?? '')
@@ -121,6 +125,17 @@ export function ClippingWizard({
     perRecorte: estimatedPerRecorte,
     loading: estimationLoading,
   } = useRecorteEstimation(recortes)
+
+  const handleAgentRecortes = useCallback(
+    (agentRecortes: Recorte[], suggestedName: string) => {
+      setRecortes(agentRecortes)
+      if (!name.trim() && suggestedName) {
+        setName(suggestedName)
+      }
+      setCreationMode('manual') // Switch to manual to allow editing
+    },
+    [name],
+  )
 
   const addRecorte = useCallback(() => {
     setRecortes((prev) => [...prev, createRecorte()])
@@ -388,30 +403,70 @@ export function ClippingWizard({
                 {description.length}/500
               </p>
             </div>
-            <div className="space-y-3">
-              {recortes.map((recorte, index) => (
-                <RecorteEditor
-                  key={recorte.id}
-                  recorte={recorte}
-                  onChange={(updated) => updateRecorte(index, updated)}
-                  onRemove={() => removeRecorte(index)}
-                  showRemove={recortes.length > 1}
-                  themes={themes}
-                  agencies={agencies}
-                  estimatedCount={estimatedPerRecorte[index]}
-                />
-              ))}
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addRecorte}
-              className="cursor-pointer"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Adicionar Recorte
-            </Button>
+            {/* Creation mode toggle */}
+            {!isEditing && (
+              <div className="flex items-center gap-3 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setCreationMode('agent')}
+                  className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                    creationMode === 'agent'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  Assistente IA
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreationMode('manual')}
+                  className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                    creationMode === 'manual'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  Configuracao manual
+                </button>
+              </div>
+            )}
+
+            {/* Agent mode */}
+            {creationMode === 'agent' && !isEditing && (
+              <AgentRecorteGenerator
+                onRecortesGenerated={handleAgentRecortes}
+              />
+            )}
+
+            {/* Manual mode (also shown in edit mode and after agent generates) */}
+            {(creationMode === 'manual' || isEditing) && (
+              <>
+                <div className="space-y-3">
+                  {recortes.map((recorte, index) => (
+                    <RecorteEditor
+                      key={recorte.id}
+                      recorte={recorte}
+                      onChange={(updated) => updateRecorte(index, updated)}
+                      onRemove={() => removeRecorte(index)}
+                      showRemove={recortes.length > 1}
+                      themes={themes}
+                      agencies={agencies}
+                      estimatedCount={estimatedPerRecorte[index]}
+                    />
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addRecorte}
+                  className="cursor-pointer"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Adicionar Recorte
+                </Button>
+              </>
+            )}
           </div>
         )}
 
