@@ -1,6 +1,6 @@
 'use client'
 
-import { Loader2, Pencil, Sparkles } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,11 @@ type AgentResult = {
 }
 
 type Props = {
-  onRecortesGenerated: (recortes: Recorte[], suggestedName: string) => void
+  onRecortesGenerated: (
+    recortes: Recorte[],
+    suggestedName: string,
+    explanation: string,
+  ) => void
 }
 
 export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
@@ -49,7 +53,6 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
 
       const data: AgentResult = await response.json()
 
-      // Add IDs to recortes (agent doesn't generate them)
       const recortesWithIds = data.recortes.map((r) => ({
         ...r,
         id: crypto.randomUUID?.() ?? `recorte-${Date.now()}-${Math.random()}`,
@@ -65,7 +68,11 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
 
   const handleAccept = () => {
     if (result) {
-      onRecortesGenerated(result.recortes, result.suggested_name)
+      onRecortesGenerated(
+        result.recortes,
+        result.suggested_name,
+        result.explanation,
+      )
     }
   }
 
@@ -79,7 +86,7 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
           id="agent-prompt"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Ex: politicas de inteligencia artificial e regulamentacao de dados no governo federal"
+          placeholder="Ex: políticas de inteligência artificial e regulamentação de dados no governo federal"
           rows={3}
           disabled={loading}
         />
@@ -94,7 +101,7 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
         {loading ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Analisando temas e orgaos...
+            Analisando temas e órgãos...
           </>
         ) : (
           <>
@@ -119,12 +126,18 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
               >
                 <span className="font-medium">{recorte.title}:</span>
                 {recorte.themes.map((t) => (
-                  <Badge key={t} className="text-xs bg-muted">
-                    tema {t}
+                  <Badge
+                    key={t}
+                    className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                  >
+                    {t}
                   </Badge>
                 ))}
                 {recorte.agencies.map((a) => (
-                  <Badge key={a} className="text-xs bg-muted">
+                  <Badge
+                    key={a}
+                    className="text-xs bg-green-50 text-green-700 border-green-200"
+                  >
                     {a}
                   </Badge>
                 ))}

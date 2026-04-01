@@ -8,7 +8,7 @@ vi.mock('@/auth', () => ({
 const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
 
-const WORKER_URL = 'https://clipping-worker.example.com'
+const WORKER_URL = 'http://localhost:8080'
 
 describe('POST /api/clipping/generate-recortes', () => {
   beforeEach(() => {
