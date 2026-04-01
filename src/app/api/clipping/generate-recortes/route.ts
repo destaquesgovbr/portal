@@ -2,6 +2,30 @@ import { type NextRequest, NextResponse } from 'next/server'
 
 import { auth } from '@/auth'
 
+async function getWorkerHeaders(
+  workerUrl: string,
+): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  const isLocal =
+    workerUrl.includes('localhost') || workerUrl.includes('127.0.0.1')
+
+  if (!isLocal) {
+    const metadataUrl = `http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=${encodeURIComponent(workerUrl)}&format=full`
+    const tokenRes = await fetch(metadataUrl, {
+      headers: { 'Metadata-Flavor': 'Google' },
+    })
+    if (tokenRes.ok) {
+      const token = await tokenRes.text()
+      headers.Authorization = `Bearer ${token}`
+    }
+  }
+
+  return headers
+}
+
 export async function POST(request: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -23,21 +47,33 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const response = await fetch(`${workerUrl}/agent/generate-recortes`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
-  })
+  try {
+    const headers = await getWorkerHeaders(workerUrl)
+    const response = await fetch(
+      `${workerUrl.replace(/\/$/, '')}/agent/generate-recortes`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ prompt }),
+      },
+    )
 
-  if (!response.ok) {
-    const detail = await response.text()
-    console.error(`Agent worker error (${response.status}): ${detail}`)
+    if (!response.ok) {
+      const detail = await response.text()
+      console.error(`Agent worker error (${response.status}): ${detail}`)
+      return NextResponse.json(
+        { error: 'Erro ao gerar recortes', detail },
+        { status: 502 },
+      )
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Agent proxy error:', error)
     return NextResponse.json(
-      { error: 'Erro ao gerar recortes', detail },
+      { error: 'Erro ao conectar com o serviço de geração de recortes' },
       { status: 502 },
     )
   }
-
-  const data = await response.json()
-  return NextResponse.json(data)
 }
