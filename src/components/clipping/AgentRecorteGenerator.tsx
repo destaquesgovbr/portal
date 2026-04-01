@@ -35,6 +35,7 @@ type AgentEvent =
 type AgentResult = {
   recortes: Recorte[]
   explanation: string
+  description: string
   suggested_name: string
   iterations: number
   converged?: boolean
@@ -133,7 +134,7 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
       onRecortesGenerated(
         result.recortes,
         result.suggested_name,
-        result.explanation,
+        result.description || result.explanation,
       )
     }
   }, [result, onRecortesGenerated])
@@ -317,7 +318,9 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
             ))}
           </div>
 
-          <p className="text-sm text-muted-foreground">{result.explanation}</p>
+          <p className="text-sm text-muted-foreground">
+            {result.description || result.explanation}
+          </p>
 
           <div className="flex gap-2">
             <Button
