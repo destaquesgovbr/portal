@@ -16,13 +16,19 @@ const umamiOrigin = (() => {
 const cspConnectSrc = [
   "'self'",
   umamiOrigin,
-  process.env.NEXT_PUBLIC_GROWTHBOOK_API_HOST || '',
+  'www.clarity.ms',
+  process.env.NEXT_PUBLIC_GROWTHBOOK_API_HOST || 'https://cdn.growthbook.io',
   process.env.NEXT_PUBLIC_PUSH_WORKER_URL || '',
 ]
   .filter(Boolean)
   .join(' ')
 
-const cspScriptSrc = ["'self'", "'unsafe-inline'", umamiOrigin]
+const cspScriptSrc = [
+  "'self'",
+  "'unsafe-inline'",
+  umamiOrigin,
+  'www.clarity.ms',
+]
   .filter(Boolean)
   .join(' ')
 
