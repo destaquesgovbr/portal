@@ -151,6 +151,31 @@ describe('PUT /api/clipping/[id]', () => {
     expect(body.name).toBe('Updated Clipping')
   })
 
+  it('saves nextRunAt as Date object (not string) for Firestore Timestamp', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
+    makeDocChain(true, { name: 'Old Clipping' })
+    mockUpdate.mockResolvedValue(undefined)
+
+    const request = new NextRequest('http://localhost/api/clipping/clip-1', {
+      method: 'PUT',
+      body: JSON.stringify(validPayload),
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    await PUT(request, { params: Promise.resolve({ id: 'clip-1' }) })
+
+    const updateCall = mockBatchUpdate.mock.calls.find(
+      (call: unknown[]) =>
+        call[1] &&
+        typeof call[1] === 'object' &&
+        'nextRunAt' in (call[1] as Record<string, unknown>),
+    )
+    expect(updateCall).toBeDefined()
+    const savedData = updateCall![1] as Record<string, unknown>
+    expect(savedData.nextRunAt).toBeInstanceOf(Date)
+    expect(typeof savedData.nextRunAt).not.toBe('string')
+  })
+
   it('cascades update to marketplace listing when published', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
     const listingDocRef = makeMarketplaceListingRef()
