@@ -61,7 +61,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
         new Date(),
         payload.startDate ? new Date(payload.startDate) : undefined,
         payload.endDate ? new Date(payload.endDate) : undefined,
-      )?.toISOString() ?? null
+      ) ?? null
 
     const existingData = doc.data() ?? {}
 
