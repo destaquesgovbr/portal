@@ -15,6 +15,7 @@ import type {
   DeliveryChannels,
   Recorte,
 } from '@/types/clipping'
+import { AgentRecorteGenerator } from './AgentRecorteGenerator'
 import { ChannelSelector } from './ChannelSelector'
 import {
   CronScheduleBuilder,
@@ -88,6 +89,9 @@ export function ClippingWizard({
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [creationMode, setCreationMode] = useState<'agent' | 'manual'>(
+    isEditing ? 'manual' : 'agent',
+  )
 
   const [name, setName] = useState(initialData?.name ?? '')
   const [description, setDescription] = useState(initialData?.description ?? '')
@@ -121,6 +125,24 @@ export function ClippingWizard({
     perRecorte: estimatedPerRecorte,
     loading: estimationLoading,
   } = useRecorteEstimation(recortes)
+
+  const handleAgentRecortes = useCallback(
+    (
+      agentRecortes: Recorte[],
+      suggestedName: string,
+      agentExplanation: string,
+    ) => {
+      setRecortes(agentRecortes)
+      if (suggestedName) {
+        setName(suggestedName)
+      }
+      if (agentExplanation) {
+        setDescription(agentExplanation)
+      }
+      setCreationMode('manual')
+    },
+    [],
+  )
 
   const addRecorte = useCallback(() => {
     setRecortes((prev) => [...prev, createRecorte()])
@@ -333,85 +355,131 @@ export function ClippingWizard({
         {currentStepLabel === 'Recortes' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Recortes</h2>
-            {/* Estimation summary */}
-            {(estimatedTotal > 0 || estimationLoading) && (
-              <div
-                className={`text-sm px-3 py-2 rounded-md ${
-                  estimatedTotal > MAX_DAILY_ARTICLES
-                    ? 'text-destructive bg-destructive/10'
-                    : estimatedTotal < 10 && estimatedTotal > 0
-                      ? 'text-yellow-700 bg-yellow-50'
-                      : 'text-muted-foreground bg-muted/50'
-                }`}
-              >
-                {estimationLoading
-                  ? 'Estimando notícias...'
-                  : estimatedTotal > MAX_DAILY_ARTICLES
-                    ? `~${estimatedTotal} notícias/dia estimadas — limite máximo é ${MAX_DAILY_ARTICLES}`
-                    : estimatedTotal < 10 && estimatedTotal > 0
-                      ? `~${estimatedTotal} notícias/dia estimadas — considere ampliar os filtros`
-                      : `~${estimatedTotal} notícias/dia estimadas`}
+
+            {/* Creation mode toggle */}
+            {!isEditing && (
+              <div className="flex items-center gap-3 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setCreationMode('agent')}
+                  className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                    creationMode === 'agent'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  Assistente IA
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreationMode('manual')}
+                  className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                    creationMode === 'manual'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  Configuração manual
+                </button>
               </div>
             )}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium" htmlFor="clipping-name">
-                Nome do Clipping
-              </label>
-              <input
-                id="clipping-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nome do clipping (ex: Economia e Infraestrutura)"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+
+            {/* Agent mode — only shows prompt input */}
+            {creationMode === 'agent' && !isEditing && (
+              <AgentRecorteGenerator
+                onRecortesGenerated={handleAgentRecortes}
               />
-            </div>
-            <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium"
-                htmlFor="clipping-description"
-              >
-                Descrição{' '}
-                <span className="text-muted-foreground font-normal">
-                  (opcional)
-                </span>
-              </label>
-              <Textarea
-                id="clipping-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value.slice(0, 500))}
-                placeholder="Descreva o propósito do seu clipping para o marketplace"
-                maxLength={500}
-                rows={3}
-              />
-              <p className="text-xs text-muted-foreground text-right">
-                {description.length}/500
-              </p>
-            </div>
-            <div className="space-y-3">
-              {recortes.map((recorte, index) => (
-                <RecorteEditor
-                  key={recorte.id}
-                  recorte={recorte}
-                  onChange={(updated) => updateRecorte(index, updated)}
-                  onRemove={() => removeRecorte(index)}
-                  showRemove={recortes.length > 1}
-                  themes={themes}
-                  agencies={agencies}
-                  estimatedCount={estimatedPerRecorte[index]}
-                />
-              ))}
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addRecorte}
-              className="cursor-pointer"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Adicionar Recorte
-            </Button>
+            )}
+
+            {/* Manual mode (also shown in edit mode and after agent generates) */}
+            {(creationMode === 'manual' || isEditing) && (
+              <>
+                {/* Estimation summary */}
+                {(estimatedTotal > 0 || estimationLoading) && (
+                  <div
+                    className={`text-sm px-3 py-2 rounded-md ${
+                      estimatedTotal > MAX_DAILY_ARTICLES
+                        ? 'text-destructive bg-destructive/10'
+                        : estimatedTotal < 10 && estimatedTotal > 0
+                          ? 'text-yellow-700 bg-yellow-50'
+                          : 'text-muted-foreground bg-muted/50'
+                    }`}
+                  >
+                    {estimationLoading
+                      ? 'Estimando notícias...'
+                      : estimatedTotal > MAX_DAILY_ARTICLES
+                        ? `~${estimatedTotal} notícias/dia estimadas — limite máximo é ${MAX_DAILY_ARTICLES}`
+                        : estimatedTotal < 10 && estimatedTotal > 0
+                          ? `~${estimatedTotal} notícias/dia estimadas — considere ampliar os filtros`
+                          : `~${estimatedTotal} notícias/dia estimadas`}
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="clipping-name"
+                  >
+                    Nome do Clipping
+                  </label>
+                  <input
+                    id="clipping-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Nome do clipping (ex: Economia e Infraestrutura)"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="clipping-description"
+                  >
+                    Descrição{' '}
+                    <span className="text-muted-foreground font-normal">
+                      (opcional)
+                    </span>
+                  </label>
+                  <Textarea
+                    id="clipping-description"
+                    value={description}
+                    onChange={(e) =>
+                      setDescription(e.target.value.slice(0, 500))
+                    }
+                    placeholder="Descreva o propósito do seu clipping"
+                    maxLength={500}
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {description.length}/500
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {recortes.map((recorte, index) => (
+                    <RecorteEditor
+                      key={recorte.id}
+                      recorte={recorte}
+                      onChange={(updated) => updateRecorte(index, updated)}
+                      onRemove={() => removeRecorte(index)}
+                      showRemove={recortes.length > 1}
+                      themes={themes}
+                      agencies={agencies}
+                      estimatedCount={estimatedPerRecorte[index]}
+                    />
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addRecorte}
+                  className="cursor-pointer"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Adicionar Recorte
+                </Button>
+              </>
+            )}
           </div>
         )}
 

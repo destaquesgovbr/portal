@@ -115,6 +115,21 @@ export function RecorteEditor({
           selectedThemes={recorte.themes}
           onSelectedThemesChange={handleThemesChange}
         />
+        {recorte.themes.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {recorte.themes.map((code) => {
+              const theme = themes.find((t) => t.key === code)
+              return (
+                <Badge
+                  key={code}
+                  className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                >
+                  {theme?.name ?? code}
+                </Badge>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Agencies */}
@@ -125,6 +140,21 @@ export function RecorteEditor({
           selectedAgencies={recorte.agencies}
           onSelectedAgenciesChange={handleAgenciesChange}
         />
+        {recorte.agencies.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {recorte.agencies.map((key) => {
+              const agency = agencies.find((a) => a.key === key)
+              return (
+                <Badge
+                  key={key}
+                  className="text-xs bg-green-50 text-green-700 border-green-200"
+                >
+                  {agency?.name ?? key}
+                </Badge>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Keywords */}
