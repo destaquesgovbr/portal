@@ -1,0 +1,134 @@
+import { NextRequest } from 'next/server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
+}))
+
+const mockFetch = vi.fn()
+vi.stubGlobal('fetch', mockFetch)
+
+const WORKER_URL = 'http://localhost:8080'
+
+describe('POST /api/clipping/generate-recortes', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
+    process.env.CLIPPING_WORKER_URL = WORKER_URL
+  })
+
+  it('returns 401 for unauthenticated requests', async () => {
+    const { auth } = await import('@/auth')
+    ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue(null)
+
+    const { POST } = await import('../route')
+    const request = new NextRequest(
+      'http://localhost/api/clipping/generate-recortes',
+      {
+        method: 'POST',
+        body: JSON.stringify({ prompt: 'IA no governo' }),
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
+
+    const response = await POST(request)
+    expect(response.status).toBe(401)
+  })
+
+  it('returns 400 for empty prompt', async () => {
+    const { auth } = await import('@/auth')
+    ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: { id: 'user-1' },
+      expires: '',
+    })
+
+    const { POST } = await import('../route')
+    const request = new NextRequest(
+      'http://localhost/api/clipping/generate-recortes',
+      {
+        method: 'POST',
+        body: JSON.stringify({ prompt: '  ' }),
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
+
+    const response = await POST(request)
+    expect(response.status).toBe(400)
+  })
+
+  it('proxies to clipping worker and returns recortes', async () => {
+    const { auth } = await import('@/auth')
+    ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: { id: 'user-1' },
+      expires: '',
+    })
+
+    const agentResponse = {
+      recortes: [
+        { title: 'IA', themes: ['06'], agencies: [], keywords: ['IA'] },
+      ],
+      explanation: 'Recorte focado em IA',
+      suggested_name: 'IA Governamental',
+      iterations: 3,
+    }
+
+    // Route now uses SSE streaming — mock response with body stream
+    const sseData = `data: ${JSON.stringify({ type: 'done', result: agentResponse })}\n\n`
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(sseData))
+        controller.close()
+      },
+    })
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: stream,
+    })
+
+    const { POST } = await import('../route')
+    const request = new NextRequest(
+      'http://localhost/api/clipping/generate-recortes',
+      {
+        method: 'POST',
+        body: JSON.stringify({ prompt: 'inteligencia artificial' }),
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
+
+    const response = await POST(request)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('text/event-stream')
+
+    const text = await response.text()
+    expect(text).toContain('done')
+    expect(text).toContain('IA Governamental')
+  })
+
+  it('returns 502 when worker fails', async () => {
+    const { auth } = await import('@/auth')
+    ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: { id: 'user-1' },
+      expires: '',
+    })
+
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve('Internal Server Error'),
+    })
+
+    const { POST } = await import('../route')
+    const request = new NextRequest(
+      'http://localhost/api/clipping/generate-recortes',
+      {
+        method: 'POST',
+        body: JSON.stringify({ prompt: 'saude' }),
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
+
+    const response = await POST(request)
+    expect(response.status).toBe(502)
+  })
+})
