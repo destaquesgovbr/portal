@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Mock Firestore
 const mockCollection = vi.fn()
 const mockBatchSet = vi.fn()
 const mockBatchUpdate = vi.fn()
@@ -63,43 +62,23 @@ function makeDeleteRequest() {
 
 const routeParams = { params: Promise.resolve({ listingId: 'listing-1' }) }
 
-// Helper to set up Firestore mocks for the new follower subcollection model
 function setupFirestoreMocks(options: {
   listingExists?: boolean
   listingActive?: boolean
   listingAuthorUserId?: string
   listingName?: string
-  followerExists?: boolean
+  listingSourceClippingId?: string
+  existingSubscription?: boolean
 }) {
   const {
     listingExists = true,
     listingActive = true,
     listingAuthorUserId = 'other-user',
     listingName = 'Meio Ambiente News',
-    followerExists = false,
+    listingSourceClippingId = 'clip-source-1',
+    existingSubscription = false,
   } = options
 
-  // Follower doc ref (marketplace/{listingId}/followers/{userId})
-  const followerDocRef = {
-    id: 'user-1',
-    get: vi.fn().mockResolvedValue({
-      exists: followerExists,
-      data: () =>
-        followerExists
-          ? {
-              userId: 'user-1',
-              deliveryChannels: { email: true, telegram: false, push: false },
-              followedAt: 'SERVER_TIMESTAMP',
-            }
-          : undefined,
-    }),
-  }
-
-  const followersCollection = {
-    doc: vi.fn().mockReturnValue(followerDocRef),
-  }
-
-  // Listing doc ref
   const listingDocRef = {
     id: 'listing-1',
     get: vi.fn().mockResolvedValue({
@@ -108,25 +87,52 @@ function setupFirestoreMocks(options: {
         active: listingActive,
         authorUserId: listingAuthorUserId,
         name: listingName,
+        sourceClippingId: listingSourceClippingId,
         followerCount: 1,
       }),
     }),
-    collection: vi.fn().mockReturnValue(followersCollection),
   }
 
   const marketplaceCollection = {
     doc: vi.fn().mockReturnValue(listingDocRef),
   }
 
+  const subscriptionRef = { id: 'new-sub-id' }
+  const existingSubRef = { id: 'existing-sub-id' }
+
+  const subscriptionsCollection = {
+    doc: vi.fn().mockReturnValue(subscriptionRef),
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    get: vi.fn().mockResolvedValue({
+      empty: !existingSubscription,
+      docs: existingSubscription
+        ? [
+            {
+              id: 'existing-sub-id',
+              ref: existingSubRef,
+              data: () => ({
+                clippingId: listingSourceClippingId,
+                userId: 'user-1',
+                role: 'subscriber',
+              }),
+            },
+          ]
+        : [],
+    }),
+  }
+
   mockCollection.mockImplementation((name: string) => {
     if (name === 'marketplace') return marketplaceCollection
+    if (name === 'subscriptions') return subscriptionsCollection
     return marketplaceCollection
   })
 
   return {
     listingDocRef,
-    followerDocRef,
-    followersCollection,
+    subscriptionRef,
+    existingSubRef,
+    subscriptionsCollection,
     marketplaceCollection,
   }
 }
@@ -173,28 +179,29 @@ describe('POST /api/clippings/public/[listingId]/follow', () => {
     const response = await POST(makeRequest(validPayload), routeParams)
     expect(response.status).toBe(400)
     const body = await response.json()
-    expect(body.error).toMatch(/próprio|own/i)
+    expect(body.error).toMatch(/pr.prio|own/i)
   })
 
   it('returns 409 when user already follows this listing', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    setupFirestoreMocks({ followerExists: true })
+    setupFirestoreMocks({ existingSubscription: true })
     const response = await POST(makeRequest(validPayload), routeParams)
     expect(response.status).toBe(409)
   })
 
-  it('creates follower doc in marketplace/{listingId}/followers/{userId}', async () => {
+  it('creates subscription in subscriptions collection', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    const { followerDocRef, listingDocRef } = setupFirestoreMocks({})
+    const { subscriptionRef, listingDocRef } = setupFirestoreMocks({})
 
     const response = await POST(makeRequest(validPayload), routeParams)
     expect(response.status).toBe(201)
 
-    // Verify batch.set was called for the follower doc
     expect(mockBatchSet).toHaveBeenCalledWith(
-      followerDocRef,
+      subscriptionRef,
       expect.objectContaining({
+        clippingId: 'clip-source-1',
         userId: 'user-1',
+        role: 'subscriber',
         deliveryChannels: {
           email: true,
           telegram: false,
@@ -203,11 +210,11 @@ describe('POST /api/clippings/public/[listingId]/follow', () => {
         },
         extraEmails: [],
         webhookUrl: '',
-        followedAt: 'SERVER_TIMESTAMP',
+        subscribedAt: 'SERVER_TIMESTAMP',
+        active: true,
       }),
     )
 
-    // Verify followerCount increment on listing
     expect(mockBatchUpdate).toHaveBeenCalledWith(
       listingDocRef,
       expect.objectContaining({
@@ -218,29 +225,13 @@ describe('POST /api/clippings/public/[listingId]/follow', () => {
     expect(mockBatchCommit).toHaveBeenCalled()
   })
 
-  it('increments followerCount on the listing', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    const { listingDocRef } = setupFirestoreMocks({})
-
-    await POST(makeRequest(validPayload), routeParams)
-
-    expect(mockBatchUpdate).toHaveBeenCalledWith(
-      listingDocRef,
-      expect.objectContaining({
-        followerCount: { __increment: 1 },
-      }),
-    )
-  })
-
-  it('does NOT check MAX_CLIPPINGS limit', async () => {
+  it('returns subscriptionId in response', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
     setupFirestoreMocks({})
 
     const response = await POST(makeRequest(validPayload), routeParams)
-    expect(response.status).toBe(201)
-
-    // The users collection should not be accessed at all
-    // (no clipping count check)
+    const body = await response.json()
+    expect(body.subscriptionId).toBe('new-sub-id')
   })
 })
 
@@ -257,24 +248,28 @@ describe('DELETE /api/clippings/public/[listingId]/follow', () => {
 
   it('returns 404 when user does not follow this listing', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    setupFirestoreMocks({ followerExists: false })
+    setupFirestoreMocks({ existingSubscription: false })
     const response = await DELETE(makeDeleteRequest(), routeParams)
     expect(response.status).toBe(404)
   })
 
-  it('deletes the follower doc from subcollection', async () => {
+  it('deletes the subscription', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    const { followerDocRef } = setupFirestoreMocks({ followerExists: true })
+    const { existingSubRef } = setupFirestoreMocks({
+      existingSubscription: true,
+    })
 
     const response = await DELETE(makeDeleteRequest(), routeParams)
     expect(response.status).toBe(200)
-    expect(mockBatchDelete).toHaveBeenCalledWith(followerDocRef)
+    expect(mockBatchDelete).toHaveBeenCalledWith(existingSubRef)
     expect(mockBatchCommit).toHaveBeenCalled()
   })
 
   it('decrements followerCount on the listing', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    const { listingDocRef } = setupFirestoreMocks({ followerExists: true })
+    const { listingDocRef } = setupFirestoreMocks({
+      existingSubscription: true,
+    })
 
     const response = await DELETE(makeDeleteRequest(), routeParams)
     expect(response.status).toBe(200)

@@ -17,9 +17,8 @@ export async function getClippings(): Promise<Clipping[]> {
   try {
     const db = getFirestoreDb()
     const snapshot = await db
-      .collection('users')
-      .doc(session.user.id)
       .collection('clippings')
+      .where('authorUserId', '==', session.user.id)
       .orderBy('createdAt', 'desc')
       .get()
 
@@ -50,34 +49,49 @@ export async function getClippings(): Promise<Clipping[]> {
 async function getFollows(userId: string): Promise<FollowedListing[]> {
   try {
     const db = getFirestoreDb()
-    const followsSnap = await db
-      .collectionGroup('followers')
+
+    // Query subscriptions where user is a subscriber
+    const subsSnap = await db
+      .collection('subscriptions')
       .where('userId', '==', userId)
+      .where('role', '==', 'subscriber')
+      .where('active', '==', true)
       .get()
 
+    if (subsSnap.empty) return []
+
+    // Get the clipping IDs and look up their marketplace listings
     const follows = await Promise.all(
-      followsSnap.docs.map(async (doc) => {
-        const data = doc.data()
-        const listingId = doc.ref.parent.parent!.id
-        const listingSnap = await db
+      subsSnap.docs.map(async (subDoc) => {
+        const subData = subDoc.data()
+        const clippingId = subData.clippingId
+
+        // Find the marketplace listing for this clipping
+        const listingsSnap = await db
           .collection('marketplace')
-          .doc(listingId)
+          .where('sourceClippingId', '==', clippingId)
+          .where('active', '==', true)
+          .limit(1)
           .get()
-        if (!listingSnap.exists) return null
-        const listingData = listingSnap.data()!
+
+        if (listingsSnap.empty) return null
+
+        const listingDoc = listingsSnap.docs[0]
+        const listingData = listingDoc.data()
+
         return {
-          listingId,
+          listingId: listingDoc.id,
           listing: {
-            id: listingId,
+            id: listingDoc.id,
             ...listingData,
             publishedAt:
               listingData.publishedAt?.toDate?.()?.toISOString?.() ?? '',
             updatedAt: listingData.updatedAt?.toDate?.()?.toISOString?.() ?? '',
           } as MarketplaceListing,
-          deliveryChannels: data.deliveryChannels,
-          extraEmails: data.extraEmails ?? [],
-          webhookUrl: data.webhookUrl ?? '',
-          followedAt: data.followedAt?.toDate?.()?.toISOString?.() ?? '',
+          deliveryChannels: subData.deliveryChannels,
+          extraEmails: subData.extraEmails ?? [],
+          webhookUrl: subData.webhookUrl ?? '',
+          followedAt: subData.subscribedAt?.toDate?.()?.toISOString?.() ?? '',
         } satisfies FollowedListing
       }),
     )
@@ -129,7 +143,7 @@ export default async function ClippingPage() {
             href="/clippings"
             className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
           >
-            Explorar Clippings Públicos
+            Explorar Clippings Publicos
           </Link>
           <Link
             href="/minha-conta/clipping/novo"

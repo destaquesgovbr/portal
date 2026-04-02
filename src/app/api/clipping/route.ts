@@ -21,16 +21,47 @@ export async function GET() {
   try {
     const db = getFirestoreDb()
     const snapshot = await db
-      .collection('users')
-      .doc(session.user.id)
       .collection('clippings')
+      .where('authorUserId', '==', session.user.id)
       .orderBy('createdAt', 'desc')
       .get()
 
-    const clippings = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
+    const subscriptionsSnap = await db
+      .collection('subscriptions')
+      .where('userId', '==', session.user.id)
+      .where('role', '==', 'author')
+      .get()
+
+    const subscriptionsByClipping = new Map<
+      string,
+      FirebaseFirestore.DocumentData
+    >()
+    for (const doc of subscriptionsSnap.docs) {
+      const data = doc.data()
+      subscriptionsByClipping.set(data.clippingId, {
+        subscriptionId: doc.id,
+        deliveryChannels: data.deliveryChannels,
+        extraEmails: data.extraEmails,
+        webhookUrl: data.webhookUrl,
+      })
+    }
+
+    const clippings = snapshot.docs.map((doc) => {
+      const data = doc.data()
+      const sub = subscriptionsByClipping.get(doc.id)
+      return {
+        id: doc.id,
+        ...data,
+        ...(sub
+          ? {
+              subscriptionId: sub.subscriptionId,
+              deliveryChannels: sub.deliveryChannels,
+              extraEmails: sub.extraEmails,
+              webhookUrl: sub.webhookUrl,
+            }
+          : {}),
+      }
+    })
     return NextResponse.json(clippings)
   } catch (error) {
     console.error('Error reading clippings:', error)
@@ -59,12 +90,12 @@ export async function POST(request: Request) {
     }
 
     const db = getFirestoreDb()
-    const clippingsRef = db
-      .collection('users')
-      .doc(session.user.id)
-      .collection('clippings')
+    const clippingsRef = db.collection('clippings')
 
-    const countSnapshot = await clippingsRef.count().get()
+    const countSnapshot = await clippingsRef
+      .where('authorUserId', '==', session.user.id)
+      .count()
+      .get()
     const count = countSnapshot.data().count
 
     if (count >= MAX_CLIPPINGS) {
@@ -93,8 +124,12 @@ export async function POST(request: Request) {
         payload.endDate ? new Date(payload.endDate) : undefined,
       ) ?? null
 
+    const { deliveryChannels, extraEmails, webhookUrl, ...clippingFields } =
+      payload
+
     const userRef = db.collection('users').doc(session.user.id)
     const clippingRef = clippingsRef.doc()
+    const subscriptionRef = db.collection('subscriptions').doc()
 
     const batch = db.batch()
     batch.set(
@@ -103,15 +138,31 @@ export async function POST(request: Request) {
       { merge: true },
     )
     batch.set(clippingRef, {
-      ...payload,
+      ...clippingFields,
+      authorUserId: session.user.id,
       nextRunAt,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     })
+    batch.set(subscriptionRef, {
+      clippingId: clippingRef.id,
+      userId: session.user.id,
+      role: 'author',
+      deliveryChannels,
+      extraEmails,
+      webhookUrl,
+      subscribedAt: FieldValue.serverTimestamp(),
+      active: true,
+    })
     await batch.commit()
 
     return NextResponse.json(
-      { id: clippingRef.id, ...payload, nextRunAt },
+      {
+        id: clippingRef.id,
+        subscriptionId: subscriptionRef.id,
+        ...payload,
+        nextRunAt,
+      },
       { status: 201 },
     )
   } catch (error) {

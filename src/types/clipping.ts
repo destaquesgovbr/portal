@@ -64,6 +64,18 @@ export type MarketplaceListing = {
   active: boolean
 }
 
+export type Subscription = {
+  id: string
+  clippingId: string
+  userId: string
+  role: 'author' | 'subscriber'
+  deliveryChannels: DeliveryChannels
+  extraEmails: string[]
+  webhookUrl: string
+  subscribedAt: string
+  active: boolean
+}
+
 export type ClippingPayload = Omit<
   Clipping,
   'id' | 'createdAt' | 'updatedAt'

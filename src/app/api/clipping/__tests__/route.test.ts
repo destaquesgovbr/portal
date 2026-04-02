@@ -1,17 +1,7 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Mock firebase-admin
-const _mockGet = vi.fn()
-const mockAdd = vi.fn()
-const _mockOrderBy = vi.fn()
-const _mockLimit = vi.fn()
-const _mockWhere = vi.fn()
 const mockCollection = vi.fn()
-const _mockDoc = vi.fn()
-const _mockCount = vi.fn()
-const _mockGetCount = vi.fn()
-
 const mockBatchSet = vi.fn()
 const mockBatchCommit = vi.fn().mockResolvedValue(undefined)
 
@@ -54,14 +44,14 @@ const mockAuth = vi.mocked(auth)
 
 function makeCollectionChain(docs: { id: string; data: () => object }[]) {
   const chain = {
-    collection: vi.fn().mockReturnThis(),
     doc: vi.fn().mockReturnThis(),
     orderBy: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
-    get: vi.fn().mockResolvedValue({ docs }),
-    add: mockAdd,
-    count: vi.fn().mockReturnThis(),
+    get: vi.fn().mockResolvedValue({ docs, empty: docs.length === 0 }),
+    count: vi.fn().mockReturnValue({
+      get: vi.fn().mockResolvedValue({ data: () => ({ count: 0 }) }),
+    }),
   }
   return chain
 }
@@ -88,16 +78,22 @@ describe('GET /api/clipping', () => {
       recortes: [],
       prompt: '',
       schedule: '0 8 * * *',
-      deliveryChannels: { email: true, telegram: false, push: false },
+      authorUserId: 'user-1',
       active: true,
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     }
 
-    const chain = makeCollectionChain([
+    const clippingsChain = makeCollectionChain([
       { id: 'clip-1', data: () => clippingData },
     ])
-    mockCollection.mockReturnValue(chain)
+    const subscriptionsChain = makeCollectionChain([])
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'clippings') return clippingsChain
+      if (name === 'subscriptions') return subscriptionsChain
+      return clippingsChain
+    })
 
     const response = await GET()
     expect(response.status).toBe(200)
@@ -111,13 +107,55 @@ describe('GET /api/clipping', () => {
   it('returns empty array when no clippings', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
 
-    const chain = makeCollectionChain([])
-    mockCollection.mockReturnValue(chain)
+    const clippingsChain = makeCollectionChain([])
+    const subscriptionsChain = makeCollectionChain([])
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'clippings') return clippingsChain
+      if (name === 'subscriptions') return subscriptionsChain
+      return clippingsChain
+    })
 
     const response = await GET()
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body).toEqual([])
+  })
+
+  it('merges subscription data into clipping response', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
+
+    const clippingData = {
+      name: 'My Clipping',
+      authorUserId: 'user-1',
+    }
+
+    const subscriptionData = {
+      clippingId: 'clip-1',
+      deliveryChannels: { email: true, telegram: false, push: false },
+      extraEmails: ['test@example.com'],
+      webhookUrl: '',
+    }
+
+    const clippingsChain = makeCollectionChain([
+      { id: 'clip-1', data: () => clippingData },
+    ])
+    const subscriptionsChain = makeCollectionChain([
+      { id: 'sub-1', data: () => subscriptionData },
+    ])
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'clippings') return clippingsChain
+      if (name === 'subscriptions') return subscriptionsChain
+      return clippingsChain
+    })
+
+    const response = await GET()
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body[0].subscriptionId).toBe('sub-1')
+    expect(body[0].deliveryChannels.email).toBe(true)
+    expect(body[0].extraEmails).toEqual(['test@example.com'])
   })
 })
 
@@ -131,7 +169,7 @@ describe('POST /api/clipping', () => {
     recortes: [
       {
         id: 'rec-1',
-        title: 'Saúde',
+        title: 'Saude',
         themes: ['01'],
         agencies: [],
         keywords: [],
@@ -156,25 +194,29 @@ describe('POST /api/clipping', () => {
     expect(response.status).toBe(401)
   })
 
-  it('creates clipping with valid payload', async () => {
+  it('creates clipping in top-level collection and subscription', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-
-    const newDocRef = { id: 'new-clip-id' }
-    mockAdd.mockResolvedValue(newDocRef)
 
     const clippingsRef = {
       doc: vi.fn().mockReturnValue({ id: 'new-clip-id' }),
+      where: vi.fn().mockReturnThis(),
       count: vi.fn().mockReturnValue({
         get: vi.fn().mockResolvedValue({ data: () => ({ count: 0 }) }),
       }),
     }
-    const userDocRef = {
-      collection: vi.fn().mockReturnValue(clippingsRef),
+    const subscriptionsRef = {
+      doc: vi.fn().mockReturnValue({ id: 'new-sub-id' }),
     }
-    const usersCollectionRef = {
-      doc: vi.fn().mockReturnValue(userDocRef),
+    const usersRef = {
+      doc: vi.fn().mockReturnThis(),
     }
-    mockCollection.mockReturnValue(usersCollectionRef)
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'clippings') return clippingsRef
+      if (name === 'subscriptions') return subscriptionsRef
+      if (name === 'users') return usersRef
+      return clippingsRef
+    })
 
     const request = new NextRequest('http://localhost/api/clipping', {
       method: 'POST',
@@ -186,7 +228,34 @@ describe('POST /api/clipping', () => {
     expect(response.status).toBe(201)
     const body = await response.json()
     expect(body.id).toBe('new-clip-id')
+    expect(body.subscriptionId).toBe('new-sub-id')
     expect(body.name).toBe('Test Clipping')
+
+    // Verify batch.set was called 3 times: user, clipping, subscription
+    expect(mockBatchSet).toHaveBeenCalledTimes(3)
+
+    // Verify clipping has authorUserId
+    const clippingSetCall = mockBatchSet.mock.calls.find(
+      (call: unknown[]) =>
+        call[1] &&
+        typeof call[1] === 'object' &&
+        'authorUserId' in (call[1] as Record<string, unknown>),
+    )
+    expect(clippingSetCall).toBeDefined()
+    const clippingData = clippingSetCall![1] as Record<string, unknown>
+    expect(clippingData.authorUserId).toBe('user-1')
+
+    // Verify subscription has role='author'
+    const subSetCall = mockBatchSet.mock.calls.find(
+      (call: unknown[]) =>
+        call[1] &&
+        typeof call[1] === 'object' &&
+        'role' in (call[1] as Record<string, unknown>),
+    )
+    expect(subSetCall).toBeDefined()
+    const subData = subSetCall![1] as Record<string, unknown>
+    expect(subData.role).toBe('author')
+    expect(subData.clippingId).toBe('new-clip-id')
   })
 
   it('returns 400 for missing name', async () => {
@@ -233,17 +302,24 @@ describe('POST /api/clipping', () => {
 
     const clippingsRef = {
       doc: vi.fn().mockReturnValue({ id: 'new-clip-id' }),
+      where: vi.fn().mockReturnThis(),
       count: vi.fn().mockReturnValue({
         get: vi.fn().mockResolvedValue({ data: () => ({ count: 0 }) }),
       }),
     }
-    const userDocRef = {
-      collection: vi.fn().mockReturnValue(clippingsRef),
+    const subscriptionsRef = {
+      doc: vi.fn().mockReturnValue({ id: 'new-sub-id' }),
     }
-    const usersCollectionRef = {
-      doc: vi.fn().mockReturnValue(userDocRef),
+    const usersRef = {
+      doc: vi.fn().mockReturnThis(),
     }
-    mockCollection.mockReturnValue(usersCollectionRef)
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'clippings') return clippingsRef
+      if (name === 'subscriptions') return subscriptionsRef
+      if (name === 'users') return usersRef
+      return clippingsRef
+    })
 
     const request = new NextRequest('http://localhost/api/clipping', {
       method: 'POST',
@@ -268,19 +344,18 @@ describe('POST /api/clipping', () => {
   it('enforces max 10 clippings per user', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
 
-    const chain = {
-      collection: vi.fn().mockReturnThis(),
+    const clippingsRef = {
       doc: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
-      get: vi.fn().mockResolvedValue({ size: 10 }),
-      add: mockAdd,
       count: vi.fn().mockReturnValue({
         get: vi.fn().mockResolvedValue({ data: () => ({ count: 10 }) }),
       }),
     }
-    mockCollection.mockReturnValue(chain)
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'clippings') return clippingsRef
+      return clippingsRef
+    })
 
     const request = new NextRequest('http://localhost/api/clipping', {
       method: 'POST',
