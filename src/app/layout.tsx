@@ -8,6 +8,7 @@ import { Toaster } from 'sonner'
 import { Providers } from '@/components/common/Providers'
 import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
+import { ZenModeFab } from '@/components/layout/ZenModeFab'
 import ServiceWorkerRegistrar from '@/components/push/ServiceWorkerRegistrar'
 
 const geistSans = Geist({
@@ -71,7 +72,8 @@ export default async function RootLayout({
             <ServiceWorkerRegistrar />
             <Toaster position="top-right" />
             <Header />
-            <div className="pt-[110px] md:pt-[130px]">
+            <ZenModeFab />
+            <div className="pt-[110px] md:pt-[130px]" data-main-content>
               <Suspense>{children}</Suspense>
             </div>
             <Footer />
