@@ -307,7 +307,7 @@ export async function queryArticles(
           q: normalizedQuery,
           query_by: 'title,content',
           query_by_weights: '3,1',
-          vector_query: `content_embedding:([${embedding.join(',')}], alpha:0.3)`,
+          vector_query: `content_embedding:([${embedding.join(',')}], alpha:0.8)`,
           filter_by: filterByStr || undefined,
           exclude_fields: 'content_embedding',
           limit: PAGE_SIZE,
