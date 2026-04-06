@@ -16,14 +16,33 @@ export async function getClippings(): Promise<Clipping[]> {
 
   try {
     const db = getFirestoreDb()
-    const snapshot = await db
-      .collection('clippings')
-      .where('authorUserId', '==', session.user.id)
-      .orderBy('createdAt', 'desc')
-      .get()
+    const [snapshot, subscriptionsSnap] = await Promise.all([
+      db
+        .collection('clippings')
+        .where('authorUserId', '==', session.user.id)
+        .orderBy('createdAt', 'desc')
+        .get(),
+      db
+        .collection('subscriptions')
+        .where('userId', '==', session.user.id)
+        .where('role', '==', 'author')
+        .get(),
+    ])
+
+    const subsByClipping = new Map<string, FirebaseFirestore.DocumentData>()
+    for (const subDoc of subscriptionsSnap.docs) {
+      const subData = subDoc.data()
+      subsByClipping.set(subData.clippingId, {
+        subscriptionId: subDoc.id,
+        deliveryChannels: subData.deliveryChannels,
+        extraEmails: subData.extraEmails,
+        webhookUrl: subData.webhookUrl,
+      })
+    }
 
     return snapshot.docs.map((doc) => {
       const data = doc.data()
+      const sub = subsByClipping.get(doc.id)
       const toISO = (v: unknown) =>
         v && typeof v === 'object' && 'toDate' in v
           ? (v as { toDate: () => Date }).toDate().toISOString()
@@ -33,6 +52,7 @@ export async function getClippings(): Promise<Clipping[]> {
       return {
         id: doc.id,
         ...data,
+        ...(sub ?? {}),
         createdAt: toISO(data.createdAt) ?? '',
         updatedAt: toISO(data.updatedAt) ?? '',
         nextRunAt: toISO(data.nextRunAt) ?? null,
