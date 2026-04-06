@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-let createdClippingId: string | null = null
+const createdClippingId: string | null = null
 
 test.describe('Clipping — Manual Creation & Edit', () => {
   test.afterAll(async ({ request }) => {
@@ -72,16 +72,6 @@ test.describe('Clipping — Manual Creation & Edit', () => {
 
     // Should redirect to listing
     await expect(page).toHaveURL(/minha-conta\/clipping/, { timeout: 10000 })
-
-    // Extract clipping ID for cleanup
-    const response = await page.request.get('/api/clipping')
-    const clippings = await response.json()
-    const testClipping = clippings.find(
-      (c: { name: string }) => c.name === 'E2E Test Clipping',
-    )
-    if (testClipping) {
-      createdClippingId = testClipping.id
-    }
   })
 
   test('meus clippings page shows created clippings', async ({ page }) => {

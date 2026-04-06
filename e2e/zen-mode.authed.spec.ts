@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test'
 
+// Only run in authenticated desktop (zen mode requires login + desktop header)
+test.use({ storageState: 'e2e/.auth/user.json' })
+
 test.describe('Zen Mode', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
