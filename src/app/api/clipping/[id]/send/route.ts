@@ -50,16 +50,11 @@ export async function POST(_request: Request, { params }: RouteParams) {
   try {
     const { id } = await params
 
-    // Verify the clipping belongs to this user
+    // Verify the clipping exists and belongs to this user (top-level collection)
     const db = getFirestoreDb()
-    const doc = await db
-      .collection('users')
-      .doc(session.user.id)
-      .collection('clippings')
-      .doc(id)
-      .get()
+    const doc = await db.collection('clippings').doc(id).get()
 
-    if (!doc.exists) {
+    if (!doc.exists || doc.data()?.authorUserId !== session.user.id) {
       return NextResponse.json(
         { error: 'Clipping não encontrado' },
         { status: 404 },

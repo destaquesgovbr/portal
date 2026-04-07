@@ -30,14 +30,19 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     const db = getFirestoreDb()
-    const docRef = db
-      .collection('users')
-      .doc(session.user.id)
-      .collection('clippings')
-      .doc(id)
+    const docRef = db.collection('clippings').doc(id)
 
     const doc = await docRef.get()
     if (!doc.exists) {
+      return NextResponse.json(
+        { error: 'Clipping não encontrado' },
+        { status: 404 },
+      )
+    }
+
+    const existingData = doc.data() ?? {}
+
+    if (existingData.authorUserId !== session.user.id) {
       return NextResponse.json(
         { error: 'Clipping não encontrado' },
         { status: 404 },
@@ -63,14 +68,33 @@ export async function PUT(request: Request, { params }: RouteParams) {
         payload.endDate ? new Date(payload.endDate) : undefined,
       ) ?? null
 
-    const existingData = doc.data() ?? {}
+    const { deliveryChannels, extraEmails, webhookUrl, ...clippingFields } =
+      payload
 
     const batch = db.batch()
     batch.update(docRef, {
-      ...payload,
+      ...clippingFields,
       nextRunAt,
       updatedAt: FieldValue.serverTimestamp(),
     })
+
+    // Update the author's subscription with delivery channel info
+    const subsSnap = await db
+      .collection('subscriptions')
+      .where('clippingId', '==', id)
+      .where('userId', '==', session.user.id)
+      .where('role', '==', 'author')
+      .limit(1)
+      .get()
+
+    if (!subsSnap.empty) {
+      const subRef = subsSnap.docs[0].ref
+      batch.update(subRef, {
+        deliveryChannels,
+        extraEmails,
+        webhookUrl,
+      })
+    }
 
     if (
       existingData.publishedToMarketplace &&
@@ -80,10 +104,10 @@ export async function PUT(request: Request, { params }: RouteParams) {
         .collection('marketplace')
         .doc(existingData.marketplaceListingId)
       batch.update(listingRef, {
-        name: payload.name,
-        description: payload.description ?? '',
-        recortes: payload.recortes,
-        prompt: payload.prompt,
+        name: clippingFields.name,
+        description: clippingFields.description ?? '',
+        recortes: clippingFields.recortes,
+        prompt: clippingFields.prompt,
         updatedAt: FieldValue.serverTimestamp(),
       })
     }
@@ -109,11 +133,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   try {
     const { id } = await params
     const db = getFirestoreDb()
-    const docRef = db
-      .collection('users')
-      .doc(session.user.id)
-      .collection('clippings')
-      .doc(id)
+    const docRef = db.collection('clippings').doc(id)
 
     const doc = await docRef.get()
     if (!doc.exists) {
@@ -124,6 +144,14 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     }
 
     const existingData = doc.data() ?? {}
+
+    if (existingData.authorUserId !== session.user.id) {
+      return NextResponse.json(
+        { error: 'Clipping não encontrado' },
+        { status: 404 },
+      )
+    }
+
     const batch = db.batch()
 
     if (
@@ -136,6 +164,18 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
       batch.update(listingRef, { active: false })
 
       batch.update(docRef, { publishedToMarketplace: false })
+    }
+
+    // Delete the author's subscription
+    const subsSnap = await db
+      .collection('subscriptions')
+      .where('clippingId', '==', id)
+      .where('role', '==', 'author')
+      .limit(1)
+      .get()
+
+    if (!subsSnap.empty) {
+      batch.delete(subsSnap.docs[0].ref)
     }
 
     batch.delete(docRef)

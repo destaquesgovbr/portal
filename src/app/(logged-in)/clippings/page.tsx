@@ -52,10 +52,11 @@ export default async function MarketplacePage() {
     const checks = listings.map(async (listing) => {
       const [followerSnap, likeSnap] = await Promise.all([
         db
-          .collection('marketplace')
-          .doc(listing.id)
-          .collection('followers')
-          .doc(userId)
+          .collection('subscriptions')
+          .where('clippingId', '==', listing.sourceClippingId)
+          .where('userId', '==', userId)
+          .where('role', '==', 'subscriber')
+          .limit(1)
           .get(),
         db
           .collection('marketplace')
@@ -66,7 +67,7 @@ export default async function MarketplacePage() {
       ])
       return {
         listingId: listing.id,
-        follows: followerSnap.exists,
+        follows: !followerSnap.empty,
         liked: likeSnap.exists,
       }
     })
