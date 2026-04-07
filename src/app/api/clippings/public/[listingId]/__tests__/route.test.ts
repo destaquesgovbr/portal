@@ -187,25 +187,22 @@ describe('GET /api/clippings/public/[listingId]', () => {
       get: vi.fn().mockResolvedValue({ exists: true }),
     }
 
-    // Mock the follower doc (marketplace/{listingId}/followers/{userId})
-    const followerDocRef = {
-      get: vi.fn().mockResolvedValue({ exists: true }),
+    // Mock subscriptions query for follow check
+    const subscriptionsCol = {
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      get: vi.fn().mockResolvedValue({ empty: false }),
     }
 
     const likesCol = {
       doc: vi.fn().mockReturnValue(likeDocRef),
     }
 
-    const followersCol = {
-      doc: vi.fn().mockReturnValue(followerDocRef),
-    }
-
-    // For the marketplace doc with subcollections
+    // For the marketplace doc with subcollections (likes only now)
     const listingWithSubcollections = {
       ...listingDocRef,
       collection: vi.fn().mockImplementation((name: string) => {
         if (name === 'likes') return likesCol
-        if (name === 'followers') return followersCol
         return likesCol
       }),
     }
@@ -216,6 +213,7 @@ describe('GET /api/clippings/public/[listingId]', () => {
 
     mockCollection.mockImplementation((name: string) => {
       if (name === 'marketplace') return marketplaceCol
+      if (name === 'subscriptions') return subscriptionsCol
       return marketplaceCol
     })
 

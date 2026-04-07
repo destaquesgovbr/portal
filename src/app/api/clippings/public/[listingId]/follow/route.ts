@@ -70,26 +70,35 @@ export async function POST(
       )
     }
 
-    // Check if already following via subcollection
-    const followerRef = listingRef.collection('followers').doc(session.user.id)
+    // Check if already following via subscriptions collection
+    const existingSnap = await db
+      .collection('subscriptions')
+      .where('clippingId', '==', listingData.sourceClippingId)
+      .where('userId', '==', session.user.id)
+      .where('role', '==', 'subscriber')
+      .limit(1)
+      .get()
 
-    const existing = await followerRef.get()
-    if (existing.exists) {
+    if (!existingSnap.empty) {
       return NextResponse.json(
         { error: 'Você já segue este listing' },
         { status: 409 },
       )
     }
 
-    // Create follower doc + increment followerCount atomically
+    // Create subscription + increment followerCount atomically
+    const subscriptionRef = db.collection('subscriptions').doc()
     const batch = db.batch()
 
-    batch.set(followerRef, {
+    batch.set(subscriptionRef, {
+      clippingId: listingData.sourceClippingId,
       userId: session.user.id,
+      role: 'subscriber',
       deliveryChannels,
       extraEmails,
       webhookUrl,
-      followedAt: FieldValue.serverTimestamp(),
+      subscribedAt: FieldValue.serverTimestamp(),
+      active: true,
     })
 
     batch.update(listingRef, {
@@ -98,7 +107,10 @@ export async function POST(
 
     await batch.commit()
 
-    return NextResponse.json({ ok: true }, { status: 201 })
+    return NextResponse.json(
+      { ok: true, subscriptionId: subscriptionRef.id },
+      { status: 201 },
+    )
   } catch (error) {
     console.error('Error following listing:', error)
     return NextResponse.json(
@@ -145,21 +157,35 @@ export async function PUT(
     const { listingId } = await params
     const db = getFirestoreDb()
 
-    const followerRef = db
-      .collection('marketplace')
-      .doc(listingId)
-      .collection('followers')
-      .doc(session.user.id)
+    // Get the listing to find the sourceClippingId
+    const listingSnap = await db.collection('marketplace').doc(listingId).get()
 
-    const followerSnap = await followerRef.get()
-    if (!followerSnap.exists) {
+    if (!listingSnap.exists) {
+      return NextResponse.json(
+        { error: 'Listing não encontrado' },
+        { status: 404 },
+      )
+    }
+
+    const listingData = listingSnap.data()!
+
+    // Find the subscription
+    const subsSnap = await db
+      .collection('subscriptions')
+      .where('clippingId', '==', listingData.sourceClippingId)
+      .where('userId', '==', session.user.id)
+      .where('role', '==', 'subscriber')
+      .limit(1)
+      .get()
+
+    if (subsSnap.empty) {
       return NextResponse.json(
         { error: 'Você não segue este listing' },
         { status: 404 },
       )
     }
 
-    await followerRef.update({
+    await subsSnap.docs[0].ref.update({
       deliveryChannels,
       extraEmails,
       webhookUrl,
@@ -189,10 +215,34 @@ export async function DELETE(
     const db = getFirestoreDb()
 
     const listingRef = db.collection('marketplace').doc(listingId)
-    const followerRef = listingRef.collection('followers').doc(session.user.id)
+    const listingSnap = await listingRef.get()
 
-    const followerSnap = await followerRef.get()
-    if (!followerSnap.exists) {
+    // Find the subscription via the listing's sourceClippingId
+    let sourceClippingId: string | undefined
+    if (listingSnap.exists) {
+      const listingData = listingSnap.data()!
+      sourceClippingId = listingData.sourceClippingId
+    }
+
+    // Try to find subscription by clippingId if we know it, otherwise search broadly
+    let subsSnap: FirebaseFirestore.QuerySnapshot
+    if (sourceClippingId) {
+      subsSnap = await db
+        .collection('subscriptions')
+        .where('clippingId', '==', sourceClippingId)
+        .where('userId', '==', session.user.id)
+        .where('role', '==', 'subscriber')
+        .limit(1)
+        .get()
+    } else {
+      // Listing deleted — cannot determine subscription
+      return NextResponse.json(
+        { error: 'Você não segue este listing' },
+        { status: 404 },
+      )
+    }
+
+    if (subsSnap.empty) {
       return NextResponse.json(
         { error: 'Você não segue este listing' },
         { status: 404 },
@@ -201,10 +251,13 @@ export async function DELETE(
 
     const batch = db.batch()
 
-    batch.delete(followerRef)
-    batch.update(listingRef, {
-      followerCount: FieldValue.increment(-1),
-    })
+    batch.delete(subsSnap.docs[0].ref)
+
+    if (listingSnap.exists) {
+      batch.update(listingRef, {
+        followerCount: FieldValue.increment(-1),
+      })
+    }
 
     await batch.commit()
 
