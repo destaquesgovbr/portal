@@ -266,7 +266,7 @@ export function ClippingCard({
                   className="cursor-pointer gap-2"
                 >
                   <Send className="h-4 w-4" />
-                  Enviar Agora
+                  Gerar e Enviar Agora
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />

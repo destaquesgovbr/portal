@@ -156,12 +156,22 @@ export async function POST(request: Request) {
     })
     await batch.commit()
 
+    // Fire-and-forget: first dispatch (catchup — don't make the user wait)
+    const { callClippingWorker } = await import('@/lib/clipping-worker')
+    callClippingWorker('/dispatch', {
+      user_id: session.user.id,
+      clipping_id: clippingRef.id,
+    }).catch((err) =>
+      console.error('Catchup dispatch failed (non-blocking):', err),
+    )
+
     return NextResponse.json(
       {
         id: clippingRef.id,
         subscriptionId: subscriptionRef.id,
         ...payload,
         nextRunAt,
+        catchupDispatched: true,
       },
       { status: 201 },
     )

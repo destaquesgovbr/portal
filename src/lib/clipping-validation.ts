@@ -53,6 +53,7 @@ export const PublishToMarketplaceSchema = z.object({
     .string()
     .min(1, 'Descrição é obrigatória para publicar')
     .max(500),
+  backfillCount: z.number().int().min(0).max(10).optional().default(0),
 })
 
 export const FollowListingSchema = z
