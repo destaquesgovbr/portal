@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockGet = vi.fn()
-const mockOrderBy = vi.fn(() => ({ get: mockGet }))
 const mockCollection = vi.fn()
 
 vi.mock('@/lib/firebase-admin', () => ({
@@ -22,13 +21,12 @@ const mockAuth = vi.mocked(auth)
 function setupFirestoreDocs(
   docs: { id: string; data: Record<string, unknown> }[],
 ) {
-  mockCollection.mockReturnValue({
-    doc: vi.fn().mockReturnValue({
-      collection: vi.fn().mockReturnValue({
-        orderBy: mockOrderBy,
-      }),
-    }),
-  })
+  const chain = {
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    get: mockGet,
+  }
+  mockCollection.mockReturnValue(chain)
 
   mockGet.mockResolvedValue({
     docs: docs.map((d) => ({
@@ -67,7 +65,7 @@ describe('getClippings', () => {
           recortes: [],
           prompt: '',
           schedule: '0 8 * * *',
-          deliveryChannels: { email: true, telegram: false, push: false },
+          authorUserId: 'user-1',
           active: true,
           createdAt: { toDate: () => new Date('2026-03-12T10:00:00Z') },
           updatedAt: { toDate: () => new Date('2026-03-12T10:00:00Z') },
@@ -135,29 +133,26 @@ describe('getClippings', () => {
 
   it('returns empty array on Firestore error', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    mockCollection.mockReturnValue({
-      doc: vi.fn().mockReturnValue({
-        collection: vi.fn().mockReturnValue({
-          orderBy: vi.fn(() => ({
-            get: vi.fn().mockRejectedValue(new Error('Firestore down')),
-          })),
-        }),
-      }),
-    })
+    const chain = {
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      get: vi.fn().mockRejectedValue(new Error('Firestore down')),
+    }
+    mockCollection.mockReturnValue(chain)
 
     const result = await getClippings()
     expect(result).toEqual([])
   })
 
-  it('queries the correct Firestore path', async () => {
+  it('queries the top-level clippings collection with authorUserId filter', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-42' } } as never)
     setupFirestoreDocs([])
 
     await getClippings()
 
-    expect(mockCollection).toHaveBeenCalledWith('users')
-    const docCall = mockCollection.mock.results[0].value.doc
-    expect(docCall).toHaveBeenCalledWith('user-42')
+    expect(mockCollection).toHaveBeenCalledWith('clippings')
+    const chain = mockCollection.mock.results[0].value
+    expect(chain.where).toHaveBeenCalledWith('authorUserId', '==', 'user-42')
   })
 
   it('returns multiple clippings preserving order', async () => {
