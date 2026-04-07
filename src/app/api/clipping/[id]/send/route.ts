@@ -1,45 +1,10 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
+import { callClippingWorker } from '@/lib/clipping-worker'
 import { getFirestoreDb } from '@/lib/firebase-admin'
 import { normalizeEmail } from '@/lib/normalize-email'
 
 type RouteParams = { params: Promise<{ id: string }> }
-
-async function callWorker(userId: string, clippingId: string) {
-  const workerUrl = process.env.CLIPPING_WORKER_URL
-  if (!workerUrl) {
-    throw new Error('CLIPPING_WORKER_URL not configured')
-  }
-
-  const url = `${workerUrl.replace(/\/$/, '')}/dispatch`
-  const body = JSON.stringify({ user_id: userId, clipping_id: clippingId })
-
-  const isLocal =
-    workerUrl.includes('localhost') || workerUrl.includes('127.0.0.1')
-
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-
-  if (!isLocal) {
-    const metadataUrl = `http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=${encodeURIComponent(workerUrl)}&format=full`
-    const tokenRes = await fetch(metadataUrl, {
-      headers: { 'Metadata-Flavor': 'Google' },
-    })
-    if (!tokenRes.ok) {
-      throw new Error(`Failed to get identity token: ${tokenRes.status}`)
-    }
-    const token = await tokenRes.text()
-    headers.Authorization = `Bearer ${token}`
-  }
-
-  const response = await fetch(url, { method: 'POST', headers, body })
-
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(`Worker responded with ${response.status}: ${text}`)
-  }
-
-  return response.json()
-}
 
 export async function POST(_request: Request, { params }: RouteParams) {
   const session = await auth()
@@ -69,7 +34,10 @@ export async function POST(_request: Request, { params }: RouteParams) {
         .set({ email: normalizeEmail(session.user.email) }, { merge: true })
     }
 
-    const result = await callWorker(session.user.id, id)
+    const result = await callClippingWorker('/dispatch', {
+      user_id: session.user.id,
+      clipping_id: id,
+    })
     return NextResponse.json(result)
   } catch (error) {
     console.error('Error dispatching clipping:', error)

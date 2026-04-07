@@ -35,6 +35,7 @@ export function PublishDialog({
 }: Props) {
   const [isPublishing, setIsPublishing] = useState(false)
   const [description, setDescription] = useState(clipping.description ?? '')
+  const [backfillCount, setBackfillCount] = useState(0)
 
   const missingDescription = !description.trim()
 
@@ -48,6 +49,7 @@ export function PublishDialog({
         body: JSON.stringify({
           clippingId: clipping.id,
           description: description.trim(),
+          backfillCount,
         }),
       })
 
@@ -130,6 +132,31 @@ export function PublishDialog({
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-foreground">
+              Gerar releases passados
+            </p>
+            <span className="text-sm font-mono text-muted-foreground">
+              {backfillCount}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={10}
+            value={backfillCount}
+            onChange={(e) => setBackfillCount(Number(e.target.value))}
+            className="w-full"
+            disabled={isPublishing}
+          />
+          <p className="text-xs text-muted-foreground">
+            {backfillCount === 0
+              ? 'Nenhuma release retroativa sera gerada.'
+              : `${backfillCount} release(s) retroativa(s) serao geradas para que subscribers vejam o historico.`}
+          </p>
         </div>
 
         <DialogFooter>
