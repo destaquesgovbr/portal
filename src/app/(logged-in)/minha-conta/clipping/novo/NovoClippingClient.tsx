@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { ClippingWizard } from '@/components/clipping/ClippingWizard'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
@@ -26,6 +27,11 @@ export function NovoClippingClient({ agencies, themes, hasTelegram }: Props) {
       throw new Error('Falha ao criar clipping')
     }
 
+    toast.success('Clipping criado! Seu primeiro envio está sendo gerado.', {
+      description:
+        'Use "Gerar e Enviar Agora" a qualquer momento para receber um clipping atualizado.',
+      duration: 8000,
+    })
     router.push('/minha-conta/clipping')
   }
 

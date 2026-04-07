@@ -21,18 +21,20 @@ export async function POST(request: Request) {
       )
     }
 
-    const { clippingId, description: submittedDescription } = result.data
+    const {
+      clippingId,
+      description: submittedDescription,
+      backfillCount,
+    } = result.data
     const db = getFirestoreDb()
 
-    const clippingRef = db
-      .collection('users')
-      .doc(session.user.id)
-      .collection('clippings')
-      .doc(clippingId)
-
+    const clippingRef = db.collection('clippings').doc(clippingId)
     const clippingSnap = await clippingRef.get()
 
-    if (!clippingSnap.exists) {
+    if (
+      !clippingSnap.exists ||
+      clippingSnap.data()?.authorUserId !== session.user.id
+    ) {
       return NextResponse.json(
         { error: 'Clipping não encontrado' },
         { status: 404 },
@@ -97,6 +99,18 @@ export async function POST(request: Request) {
     // Fire-and-forget: publish Pub/Sub message for cover image generation
     const { publishMarketplaceEvent } = await import('@/lib/pubsub')
     publishMarketplaceEvent(listingRef.id, 'published')
+
+    // Fire-and-forget: backfill past releases for subscribers
+    if (backfillCount && backfillCount > 0) {
+      const { callClippingWorker } = await import('@/lib/clipping-worker')
+      callClippingWorker('/dispatch/backfill', {
+        user_id: session.user.id,
+        clipping_id: clippingId,
+        count: backfillCount,
+      }).catch((err) =>
+        console.error('Backfill dispatch failed (non-blocking):', err),
+      )
+    }
 
     return NextResponse.json({ listingId: listingRef.id }, { status: 201 })
   } catch (error) {
