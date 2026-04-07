@@ -234,3 +234,30 @@ body:has(.not-found-page) .layout-footer {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Zen Mode — hides header and footer for distraction-free reading */
+body.zen-mode header,
+body.zen-mode footer {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    max-height 0.3s ease;
+}
+
+body.zen-mode header {
+  transform: translateY(-100%);
+}
+
+body.zen-mode footer {
+  transform: translateY(100%);
+}
+
+/* Remove top padding that accounts for the fixed header */
+body.zen-mode [data-main-content],
+body.zen-mode div[data-main-content] {
+  padding-top: 1rem;
+}

@@ -45,15 +45,16 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
           .doc(userId)
           .get(),
         db
-          .collection('marketplace')
-          .doc(listingId)
-          .collection('followers')
-          .doc(userId)
+          .collection('subscriptions')
+          .where('clippingId', '==', listing.sourceClippingId)
+          .where('userId', '==', userId)
+          .where('role', '==', 'subscriber')
+          .limit(1)
           .get(),
       ])
 
       listing.userHasLiked = likeSnap.exists
-      listing.userFollows = followerSnap.exists
+      listing.userFollows = !followerSnap.empty
     }
 
     return NextResponse.json(listing)

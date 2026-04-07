@@ -94,6 +94,8 @@ const nextConfig: NextConfig = {
       { hostname: '**.googleusercontent.com' },
       // YouTube thumbnails
       { hostname: 'i.ytimg.com' },
+      // GCS — thumbnails de vídeo
+      { hostname: 'storage.googleapis.com' },
       // Facebook CDN
       { hostname: '**.fbcdn.net' },
       // Domínios .br não-gov
