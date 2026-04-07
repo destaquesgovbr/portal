@@ -16,6 +16,7 @@ const umamiOrigin = (() => {
 const cspConnectSrc = [
   "'self'",
   umamiOrigin,
+  '*.clarity.ms',
   'www.clarity.ms',
   process.env.NEXT_PUBLIC_GROWTHBOOK_API_HOST || 'https://cdn.growthbook.io',
   process.env.NEXT_PUBLIC_PUSH_WORKER_URL || '',
@@ -95,6 +96,8 @@ const nextConfig: NextConfig = {
       { hostname: '**.googleusercontent.com' },
       // YouTube thumbnails
       { hostname: 'i.ytimg.com' },
+      // GCS — thumbnails de vídeo
+      { hostname: 'storage.googleapis.com' },
       // Facebook CDN
       { hostname: '**.fbcdn.net' },
       // Domínios .br não-gov
