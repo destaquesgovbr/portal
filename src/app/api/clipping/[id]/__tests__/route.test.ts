@@ -1,14 +1,11 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mockUpdate = vi.fn()
-const mockDelete = vi.fn()
 const mockGetDoc = vi.fn()
 const mockCollection = vi.fn()
 const mockBatchUpdate = vi.fn()
 const mockBatchDelete = vi.fn()
 const mockBatchCommit = vi.fn().mockResolvedValue(undefined)
-const mockCollectionGroup = vi.fn()
 
 vi.mock('@/lib/firebase-admin', () => ({
   getFirestoreDb: vi.fn(() => ({
@@ -18,7 +15,6 @@ vi.mock('@/lib/firebase-admin', () => ({
       delete: mockBatchDelete,
       commit: mockBatchCommit,
     })),
-    collectionGroup: mockCollectionGroup,
   })),
 }))
 
@@ -49,49 +45,80 @@ import { DELETE, PUT } from '../route'
 
 const mockAuth = vi.mocked(auth)
 
-// Build a deep Firestore chain: collection().doc().collection().doc()
 function makeDocChain(exists: boolean, data: object = {}) {
-  const innerDocRef = {
+  const docRef = {
     get: mockGetDoc.mockResolvedValue({ exists, data: () => data }),
-    update: mockUpdate,
-    delete: mockDelete,
   }
-  const innerCollectionRef = {
-    doc: vi.fn().mockReturnValue(innerDocRef),
+  const clippingsCollection = {
+    doc: vi.fn().mockReturnValue(docRef),
   }
-  const outerDocRef = {
-    collection: vi.fn().mockReturnValue(innerCollectionRef),
+  const subscriptionsCollection = {
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    get: vi.fn().mockResolvedValue({
+      empty: true,
+      docs: [],
+    }),
   }
-  const outerCollectionRef = {
-    doc: vi.fn().mockReturnValue(outerDocRef),
-  }
-  mockCollection.mockReturnValue(outerCollectionRef)
-  return innerDocRef
+  mockCollection.mockImplementation((name: string) => {
+    if (name === 'clippings') return clippingsCollection
+    if (name === 'subscriptions') return subscriptionsCollection
+    return clippingsCollection
+  })
+  return { docRef, subscriptionsCollection }
 }
 
-// Helper to build a marketplace listing doc ref
-function makeMarketplaceListingRef() {
-  const listingDocRef = { update: vi.fn(), delete: vi.fn() }
-  // When mockCollection is called with 'marketplace', return chain
+function makeDocChainWithSubscription(exists: boolean, data: object = {}) {
+  const docRef = {
+    get: mockGetDoc.mockResolvedValue({ exists, data: () => data }),
+  }
+  const clippingsCollection = {
+    doc: vi.fn().mockReturnValue(docRef),
+  }
+  const subRef = { id: 'sub-1' }
+  const subscriptionsCollection = {
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    get: vi.fn().mockResolvedValue({
+      empty: false,
+      docs: [{ ref: subRef, id: 'sub-1', data: () => ({}) }],
+    }),
+  }
   mockCollection.mockImplementation((name: string) => {
-    if (name === 'marketplace') {
-      return { doc: vi.fn().mockReturnValue(listingDocRef) }
-    }
-    // Default: users collection chain
-    const innerDocRef = {
-      get: mockGetDoc,
-      update: mockUpdate,
-      delete: mockDelete,
-    }
-    const innerCollectionRef = {
-      doc: vi.fn().mockReturnValue(innerDocRef),
-    }
-    const outerDocRef = {
-      collection: vi.fn().mockReturnValue(innerCollectionRef),
-    }
-    return { doc: vi.fn().mockReturnValue(outerDocRef) }
+    if (name === 'clippings') return clippingsCollection
+    if (name === 'subscriptions') return subscriptionsCollection
+    return clippingsCollection
   })
-  return listingDocRef
+  return { docRef, subRef, subscriptionsCollection }
+}
+
+function makeMarketplaceChain(exists: boolean, data: object = {}) {
+  const docRef = {
+    get: mockGetDoc.mockResolvedValue({ exists, data: () => data }),
+  }
+  const clippingsCollection = {
+    doc: vi.fn().mockReturnValue(docRef),
+  }
+  const subRef = { id: 'sub-1' }
+  const subscriptionsCollection = {
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    get: vi.fn().mockResolvedValue({
+      empty: false,
+      docs: [{ ref: subRef, id: 'sub-1', data: () => ({}) }],
+    }),
+  }
+  const listingDocRef = { id: 'listing-123' }
+  const marketplaceCollection = {
+    doc: vi.fn().mockReturnValue(listingDocRef),
+  }
+  mockCollection.mockImplementation((name: string) => {
+    if (name === 'clippings') return clippingsCollection
+    if (name === 'subscriptions') return subscriptionsCollection
+    if (name === 'marketplace') return marketplaceCollection
+    return clippingsCollection
+  })
+  return { docRef, subRef, listingDocRef, subscriptionsCollection }
 }
 
 describe('PUT /api/clipping/[id]', () => {
@@ -104,7 +131,7 @@ describe('PUT /api/clipping/[id]', () => {
     recortes: [
       {
         id: 'rec-1',
-        title: 'Saúde Pública',
+        title: 'Saude Publica',
         themes: ['01'],
         agencies: [],
         keywords: [],
@@ -133,8 +160,10 @@ describe('PUT /api/clipping/[id]', () => {
 
   it('updates clipping owned by user', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    makeDocChain(true, { name: 'Old Clipping' })
-    mockUpdate.mockResolvedValue(undefined)
+    makeDocChainWithSubscription(true, {
+      name: 'Old Clipping',
+      authorUserId: 'user-1',
+    })
 
     const request = new NextRequest('http://localhost/api/clipping/clip-1', {
       method: 'PUT',
@@ -151,10 +180,42 @@ describe('PUT /api/clipping/[id]', () => {
     expect(body.name).toBe('Updated Clipping')
   })
 
+  it('updates subscription with delivery channels', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
+    const { subRef } = makeDocChainWithSubscription(true, {
+      name: 'Old Clipping',
+      authorUserId: 'user-1',
+    })
+
+    const request = new NextRequest('http://localhost/api/clipping/clip-1', {
+      method: 'PUT',
+      body: JSON.stringify(validPayload),
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    await PUT(request, {
+      params: Promise.resolve({ id: 'clip-1' }),
+    })
+
+    expect(mockBatchUpdate).toHaveBeenCalledWith(
+      subRef,
+      expect.objectContaining({
+        deliveryChannels: {
+          email: false,
+          telegram: true,
+          push: false,
+          webhook: false,
+        },
+      }),
+    )
+  })
+
   it('saves nextRunAt as Date object (not string) for Firestore Timestamp', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    makeDocChain(true, { name: 'Old Clipping' })
-    mockUpdate.mockResolvedValue(undefined)
+    makeDocChainWithSubscription(true, {
+      name: 'Old Clipping',
+      authorUserId: 'user-1',
+    })
 
     const request = new NextRequest('http://localhost/api/clipping/clip-1', {
       method: 'PUT',
@@ -178,14 +239,11 @@ describe('PUT /api/clipping/[id]', () => {
 
   it('cascades update to marketplace listing when published', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    const listingDocRef = makeMarketplaceListingRef()
-    mockGetDoc.mockResolvedValue({
-      exists: true,
-      data: () => ({
-        name: 'Old Clipping',
-        publishedToMarketplace: true,
-        marketplaceListingId: 'listing-123',
-      }),
+    const { listingDocRef } = makeMarketplaceChain(true, {
+      name: 'Old Clipping',
+      authorUserId: 'user-1',
+      publishedToMarketplace: true,
+      marketplaceListingId: 'listing-123',
     })
 
     const request = new NextRequest('http://localhost/api/clipping/clip-1', {
@@ -199,8 +257,8 @@ describe('PUT /api/clipping/[id]', () => {
     })
     expect(response.status).toBe(200)
     expect(mockBatchCommit).toHaveBeenCalled()
-    // Should have two batch.update calls: one for clipping, one for listing
-    expect(mockBatchUpdate).toHaveBeenCalledTimes(2)
+    // Should have 3 batch.update calls: clipping, subscription, listing
+    expect(mockBatchUpdate).toHaveBeenCalledTimes(3)
     expect(mockBatchUpdate).toHaveBeenCalledWith(
       listingDocRef,
       expect.objectContaining({
@@ -212,8 +270,11 @@ describe('PUT /api/clipping/[id]', () => {
 
   it('does NOT touch marketplace when clipping is not published', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    makeDocChain(true, { name: 'Old Clipping', publishedToMarketplace: false })
-    mockUpdate.mockResolvedValue(undefined)
+    makeDocChainWithSubscription(true, {
+      name: 'Old Clipping',
+      authorUserId: 'user-1',
+      publishedToMarketplace: false,
+    })
 
     const request = new NextRequest('http://localhost/api/clipping/clip-1', {
       method: 'PUT',
@@ -225,13 +286,32 @@ describe('PUT /api/clipping/[id]', () => {
       params: Promise.resolve({ id: 'clip-1' }),
     })
     expect(response.status).toBe(200)
-    // Only one batch.update for the clipping itself, none for marketplace
-    expect(mockBatchUpdate).toHaveBeenCalledTimes(1)
+    // 2 batch.update calls: clipping + subscription, none for marketplace
+    expect(mockBatchUpdate).toHaveBeenCalledTimes(2)
+  })
+
+  it('returns 404 for clipping not found', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
+    makeDocChain(false)
+
+    const request = new NextRequest(
+      'http://localhost/api/clipping/other-clip',
+      {
+        method: 'PUT',
+        body: JSON.stringify(validPayload),
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
+
+    const response = await PUT(request, {
+      params: Promise.resolve({ id: 'other-clip' }),
+    })
+    expect(response.status).toBe(404)
   })
 
   it('returns 404 for clipping not owned by user', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    makeDocChain(false)
+    makeDocChain(true, { name: 'Other Clipping', authorUserId: 'user-2' })
 
     const request = new NextRequest(
       'http://localhost/api/clipping/other-clip',
@@ -267,10 +347,12 @@ describe('DELETE /api/clipping/[id]', () => {
     expect(response.status).toBe(401)
   })
 
-  it('deletes clipping owned by user', async () => {
+  it('deletes clipping and its author subscription', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    makeDocChain(true, { name: 'My Clipping' })
-    mockDelete.mockResolvedValue(undefined)
+    const { docRef, subRef } = makeDocChainWithSubscription(true, {
+      name: 'My Clipping',
+      authorUserId: 'user-1',
+    })
 
     const request = new NextRequest('http://localhost/api/clipping/clip-1', {
       method: 'DELETE',
@@ -282,19 +364,19 @@ describe('DELETE /api/clipping/[id]', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.ok).toBe(true)
+    expect(mockBatchDelete).toHaveBeenCalledWith(subRef)
+    expect(mockBatchDelete).toHaveBeenCalledWith(docRef)
   })
 
   it('deactivates marketplace listing when deleting published clipping', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    const listingDocRef = makeMarketplaceListingRef()
-    mockGetDoc.mockResolvedValue({
-      exists: true,
-      data: () => ({
-        name: 'Published Clipping',
-        publishedToMarketplace: true,
-        marketplaceListingId: 'listing-456',
-      }),
+    const { listingDocRef } = makeMarketplaceChain(true, {
+      name: 'Published Clipping',
+      authorUserId: 'user-1',
+      publishedToMarketplace: true,
+      marketplaceListingId: 'listing-456',
     })
+
     const request = new NextRequest('http://localhost/api/clipping/clip-1', {
       method: 'DELETE',
     })
@@ -304,44 +386,18 @@ describe('DELETE /api/clipping/[id]', () => {
     })
     expect(response.status).toBe(200)
     expect(mockBatchCommit).toHaveBeenCalled()
-    // batch.update for listing (active:false) + batch.update for source (publishedToMarketplace:false) + batch.delete for clipping
     expect(mockBatchUpdate).toHaveBeenCalledWith(listingDocRef, {
       active: false,
     })
-    expect(mockBatchDelete).toHaveBeenCalledTimes(1)
-  })
-
-  it('does NOT query collectionGroup for followers when deleting published clipping', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    makeMarketplaceListingRef()
-    mockGetDoc.mockResolvedValue({
-      exists: true,
-      data: () => ({
-        name: 'Published Clipping',
-        publishedToMarketplace: true,
-        marketplaceListingId: 'listing-789',
-      }),
-    })
-
-    const request = new NextRequest('http://localhost/api/clipping/clip-1', {
-      method: 'DELETE',
-    })
-
-    const response = await DELETE(request, {
-      params: Promise.resolve({ id: 'clip-1' }),
-    })
-    expect(response.status).toBe(200)
-    // Should NOT use collectionGroup — followers are now in marketplace subcollection
-    expect(mockCollectionGroup).not.toHaveBeenCalled()
   })
 
   it('deletes non-published clipping without marketplace cascade', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    makeDocChain(true, {
+    makeDocChainWithSubscription(true, {
       name: 'Simple Clipping',
+      authorUserId: 'user-1',
       publishedToMarketplace: false,
     })
-    mockDelete.mockResolvedValue(undefined)
 
     const request = new NextRequest('http://localhost/api/clipping/clip-1', {
       method: 'DELETE',
@@ -351,13 +407,29 @@ describe('DELETE /api/clipping/[id]', () => {
       params: Promise.resolve({ id: 'clip-1' }),
     })
     expect(response.status).toBe(200)
-    expect(mockCollectionGroup).not.toHaveBeenCalled()
-    expect(mockBatchDelete).toHaveBeenCalledTimes(1)
+    expect(mockBatchUpdate).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 for clipping not found', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
+    makeDocChain(false)
+
+    const request = new NextRequest(
+      'http://localhost/api/clipping/other-clip',
+      {
+        method: 'DELETE',
+      },
+    )
+
+    const response = await DELETE(request, {
+      params: Promise.resolve({ id: 'other-clip' }),
+    })
+    expect(response.status).toBe(404)
   })
 
   it('returns 404 for clipping not owned by user', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    makeDocChain(false)
+    makeDocChain(true, { name: 'Other Clipping', authorUserId: 'user-2' })
 
     const request = new NextRequest(
       'http://localhost/api/clipping/other-clip',

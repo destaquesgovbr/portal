@@ -80,10 +80,8 @@ export function ClippingCard({
   const isPublished =
     clipping.publishedToMarketplace && clipping.marketplaceListingId
 
-  const hasChannels =
-    clipping.deliveryChannels.email ||
-    clipping.deliveryChannels.telegram ||
-    clipping.deliveryChannels.push
+  const channels = clipping.deliveryChannels ?? {}
+  const hasChannels = channels.email || channels.telegram || channels.push
 
   const canSend = clipping.active && hasChannels && sendStatus !== 'loading'
 
@@ -174,34 +172,34 @@ export function ClippingCard({
 
         <CardContent className="pb-3">
           <div className="flex flex-wrap gap-1.5">
-            {clipping.deliveryChannels.email && (
+            {channels.email && (
               <Badge className="gap-1 text-xs bg-blue-50 text-blue-700 border-blue-200">
                 <Mail className="h-3 w-3" />
                 Email
               </Badge>
             )}
-            {clipping.deliveryChannels.telegram && (
+            {channels.telegram && (
               <Badge className="gap-1 text-xs bg-sky-50 text-sky-700 border-sky-200">
                 <MessageCircle className="h-3 w-3" />
                 Telegram
               </Badge>
             )}
-            {clipping.deliveryChannels.push && (
+            {channels.push && (
               <Badge className="gap-1 text-xs bg-purple-50 text-purple-700 border-purple-200">
                 <Bell className="h-3 w-3" />
                 Push
               </Badge>
             )}
-            {clipping.deliveryChannels.webhook && (
+            {channels.webhook && (
               <Badge className="gap-1 text-xs bg-amber-50 text-amber-700 border-amber-200">
                 <Globe className="h-3 w-3" />
                 Webhook
               </Badge>
             )}
-            {!clipping.deliveryChannels.email &&
-              !clipping.deliveryChannels.telegram &&
-              !clipping.deliveryChannels.push &&
-              !clipping.deliveryChannels.webhook && (
+            {!channels.email &&
+              !channels.telegram &&
+              !channels.push &&
+              !channels.webhook && (
                 <span className="text-xs text-muted-foreground">
                   Nenhum canal ativo
                 </span>

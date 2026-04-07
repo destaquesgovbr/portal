@@ -30,6 +30,10 @@ vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }))
 
+vi.mock('@/lib/pubsub', () => ({
+  publishMarketplaceEvent: vi.fn(),
+}))
+
 import { auth } from '@/auth'
 import { POST } from '../route'
 

@@ -97,15 +97,16 @@ export default async function ListingDetailPage({ params }: Props) {
           .doc(userId)
           .get(),
         db
-          .collection('marketplace')
-          .doc(listingId)
-          .collection('followers')
-          .doc(userId)
+          .collection('subscriptions')
+          .where('clippingId', '==', listing.sourceClippingId)
+          .where('userId', '==', userId)
+          .where('role', '==', 'subscriber')
+          .limit(1)
           .get(),
       ])
 
       userHasLiked = likeSnap.exists
-      userFollows = followerSnap.exists
+      userFollows = !followerSnap.empty
 
       try {
         const tgDoc = await db
