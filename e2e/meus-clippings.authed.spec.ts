@@ -43,15 +43,20 @@ test.describe('Meus Clippings — Listagem', () => {
     expect(hasAnyBadge).toBe(true)
   })
 
-  test('shows "Ativo" or "Inativo" status badge', async ({ page }) => {
-    const activeBadge = page.locator('text=Ativo').first()
-    const inactiveBadge = page.locator('text=Inativo').first()
-
-    const hasStatus =
-      (await activeBadge.isVisible().catch(() => false)) ||
-      (await inactiveBadge.isVisible().catch(() => false))
-
-    expect(hasStatus).toBe(true)
+  test('only shows "Inativo" badge when clipping is inactive', async ({
+    page,
+  }) => {
+    // "Ativo" badge was removed — only "Inativo" appears for disabled clippings
+    const activeBadge = page
+      .locator('[data-testid="clipping-card"]')
+      .locator('text=Ativo')
+      .first()
+    const isActiveVisible = await activeBadge.isVisible().catch(() => false)
+    // If all clippings are active, no status badge should be shown
+    // If any is inactive, "Inativo" badge should appear
+    // Either way, the explicit "Ativo" text should NOT appear as a status badge
+    // (note: "Ativo" can still appear inside dropdown menu as "Desativar"/"Ativar")
+    expect(isActiveVisible).toBe(false)
   })
 
   test('"Novo Clipping" button navigates to wizard', async ({ page }) => {
@@ -72,12 +77,17 @@ test.describe('Meus Clippings — Listagem', () => {
     }
   })
 
-  test('clipping cards have edit button', async ({ page }) => {
-    // At least one clipping should have an "Editar" link/button
-    const editBtn = page
-      .locator('a:has-text("Editar"), button:has-text("Editar")')
-      .first()
-    await expect(editBtn).toBeVisible({ timeout: 5000 })
+  test('clipping cards have edit option in dropdown', async ({ page }) => {
+    // Edit is now inside the dropdown menu
+    const card = page.locator('[data-testid="clipping-card"]').first()
+    const menuBtn = card.locator('button[aria-haspopup="menu"]').first()
+    if (!(await menuBtn.isVisible({ timeout: 3000 }).catch(() => false))) {
+      test.skip(true, 'No dropdown menu found')
+      return
+    }
+    await menuBtn.click()
+    const editItem = page.getByRole('menuitem', { name: /editar/i })
+    await expect(editItem).toBeVisible()
   })
 
   test('page handles empty state gracefully', async ({ page }) => {

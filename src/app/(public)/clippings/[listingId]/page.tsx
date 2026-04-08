@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { auth } from '@/auth'
 import { ArticleCountBadge } from '@/components/clipping/ArticleCountBadge'
 import { ReleaseList } from '@/components/clipping/ReleaseList'
+import { MarkdownRenderer } from '@/components/common/MarkdownRenderer'
 import { ListingActions } from '@/components/marketplace/ListingActions'
 import { Badge } from '@/components/ui/badge'
 import { getAgencyField } from '@/data/agencies-utils'
@@ -132,6 +133,9 @@ export default async function ListingDetailPage({ params }: Props) {
     articlesCount: number
     createdAt: string
     releaseUrl: string
+    refTime?: string | null
+    sinceHours?: number | null
+    digestPreview?: string
   }> = []
   let hasMoreReleases = false
   try {
@@ -151,6 +155,16 @@ export default async function ListingDetailPage({ params }: Props) {
         articlesCount: d.articlesCount ?? 0,
         createdAt: d.createdAt?.toDate?.()?.toISOString?.() ?? '',
         releaseUrl: d.releaseUrl ?? `/clipping/release/${doc.id}`,
+        refTime: d.refTime?.toDate?.()?.toISOString?.() ?? null,
+        sinceHours: d.sinceHours ?? null,
+        digestPreview: (() => {
+          try {
+            const parsed = JSON.parse(d.digest ?? '{}')
+            return parsed.intro?.slice(0, 150) ?? ''
+          } catch {
+            return (d.digest ?? '').slice(0, 150)
+          }
+        })(),
       }
     })
   } catch (error) {
@@ -158,9 +172,11 @@ export default async function ListingDetailPage({ params }: Props) {
   }
 
   let estimatedCount = 0
+  let perRecorteEstimates: number[] = []
   try {
     const estimation = await estimateTotalCount(listing.recortes)
     estimatedCount = estimation.total
+    perRecorteEstimates = estimation.perRecorte
   } catch {
     // non-critical
   }
@@ -181,10 +197,6 @@ export default async function ListingDetailPage({ params }: Props) {
       <p className="mt-1 text-sm text-muted-foreground">
         Por {listing.authorDisplayName}
       </p>
-
-      {listing.description && (
-        <p className="mt-4 text-base leading-relaxed">{listing.description}</p>
-      )}
 
       {/* Schedule + estimation */}
       <div className="mt-3 flex items-center gap-4 flex-wrap">
@@ -213,6 +225,37 @@ export default async function ListingDetailPage({ params }: Props) {
         </span>
       </div>
 
+      {/* Releases */}
+      <section className="mt-8">
+        <ReleaseList
+          listingId={listing.id}
+          initialReleases={initialReleases}
+          hasMore={hasMoreReleases}
+          releasesPagePath={`/clippings/${listing.id}/releases`}
+        />
+      </section>
+
+      {listing.description && (
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4">Sobre</h2>
+          <MarkdownRenderer
+            content={listing.description}
+            className="prose-sm"
+          />
+        </div>
+      )}
+
+      {listing.publishedAt && (
+        <p className="mt-6 text-xs text-muted-foreground">
+          Publicado em{' '}
+          {new Date(listing.publishedAt).toLocaleDateString('pt-BR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+        </p>
+      )}
+
       {/* Actions */}
       <div className="mt-6">
         <ListingActions
@@ -224,7 +267,7 @@ export default async function ListingDetailPage({ params }: Props) {
       </div>
 
       {/* Feed links */}
-      <div className="mt-6 flex items-center gap-3">
+      <div className="mt-4 flex items-center gap-3">
         <a
           href={`/api/clippings/public/${listing.id}/feed.xml`}
           target="_blank"
@@ -250,31 +293,41 @@ export default async function ListingDetailPage({ params }: Props) {
         <section className="mt-8">
           <h2 className="text-xl font-semibold mb-4">Recortes</h2>
           <div className="space-y-4">
-            {resolvedRecortes.map((recorte) => (
+            {resolvedRecortes.map((recorte, idx) => (
               <div key={recorte.id} className="border rounded-md p-4 space-y-2">
-                <h3 className="text-base font-medium">
-                  {recorte.title ?? `Recorte ${recorte.id.slice(0, 4)}`}
-                </h3>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-base font-medium">
+                    {recorte.title ?? `Recorte ${recorte.id.slice(0, 4)}`}
+                  </h3>
+                  {perRecorteEstimates[idx] != null && (
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      ~{perRecorteEstimates[idx]} notícias/dia
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-1.5">
                   {recorte.themeLabels.map((label, i) => (
-                    <Badge key={recorte.themes[i]} className="text-xs">
-                      {label}
+                    <Badge
+                      key={recorte.themes[i]}
+                      className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                    >
+                      Tema: {label}
                     </Badge>
                   ))}
                   {recorte.agencyLabels.map((label, i) => (
                     <Badge
                       key={recorte.agencies[i]}
-                      className="text-xs border-border bg-background"
+                      className="text-xs bg-green-50 text-green-700 border-green-200"
                     >
-                      {label}
+                      Órgão: {label}
                     </Badge>
                   ))}
                   {recorte.keywords.map((keyword) => (
                     <Badge
                       key={keyword}
-                      className="text-xs bg-muted text-muted-foreground"
+                      className="text-xs bg-amber-50 text-amber-700 border-amber-200"
                     >
-                      {keyword}
+                      Palavra-chave: {keyword}
                     </Badge>
                   ))}
                 </div>
@@ -283,14 +336,6 @@ export default async function ListingDetailPage({ params }: Props) {
           </div>
         </section>
       )}
-      {/* Releases */}
-      <section className="mt-8">
-        <ReleaseList
-          listingId={listing.id}
-          initialReleases={initialReleases}
-          hasMore={hasMoreReleases}
-        />
-      </section>
     </div>
   )
 }

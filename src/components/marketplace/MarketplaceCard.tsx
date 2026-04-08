@@ -56,9 +56,9 @@ export function MarketplaceCard({
               )}
             </div>
           </div>
-          {listing.description && (
-            <CardDescription className="line-clamp-2">
-              {listing.description}
+          {(listing.shortDescription || listing.description) && (
+            <CardDescription>
+              {listing.shortDescription || listing.description?.slice(0, 300)}
             </CardDescription>
           )}
           {listing.schedule && (
