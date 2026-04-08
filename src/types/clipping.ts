@@ -52,6 +52,7 @@ export type MarketplaceListing = {
   sourceClippingId: string
   name: string
   description: string
+  shortDescription?: string
   recortes: Recorte[]
   prompt: string
   likeCount: number
@@ -93,4 +94,6 @@ export type Release = {
   articlesCount: number
   createdAt: string
   releaseUrl: string
+  refTime?: string | null
+  sinceHours?: number | null
 }

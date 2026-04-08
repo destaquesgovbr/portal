@@ -13,18 +13,11 @@ import { Button } from '@/components/ui/button'
 
 const routeLinks = [
   { href: '/artigos', label: 'Notícias' },
-  { href: '/temas', label: 'Temas' },
   { href: '/orgaos', label: 'Órgãos' },
+  { href: '/temas', label: 'Temas' },
 ]
 
-const themeLinks = [
-  {
-    href: '/temas/Meio%20Ambiente%20e%20Sustentabilidade',
-    label: 'Meio ambiente',
-  },
-  { href: '/temas/Economia%20e%20Finan%C3%A7as', label: 'Economia' },
-  { href: '/temas/Seguran%C3%A7a%20P%C3%BAblica', label: 'Segurança' },
-]
+const themeLinks = [{ href: '/clippings?sort=trending', label: 'Clippings' }]
 
 const Header = () => {
   const [searchOpen, setSearchOpen] = useState(false)

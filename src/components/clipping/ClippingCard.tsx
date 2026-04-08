@@ -30,13 +30,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +40,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cronToHumanReadable } from '@/lib/cron-utils'
 import type { Clipping } from '@/types/clipping'
-import { RecorteEstimationBadge } from './RecorteEstimationBadge'
 
 type SendStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -137,254 +130,246 @@ export function ClippingCard({
 
   return (
     <>
-      <Card className="flex flex-col" data-testid="clipping-card">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
+      <Card
+        className="hover:shadow-md transition-shadow"
+        data-testid="clipping-card"
+      >
+        <div className="flex items-start gap-3 p-4">
+          <Link
+            href={`/minha-conta/clipping/${clipping.id}`}
+            className="flex-1 min-w-0"
+          >
             <div className="flex items-center gap-2 flex-wrap">
-              <CardTitle className="text-base font-semibold leading-tight">
+              <span className="text-base font-semibold leading-tight">
                 {clipping.name}
-              </CardTitle>
-              {isPublished && (
-                <Badge className="text-xs bg-indigo-100 text-indigo-700 border-indigo-200">
-                  Publicado
+              </span>
+              {!clipping.active && (
+                <Badge className="text-xs bg-muted text-muted-foreground">
+                  Inativo
                 </Badge>
               )}
             </div>
-            <Badge
-              className={`shrink-0 text-xs ${
-                clipping.active
-                  ? 'bg-green-100 text-green-700 border-green-200'
-                  : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              {clipping.active ? 'Ativo' : 'Inativo'}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {clipping.schedule
-              ? cronToHumanReadable(clipping.schedule)
-              : clipping.scheduleTime
-                ? `Todos os dias às ${clipping.scheduleTime}`
-                : ''}
-          </p>
-          <RecorteEstimationBadge recortes={clipping.recortes} />
-        </CardHeader>
-
-        <CardContent className="pb-3">
-          <div className="flex flex-wrap gap-1.5">
-            {channels.email && (
-              <Badge className="gap-1 text-xs bg-blue-50 text-blue-700 border-blue-200">
-                <Mail className="h-3 w-3" />
-                Email
-              </Badge>
-            )}
-            {channels.telegram && (
-              <Badge className="gap-1 text-xs bg-sky-50 text-sky-700 border-sky-200">
-                <MessageCircle className="h-3 w-3" />
-                Telegram
-              </Badge>
-            )}
-            {channels.push && (
-              <Badge className="gap-1 text-xs bg-purple-50 text-purple-700 border-purple-200">
-                <Bell className="h-3 w-3" />
-                Push
-              </Badge>
-            )}
-            {channels.webhook && (
-              <Badge className="gap-1 text-xs bg-amber-50 text-amber-700 border-amber-200">
-                <Globe className="h-3 w-3" />
-                Webhook
-              </Badge>
-            )}
-            {!channels.email &&
-              !channels.telegram &&
-              !channels.push &&
-              !channels.webhook && (
-                <span className="text-xs text-muted-foreground">
-                  Nenhum canal ativo
-                </span>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              <span className="text-sm text-muted-foreground">
+                {clipping.schedule
+                  ? cronToHumanReadable(clipping.schedule)
+                  : clipping.scheduleTime
+                    ? `Todos os dias às ${clipping.scheduleTime}`
+                    : ''}
+              </span>
+              {channels.email && (
+                <Badge className="gap-1 text-xs bg-blue-50 text-blue-700 border-blue-200">
+                  <Mail className="h-3 w-3" />
+                  Email
+                </Badge>
               )}
-          </div>
-        </CardContent>
-
-        <CardFooter className="flex items-center justify-between mt-auto pt-3">
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="cursor-pointer text-xs"
-          >
-            <Link href={`/minha-conta/clipping/${clipping.id}/editar`}>
-              <Pencil className="h-3.5 w-3.5 mr-1.5" />
-              Editar
-            </Link>
-          </Button>
-
-          {isPostSend ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleStatusButtonClick}
-              className={`h-8 w-8 cursor-pointer ${
-                sendStatus === 'success'
-                  ? 'text-green-600 hover:text-green-700 hover:bg-green-50'
-                  : 'text-destructive hover:text-destructive hover:bg-destructive/10'
-              }`}
-            >
-              {sendStatus === 'success' ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <X className="h-4 w-4" />
+              {channels.telegram && (
+                <Badge className="gap-1 text-xs bg-sky-50 text-sky-700 border-sky-200">
+                  <MessageCircle className="h-3 w-3" />
+                  Telegram
+                </Badge>
               )}
-            </Button>
-          ) : (
-            <DropdownMenu
-              onOpenChange={(open) => {
-                if (!open) {
-                  setConfirmDelete(false)
-                  setConfirmUnpublish(false)
-                }
-              }}
-            >
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 cursor-pointer ${sendStatus === 'loading' ? 'text-primary' : ''}`}
-                >
-                  {sendStatus === 'loading' ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <MoreVertical className="h-4 w-4" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem
-                  onClick={handleSend}
-                  disabled={!canSend}
-                  className="cursor-pointer gap-2"
-                >
-                  <Send className="h-4 w-4" />
-                  Gerar e Enviar Agora
-                </DropdownMenuItem>
+              {channels.push && (
+                <Badge className="gap-1 text-xs bg-purple-50 text-purple-700 border-purple-200">
+                  <Bell className="h-3 w-3" />
+                  Push
+                </Badge>
+              )}
+              {channels.webhook && (
+                <Badge className="gap-1 text-xs bg-amber-50 text-amber-700 border-amber-200">
+                  <Globe className="h-3 w-3" />
+                  Webhook
+                </Badge>
+              )}
+            </div>
+          </Link>
+          <div className="shrink-0 flex flex-col items-center justify-between self-stretch">
+            {isPostSend ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleStatusButtonClick}
+                className={`h-8 w-8 cursor-pointer ${
+                  sendStatus === 'success'
+                    ? 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                    : 'text-destructive hover:text-destructive hover:bg-destructive/10'
+                }`}
+              >
+                {sendStatus === 'success' ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <X className="h-4 w-4" />
+                )}
+              </Button>
+            ) : (
+              <DropdownMenu
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setConfirmDelete(false)
+                    setConfirmUnpublish(false)
+                  }
+                }}
+              >
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-8 w-8 cursor-pointer ${sendStatus === 'loading' ? 'text-primary' : ''}`}
+                  >
+                    {sendStatus === 'loading' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <MoreVertical className="h-4 w-4" />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link href={`/minha-conta/clipping/${clipping.id}/editar`}>
+                      <Pencil className="h-4 w-4" />
+                      Editar
+                    </Link>
+                  </DropdownMenuItem>
 
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem
-                  onClick={() => onToggleActive(clipping.id, !clipping.active)}
-                  className="cursor-pointer gap-2"
-                >
-                  <Power className="h-4 w-4" />
-                  {clipping.active ? 'Desativar' : 'Ativar'}
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                {/* Marketplace actions */}
-                {!isPublished && (
                   <DropdownMenuItem
-                    onSelect={() => setPublishDialogOpen(true)}
+                    onClick={handleSend}
+                    disabled={!canSend}
                     className="cursor-pointer gap-2"
                   >
-                    <Globe className="h-4 w-4" />
-                    Publicar no Marketplace
+                    <Send className="h-4 w-4" />
+                    Gerar e Enviar Agora
                   </DropdownMenuItem>
-                )}
 
-                {isPublished && (
-                  <>
-                    <DropdownMenuItem asChild className="cursor-pointer gap-2">
-                      <Link
-                        href={`/clippings/${clipping.marketplaceListingId}`}
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Ver no Marketplace
-                      </Link>
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem
+                    onClick={() =>
+                      onToggleActive(clipping.id, !clipping.active)
+                    }
+                    className="cursor-pointer gap-2"
+                  >
+                    <Power className="h-4 w-4" />
+                    {clipping.active ? 'Desativar' : 'Ativar'}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  {/* Marketplace actions */}
+                  {!isPublished && (
+                    <DropdownMenuItem
+                      onSelect={() => setPublishDialogOpen(true)}
+                      className="cursor-pointer gap-2"
+                    >
+                      <Globe className="h-4 w-4" />
+                      Publicar no Marketplace
                     </DropdownMenuItem>
+                  )}
 
-                    {confirmUnpublish ? (
-                      <>
-                        <DropdownMenuItem
-                          onSelect={() => {
-                            handleUnpublish()
-                          }}
-                          disabled={isUnpublishing}
-                          className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                  {isPublished && (
+                    <>
+                      <DropdownMenuItem
+                        asChild
+                        className="cursor-pointer gap-2"
+                      >
+                        <Link
+                          href={`/clippings/${clipping.marketplaceListingId}`}
                         >
-                          {isUnpublishing ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Globe className="h-4 w-4" />
-                          )}
-                          Confirmar despublicação
-                        </DropdownMenuItem>
+                          <ExternalLink className="h-4 w-4" />
+                          Ver no Marketplace
+                        </Link>
+                      </DropdownMenuItem>
+
+                      {confirmUnpublish ? (
+                        <>
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              handleUnpublish()
+                            }}
+                            disabled={isUnpublishing}
+                            className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                          >
+                            {isUnpublishing ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Globe className="h-4 w-4" />
+                            )}
+                            Confirmar despublicação
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={(e) => {
+                              e.preventDefault()
+                              setConfirmUnpublish(false)
+                            }}
+                            className="cursor-pointer gap-2"
+                          >
+                            Cancelar
+                          </DropdownMenuItem>
+                        </>
+                      ) : (
                         <DropdownMenuItem
                           onSelect={(e) => {
                             e.preventDefault()
-                            setConfirmUnpublish(false)
+                            setConfirmUnpublish(true)
                           }}
-                          className="cursor-pointer gap-2"
+                          className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
                         >
-                          Cancelar
+                          <Globe className="h-4 w-4" />
+                          Despublicar
                         </DropdownMenuItem>
-                      </>
-                    ) : (
+                      )}
+                    </>
+                  )}
+
+                  {!isPublished && <DropdownMenuSeparator />}
+                  {isPublished && <DropdownMenuSeparator />}
+
+                  {confirmDelete ? (
+                    <>
                       <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault()
-                          setConfirmUnpublish(true)
+                        onSelect={() => {
+                          onDelete(clipping.id)
+                          setConfirmDelete(false)
                         }}
                         className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
                       >
-                        <Globe className="h-4 w-4" />
-                        Despublicar
+                        <Trash2 className="h-4 w-4" />
+                        Confirmar exclusão
                       </DropdownMenuItem>
-                    )}
-                  </>
-                )}
-
-                {!isPublished && <DropdownMenuSeparator />}
-                {isPublished && <DropdownMenuSeparator />}
-
-                {confirmDelete ? (
-                  <>
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault()
+                          setConfirmDelete(false)
+                        }}
+                        className="cursor-pointer gap-2"
+                      >
+                        Cancelar
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
                     <DropdownMenuItem
-                      onSelect={() => {
-                        onDelete(clipping.id)
-                        setConfirmDelete(false)
+                      onSelect={(e) => {
+                        e.preventDefault()
+                        setConfirmDelete(true)
                       }}
                       className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4" />
-                      Confirmar exclusão
+                      Excluir
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault()
-                        setConfirmDelete(false)
-                      }}
-                      className="cursor-pointer gap-2"
-                    >
-                      Cancelar
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      setConfirmDelete(true)
-                    }}
-                    className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Excluir
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </CardFooter>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {isPublished && (
+              <Link
+                href={`/clippings/${clipping.marketplaceListingId}`}
+                title="Ver página pública"
+              >
+                <Globe className="h-4 w-4 text-indigo-400 hover:text-indigo-600 transition-colors" />
+              </Link>
+            )}
+          </div>
+        </div>
       </Card>
 
       <PublishDialog
