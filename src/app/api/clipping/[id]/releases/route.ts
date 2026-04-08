@@ -1,31 +1,32 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
 import { getFirestoreDb } from '@/lib/firebase-admin'
-import type { Release } from '@/types/clipping'
 
-type RouteParams = { params: Promise<{ listingId: string }> }
+type RouteParams = { params: Promise<{ id: string }> }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  }
+
   try {
-    const { listingId } = await params
+    const { id: clippingId } = await params
     const db = getFirestoreDb()
 
-    // Fetch listing
-    const listingSnap = await db.collection('marketplace').doc(listingId).get()
+    // Verify the clipping belongs to the user
+    const clippingSnap = await db.collection('clippings').doc(clippingId).get()
 
-    if (!listingSnap.exists) {
+    if (!clippingSnap.exists) {
       return NextResponse.json(
-        { error: 'Listing não encontrado' },
+        { error: 'Clipping não encontrado' },
         { status: 404 },
       )
     }
 
-    const listingData = listingSnap.data()!
-
-    if (!listingData.active) {
-      return NextResponse.json(
-        { error: 'Listing não encontrado' },
-        { status: 404 },
-      )
+    const clippingData = clippingSnap.data()!
+    if (clippingData.authorUserId !== session.user.id) {
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     }
 
     // Parse pagination params
@@ -40,31 +41,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Query releases
     const releasesSnap = await db
       .collection('releases')
-      .where('clippingId', '==', listingData.sourceClippingId)
+      .where('clippingId', '==', clippingId)
       .orderBy('createdAt', 'desc')
       .offset(offset)
-      .limit(limit + 1) // Fetch one extra to detect hasMore
+      .limit(limit + 1)
       .get()
 
     const docs = releasesSnap.docs
     const hasMore = docs.length > limit
     const releaseDocs = hasMore ? docs.slice(0, limit) : docs
 
-    const releases: Release[] = releaseDocs.map((doc) => {
+    const releases = releaseDocs.map((doc) => {
       const data = doc.data()
       return {
         id: doc.id,
         clippingId: data.clippingId,
-        userId: data.userId,
         clippingName: data.clippingName,
-        digest: data.digest,
-        digestHtml: data.digestHtml,
-        articlesCount: data.articlesCount,
+        articlesCount: data.articlesCount ?? 0,
         createdAt:
           data.createdAt && typeof data.createdAt.toDate === 'function'
             ? data.createdAt.toDate().toISOString()
-            : data.createdAt,
-        releaseUrl: data.releaseUrl,
+            : (data.createdAt ?? ''),
+        releaseUrl: data.releaseUrl ?? `/clipping/release/${doc.id}`,
         refTime:
           data.refTime && typeof data.refTime.toDate === 'function'
             ? data.refTime.toDate().toISOString()

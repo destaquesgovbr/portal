@@ -17,11 +17,9 @@ const Footer = () => {
               />
               <div>
                 <h3 className="font-semibold text-primary text-lg">
-                  Governo Federal do Brasil
+                  DestaquesGovBr
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                  Portal de Notícias Oficiais
-                </p>
+                <p className="text-sm text-muted-foreground">Web Difusora</p>
               </div>
             </div>
           </div>

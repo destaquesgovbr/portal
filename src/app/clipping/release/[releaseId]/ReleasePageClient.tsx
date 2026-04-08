@@ -1,17 +1,19 @@
 'use client'
 
-import { Download, Share2 } from 'lucide-react'
+import { Download, Search, Share2 } from 'lucide-react'
+import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import type { Release } from '@/types/clipping'
+import type { Recorte, Release } from '@/types/clipping'
 
 type Props = {
-  release: Release
+  release: Release & { recortes: Recorte[] }
 }
 
 export function ReleasePageClient({ release }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeHeight, setIframeHeight] = useState(800)
+  const articlesUrl = `/clipping/release/${release.id}/artigos`
 
   const handlePrint = useCallback(() => {
     const iframe = iframeRef.current
@@ -45,8 +47,11 @@ export function ReleasePageClient({ release }: Props) {
     const syncHeight = () => {
       try {
         const doc = iframe.contentDocument
-        if (doc?.body) {
-          setIframeHeight(doc.body.scrollHeight)
+        if (doc) {
+          // Use the max of body and documentElement to capture all content
+          const bodyH = doc.body?.scrollHeight ?? 0
+          const docH = doc.documentElement?.scrollHeight ?? 0
+          setIframeHeight(Math.max(bodyH, docH) + 40) // 40px buffer for margins
         }
       } catch {
         // cross-origin — shouldn't happen with srcdoc
@@ -113,6 +118,19 @@ export function ReleasePageClient({ release }: Props) {
         className="w-full border-0 overflow-hidden"
         style={{ height: iframeHeight }}
       />
+
+      {/* Link to articles included in this release */}
+      {release.recortes.length > 0 && (
+        <div className="print:hidden max-w-3xl mx-auto px-4 py-6">
+          <Link
+            href={articlesUrl}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Search className="h-4 w-4" />
+            Ver as {release.articlesCount} notícias incluídas nesta edição
+          </Link>
+        </div>
+      )}
     </div>
   )
 }
