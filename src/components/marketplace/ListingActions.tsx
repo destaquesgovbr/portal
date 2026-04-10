@@ -134,56 +134,76 @@ export function ListingActions({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button
-          variant={liked ? 'default' : 'outline'}
-          size="sm"
-          onClick={handleLike}
-          disabled={liking}
-          className="cursor-pointer"
-        >
-          {liking ? (
-            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-          ) : (
-            <Heart
-              className={`h-4 w-4 mr-1.5 ${liked ? 'fill-current' : ''}`}
-            />
-          )}
-          {likeCount}
-        </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Like — GitHub style: button + count badge */}
+        <div className="inline-flex items-center rounded-md border border-input overflow-hidden">
+          <button
+            type="button"
+            onClick={handleLike}
+            disabled={liking}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm cursor-pointer transition-colors ${
+              liked
+                ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                : 'bg-background hover:bg-accent'
+            }`}
+          >
+            {liking ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
+            )}
+            Curtir
+          </button>
+          <span className="border-l border-input px-2.5 py-1.5 text-sm text-muted-foreground bg-muted/30 tabular-nums">
+            {likeCount}
+          </span>
+        </div>
 
-        <Button
-          variant={follows ? 'secondary' : 'outline'}
-          size="sm"
-          onClick={handleFollowClick}
-          disabled={unfollowing}
-          className="cursor-pointer"
-        >
-          {unfollowing ? (
-            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-          ) : follows ? (
-            <UserCheck className="h-4 w-4 mr-1.5" />
-          ) : (
-            <UserPlus className="h-4 w-4 mr-1.5" />
-          )}
-          {follows ? 'Seguindo' : 'Seguir'}
-          <span className="ml-1 text-muted-foreground">{followerCount}</span>
-        </Button>
+        {/* Follow — GitHub style */}
+        <div className="inline-flex items-center rounded-md border border-input overflow-hidden">
+          <button
+            type="button"
+            onClick={handleFollowClick}
+            disabled={unfollowing}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm cursor-pointer transition-colors ${
+              follows
+                ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                : 'bg-background hover:bg-accent'
+            }`}
+          >
+            {unfollowing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : follows ? (
+              <UserCheck className="h-4 w-4" />
+            ) : (
+              <UserPlus className="h-4 w-4" />
+            )}
+            {follows ? 'Seguindo' : 'Seguir'}
+          </button>
+          <span className="border-l border-input px-2.5 py-1.5 text-sm text-muted-foreground bg-muted/30 tabular-nums">
+            {followerCount}
+          </span>
+        </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleClone}
-          disabled={cloning}
-          className="cursor-pointer"
-        >
-          {cloning ? (
-            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-          ) : (
-            <Copy className="h-4 w-4 mr-1.5" />
-          )}
-          Clonar
-        </Button>
+        {/* Clone — GitHub style */}
+        <div className="inline-flex items-center rounded-md border border-input overflow-hidden">
+          <button
+            type="button"
+            onClick={handleClone}
+            disabled={cloning}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-background hover:bg-accent cursor-pointer transition-colors"
+          >
+            {cloning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+            Clonar
+          </button>
+          <span className="border-l border-input px-2.5 py-1.5 text-sm text-muted-foreground bg-muted/30 tabular-nums">
+            {listing.cloneCount}
+          </span>
+        </div>
       </div>
 
       <FollowDialog
