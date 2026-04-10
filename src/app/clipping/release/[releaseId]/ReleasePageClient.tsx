@@ -1,13 +1,16 @@
 'use client'
 
-import { Download, Search, Share2 } from 'lucide-react'
+import { Download, ExternalLink, Search, Share2 } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { Recorte, Release } from '@/types/clipping'
 
 type Props = {
-  release: Release & { recortes: Recorte[] }
+  release: Release & {
+    recortes: Recorte[]
+    marketplaceListingId?: string | null
+  }
 }
 
 export function ReleasePageClient({ release }: Props) {
@@ -84,7 +87,17 @@ export function ReleasePageClient({ release }: Props) {
       <div className="print:hidden sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <h1 className="text-sm font-medium text-gray-600 truncate">
-            Clipping: {release.clippingName}
+            {release.marketplaceListingId ? (
+              <Link
+                href={`/clippings/${release.marketplaceListingId}`}
+                className="hover:text-gray-900 inline-flex items-center gap-1"
+              >
+                {release.clippingName}
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            ) : (
+              <>Clipping: {release.clippingName}</>
+            )}
           </h1>
           <div className="flex items-center gap-2">
             <Button
