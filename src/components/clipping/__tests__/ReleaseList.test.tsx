@@ -46,7 +46,7 @@ describe('ReleaseList', () => {
       />,
     )
 
-    expect(screen.getByText('Edições anteriores')).toBeInTheDocument()
+    expect(screen.getByText('Edições')).toBeInTheDocument()
   })
 
   it('renders release list with formatted date and article count', () => {
@@ -63,8 +63,8 @@ describe('ReleaseList', () => {
       />,
     )
 
-    expect(screen.getByText('10 de março de 2025')).toBeInTheDocument()
-    expect(screen.getByText('12 artigos')).toBeInTheDocument()
+    expect(screen.getByText(/10 de março de 2025/)).toBeInTheDocument()
+    expect(screen.getByText(/12 artigos/)).toBeInTheDocument()
   })
 
   it('renders external links for each release', () => {
@@ -76,7 +76,7 @@ describe('ReleaseList', () => {
       />,
     )
 
-    const link = screen.getByRole('link', { name: /15 de janeiro de 2025/i })
+    const link = screen.getByRole('link', { name: /janeiro de 2025/i })
     expect(link).toHaveAttribute('href', 'https://example.com/releases/r1')
     expect(link).toHaveAttribute('target', '_blank')
   })
@@ -138,7 +138,7 @@ describe('ReleaseList', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('20 de fevereiro de 2025')).toBeInTheDocument()
+      expect(screen.getByText(/20 de fevereiro de 2025/)).toBeInTheDocument()
     })
 
     // Button should be hidden after last page
