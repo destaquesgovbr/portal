@@ -57,22 +57,11 @@ function mockClippingDoc(data: Record<string, unknown> | null, exists = true) {
     get: vi.fn().mockResolvedValue({
       exists,
       data: () => data,
-      ref: { parent: { parent: { id: 'user-1' } } },
     }),
     id: 'clip-1',
   }
   const clippingsCollection = {
     doc: vi.fn().mockReturnValue(clippingRef),
-  }
-  const userDoc = {
-    collection: vi.fn().mockReturnValue(clippingsCollection),
-    get: vi.fn().mockResolvedValue({
-      exists: true,
-      data: () => ({ email: 'user@example.com' }),
-    }),
-  }
-  const usersCollection = {
-    doc: vi.fn().mockReturnValue(userDoc),
   }
 
   const marketplaceDoc = {
@@ -84,12 +73,12 @@ function mockClippingDoc(data: Record<string, unknown> | null, exists = true) {
   }
 
   mockCollection.mockImplementation((name: string) => {
-    if (name === 'users') return usersCollection
+    if (name === 'clippings') return clippingsCollection
     if (name === 'marketplace') return marketplaceCollection
-    return usersCollection
+    return clippingsCollection
   })
 
-  return { clippingRef, userDoc, marketplaceDoc }
+  return { clippingRef, marketplaceDoc }
 }
 
 describe('POST /api/clippings/publish', () => {
@@ -120,6 +109,7 @@ describe('POST /api/clippings/publish', () => {
     mockClippingDoc({
       name: 'Meio Ambiente',
       description: 'Um clipping sobre meio ambiente',
+      authorUserId: 'user-1',
       recortes: [{ id: 'r1', themes: ['08'], agencies: [], keywords: [] }],
       prompt: '',
     })
@@ -143,6 +133,7 @@ describe('POST /api/clippings/publish', () => {
     mockClippingDoc({
       name: 'Meio Ambiente',
       description: 'Um clipping sobre meio ambiente',
+      authorUserId: 'user-1',
       recortes: [
         {
           id: 'r1',
@@ -167,6 +158,7 @@ describe('POST /api/clippings/publish', () => {
     mockClippingDoc({
       name: 'Meio Ambiente',
       description: 'Um clipping sobre meio ambiente',
+      authorUserId: 'user-1',
       recortes: [
         {
           id: 'r1',
