@@ -91,26 +91,29 @@ function setupFirestoreMocks(options: {
     doc: vi.fn().mockReturnValue(listingDocRef),
   }
 
-  // User's clippings subcollection
+  // Top-level clippings collection
   const newClippingRef = { id: 'new-clipping-1' }
   const clippingsCollection = {
     doc: vi.fn().mockReturnValue(newClippingRef),
-    count: vi.fn().mockReturnValue({
-      get: vi
-        .fn()
-        .mockResolvedValue({ data: () => ({ count: clippingCount }) }),
+    where: vi.fn().mockReturnValue({
+      count: vi.fn().mockReturnValue({
+        get: vi
+          .fn()
+          .mockResolvedValue({ data: () => ({ count: clippingCount }) }),
+      }),
     }),
   }
-  const userDocRef = {
-    collection: vi.fn().mockReturnValue(clippingsCollection),
-  }
-  const usersCollection = {
-    doc: vi.fn().mockReturnValue(userDocRef),
+
+  // Subscriptions collection
+  const subscriptionRef = { id: 'sub-1' }
+  const subscriptionsCollection = {
+    doc: vi.fn().mockReturnValue(subscriptionRef),
   }
 
   mockCollection.mockImplementation((name: string) => {
     if (name === 'marketplace') return marketplaceCollection
-    if (name === 'users') return usersCollection
+    if (name === 'clippings') return clippingsCollection
+    if (name === 'subscriptions') return subscriptionsCollection
     return marketplaceCollection
   })
 
@@ -162,28 +165,28 @@ describe('POST /api/clippings/public/[listingId]/clone', () => {
     const body = await response.json()
     expect(body.id).toBe('new-clipping-1')
 
-    // Verify batch.set was called for the clipping
+    // Verify batch.set was called for the clipping (top-level)
     expect(mockBatchSet).toHaveBeenCalledWith(
       newClippingRef,
       expect.objectContaining({
         name: 'Meio Ambiente News',
         description: 'Notícias sobre meio ambiente',
-        recortes: [
-          {
-            id: 'r1',
-            title: 'Políticas ambientais',
-            themes: ['08'],
-            agencies: [],
-            keywords: [],
-          },
-        ],
-        prompt: 'Resuma as notícias ambientais',
+        authorUserId: 'user-1',
         clonedFrom: 'listing-1',
         active: false,
         schedule: '0 8 * * *',
-        deliveryChannels: { email: false, telegram: false, push: false },
         createdAt: 'SERVER_TIMESTAMP',
         updatedAt: 'SERVER_TIMESTAMP',
+      }),
+    )
+
+    // Verify batch.set was called for the subscription
+    expect(mockBatchSet).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'sub-1' }),
+      expect.objectContaining({
+        clippingId: 'new-clipping-1',
+        userId: 'user-1',
+        role: 'author',
       }),
     )
 
