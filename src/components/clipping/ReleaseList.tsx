@@ -125,7 +125,7 @@ export function ReleaseList({
               <CardTitle className="text-base">
                 {formatReleaseDate(release)}
               </CardTitle>
-              <Badge variant="secondary" className="gap-1 text-xs">
+              <Badge className="gap-1 text-xs">
                 <Newspaper className="h-3 w-3" />
                 {release.articlesCount} artigos
               </Badge>
@@ -222,7 +222,7 @@ export function ReleaseList({
                         )}
                       </div>
                     </div>
-                    <Badge variant="outline" className="shrink-0 text-xs">
+                    <Badge className="shrink-0 text-xs border-border bg-background">
                       {release.articlesCount}
                     </Badge>
                   </CardContent>
