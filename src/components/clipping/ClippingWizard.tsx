@@ -291,6 +291,12 @@ export function ClippingWizard({
         webhookUrl,
         includeHistory: SHOW_PROMPT_STEP ? includeHistory : false,
       })
+    } catch (submitErr) {
+      setError(
+        submitErr instanceof Error
+          ? submitErr.message
+          : 'Erro ao salvar clipping.',
+      )
     } finally {
       setLoading(false)
     }

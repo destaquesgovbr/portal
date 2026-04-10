@@ -219,10 +219,10 @@ export function RecorteEditor({
         <div className="pt-2 border-t border-border">
           <Button
             type="button"
-            variant="destructive"
+            variant="ghost"
             size="sm"
             onClick={onRemove}
-            className="cursor-pointer"
+            className="cursor-pointer text-muted-foreground hover:text-destructive"
           >
             Remover Recorte
           </Button>
