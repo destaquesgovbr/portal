@@ -5,6 +5,7 @@ import type { Recorte, Release } from '@/types/clipping'
 
 export type ReleaseWithContext = Release & {
   recortes: Recorte[]
+  marketplaceListingId?: string | null
 }
 
 export async function getReleaseById(
