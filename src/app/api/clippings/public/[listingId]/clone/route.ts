@@ -38,13 +38,13 @@ export async function POST(
       )
     }
 
-    // Check clipping limit
-    const clippingsRef = db
-      .collection('users')
-      .doc(session.user.id)
-      .collection('clippings')
+    // Check clipping limit (top-level collection)
+    const clippingsRef = db.collection('clippings')
 
-    const countSnapshot = await clippingsRef.count().get()
+    const countSnapshot = await clippingsRef
+      .where('authorUserId', '==', session.user.id)
+      .count()
+      .get()
     const count = countSnapshot.data().count
 
     if (count >= MAX_CLIPPINGS) {
@@ -54,21 +54,39 @@ export async function POST(
       )
     }
 
-    // Create clipping copy
+    // Create clipping copy + author subscription
     const newClippingRef = clippingsRef.doc()
+    const subscriptionRef = db.collection('subscriptions').doc()
     const batch = db.batch()
 
     batch.set(newClippingRef, {
       name: listingData.name,
       description: listingData.description ?? '',
+      shortDescription: listingData.shortDescription ?? '',
       recortes: listingData.recortes ?? [],
       prompt: listingData.prompt ?? '',
       clonedFrom: listingId,
+      authorUserId: session.user.id,
       active: false,
       schedule: '0 8 * * *',
-      deliveryChannels: { email: false, telegram: false, push: false },
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
+    })
+
+    batch.set(subscriptionRef, {
+      clippingId: newClippingRef.id,
+      userId: session.user.id,
+      role: 'author',
+      deliveryChannels: {
+        email: false,
+        telegram: false,
+        push: false,
+        webhook: false,
+      },
+      extraEmails: [],
+      webhookUrl: '',
+      subscribedAt: FieldValue.serverTimestamp(),
+      active: true,
     })
 
     batch.update(listingRef, {

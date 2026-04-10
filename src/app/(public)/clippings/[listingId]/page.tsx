@@ -1,4 +1,4 @@
-import { Clock, Copy, FileJson, Heart, Rss, Users } from 'lucide-react'
+import { Clock, FileJson, Rss } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { auth } from '@/auth'
 import { ArticleCountBadge } from '@/components/clipping/ArticleCountBadge'
@@ -209,20 +209,14 @@ export default async function ListingDetailPage({ params }: Props) {
         <ArticleCountBadge count={estimatedCount} />
       </div>
 
-      {/* Stats */}
-      <div className="mt-3 flex items-center gap-5 text-sm text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <Heart className="h-4 w-4" />
-          {listing.likeCount}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Users className="h-4 w-4" />
-          {listing.followerCount}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Copy className="h-4 w-4" />
-          {listing.cloneCount}
-        </span>
+      {/* Actions */}
+      <div className="mt-4">
+        <ListingActions
+          listing={listing}
+          userFollows={userFollows}
+          userHasLiked={userHasLiked}
+          hasTelegram={hasTelegram}
+        />
       </div>
 
       {/* Releases */}
@@ -255,16 +249,6 @@ export default async function ListingDetailPage({ params }: Props) {
           })}
         </p>
       )}
-
-      {/* Actions */}
-      <div className="mt-6">
-        <ListingActions
-          listing={listing}
-          userFollows={userFollows}
-          userHasLiked={userHasLiked}
-          hasTelegram={hasTelegram}
-        />
-      </div>
 
       {/* Feed links */}
       <div className="mt-4 flex items-center gap-3">
