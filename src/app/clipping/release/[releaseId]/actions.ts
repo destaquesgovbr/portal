@@ -18,15 +18,23 @@ export async function getReleaseById(
 
     const data = doc.data()!
 
-    // Fetch clipping recortes
+    // Fetch clipping data
     let recortes: Recorte[] = []
+    let marketplaceListingId: string | null = null
     if (data.clippingId) {
       const clippingDoc = await db
         .collection('clippings')
         .doc(data.clippingId)
         .get()
       if (clippingDoc.exists) {
-        recortes = clippingDoc.data()?.recortes ?? []
+        const clippingData = clippingDoc.data()!
+        recortes = clippingData.recortes ?? []
+        if (
+          clippingData.publishedToMarketplace &&
+          clippingData.marketplaceListingId
+        ) {
+          marketplaceListingId = clippingData.marketplaceListingId
+        }
       }
     }
 
@@ -43,6 +51,7 @@ export async function getReleaseById(
       refTime: data.refTime?.toDate?.()?.toISOString?.() ?? null,
       sinceHours: data.sinceHours ?? null,
       recortes,
+      marketplaceListingId,
     }
   } catch (error) {
     console.error('Error fetching release:', error)

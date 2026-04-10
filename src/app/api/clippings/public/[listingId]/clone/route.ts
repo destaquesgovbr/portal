@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getFirestoreDb } from '@/lib/firebase-admin'
 
-const MAX_CLIPPINGS = 10
+const MAX_CLIPPINGS = 0 // 0 = sem limite
 
 export async function POST(
   _request: Request,
@@ -47,7 +47,7 @@ export async function POST(
       .get()
     const count = countSnapshot.data().count
 
-    if (count >= MAX_CLIPPINGS) {
+    if (MAX_CLIPPINGS > 0 && count >= MAX_CLIPPINGS) {
       return NextResponse.json(
         { error: `Limite máximo de ${MAX_CLIPPINGS} clippings atingido` },
         { status: 400 },
