@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/auth'
 import { ReleaseList } from '@/components/clipping/ReleaseList'
+import { MarkdownRenderer } from '@/components/common/MarkdownRenderer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cronToHumanReadable } from '@/lib/cron-utils'
@@ -97,9 +98,12 @@ export default async function ClippingDetailPage({ params }: Props) {
       </div>
 
       {clipping.description && (
-        <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-          {clipping.description}
-        </p>
+        <div className="mt-4">
+          <MarkdownRenderer
+            content={clipping.description}
+            className="prose-sm"
+          />
+        </div>
       )}
 
       {isPublished && (
