@@ -1,7 +1,6 @@
 'use client'
 
-import { format, parseISO, subHours } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { subHours } from 'date-fns'
 import {
   ChevronDown,
   ChevronRight,
@@ -35,12 +34,19 @@ type ReleaseListProps = {
   showAllCards?: boolean
 }
 
+const BRT = 'America/Sao_Paulo'
+
 function formatReleaseDate(release: ReleaseItem): string {
   const dateStr = release.refTime ?? release.createdAt
   if (!dateStr) return ''
   try {
-    return format(parseISO(dateStr), "EEEE, d 'de' MMMM 'de' yyyy", {
-      locale: ptBR,
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: BRT,
     })
   } catch {
     return dateStr
@@ -54,11 +60,17 @@ function sortKey(release: ReleaseItem): string {
 function formatTimeWindow(release: ReleaseItem): string | null {
   if (!release.refTime || !release.sinceHours) return null
   try {
-    const refDate = parseISO(release.refTime)
+    const refDate = new Date(release.refTime)
     const startDate = subHours(refDate, release.sinceHours)
-    const start = format(startDate, 'dd/MM HH:mm')
-    const end = format(refDate, 'dd/MM HH:mm')
-    return `${start} — ${end}`
+    const fmt = (d: Date) =>
+      d.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: BRT,
+      })
+    return `${fmt(startDate)} — ${fmt(refDate)}`
   } catch {
     return null
   }
