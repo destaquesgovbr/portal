@@ -151,11 +151,11 @@ export default async function ReleaseArticlesPage({ params }: Props) {
               {article.title}
             </h2>
             <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className="text-xs">
+              <Badge className="text-xs border-border bg-background">
                 {article.agency}
               </Badge>
               {article.theme_1_level_1_label && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge className="text-xs">
                   {article.theme_1_level_1_label}
                 </Badge>
               )}
