@@ -10,12 +10,12 @@ test.describe('Marketplace — Navegação', () => {
     await clippingsLink.click()
 
     await expect(page).toHaveURL('/clippings')
-    await expect(page.getByText('Prateleira de Clippings')).toBeVisible()
+    await expect(page.getByText('Galeria de Clippings')).toBeVisible()
   })
 
   test('marketplace page loads and shows heading', async ({ page }) => {
     await page.goto('/clippings')
-    await expect(page.getByText(/prateleira de clippings/i)).toBeVisible()
+    await expect(page.getByText(/galeria de clippings/i)).toBeVisible()
     // Shows either empty state or listing cards depending on data
   })
 })

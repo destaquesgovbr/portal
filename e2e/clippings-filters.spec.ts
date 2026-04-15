@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test.describe('Prateleira de Clippings — Filtros e Ordenação', () => {
+test.describe('Galeria de Clippings — Filtros e Ordenação', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/clippings')
     await page.waitForLoadState('networkidle')
@@ -119,7 +119,7 @@ test.describe('Transparência Algorítmica', () => {
   test('has anchor for prateleira section', async ({ page }) => {
     await page.goto('/transparencia-algoritmica#prateleira-de-clippings')
     await expect(
-      page.getByRole('heading', { name: /prateleira de clippings/i }),
+      page.getByRole('heading', { name: /galeria de clippings/i }),
     ).toBeVisible()
   })
 })
