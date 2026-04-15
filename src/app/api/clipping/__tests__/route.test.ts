@@ -341,21 +341,10 @@ describe('POST /api/clipping', () => {
     expect(typeof savedData.nextRunAt).not.toBe('string')
   })
 
-  it('enforces max 10 clippings per user', async () => {
+  it('does not enforce clipping limit (MAX_CLIPPINGS=0)', async () => {
+    // The clipping limit was disabled (MAX_CLIPPINGS=0). This test ensures
+    // users with many existing clippings can still create new ones.
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-
-    const clippingsRef = {
-      doc: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      count: vi.fn().mockReturnValue({
-        get: vi.fn().mockResolvedValue({ data: () => ({ count: 10 }) }),
-      }),
-    }
-
-    mockCollection.mockImplementation((name: string) => {
-      if (name === 'clippings') return clippingsRef
-      return clippingsRef
-    })
 
     const request = new NextRequest('http://localhost/api/clipping', {
       method: 'POST',
@@ -364,8 +353,6 @@ describe('POST /api/clipping', () => {
     })
 
     const response = await POST(request)
-    expect(response.status).toBe(400)
-    const body = await response.json()
-    expect(body.error).toMatch(/limit|máximo|max/i)
+    expect(response.status).toBe(201)
   })
 })

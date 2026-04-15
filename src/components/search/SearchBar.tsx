@@ -233,11 +233,14 @@ const SearchBar = () => {
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault()
     const normalizedQuery = query.trim().replace(/\s+/g, ' ')
-    if (!normalizedQuery) return
     setIsOpen(false)
     inputRef.current?.blur()
 
-    router.push(`/busca?q=${encodeURIComponent(normalizedQuery)}`)
+    if (normalizedQuery) {
+      router.push(`/busca?q=${encodeURIComponent(normalizedQuery)}`)
+    } else {
+      router.push('/busca')
+    }
   }
 
   const handleSelectSuggestion = (suggestion: SearchSuggestion) => {
@@ -269,7 +272,7 @@ const SearchBar = () => {
     }
 
     if (!shouldShowDropdown) {
-      if (e.key === 'Enter' && query.trim()) {
+      if (e.key === 'Enter') {
         e.preventDefault()
         handleSubmit()
       }
