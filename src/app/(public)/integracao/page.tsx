@@ -44,13 +44,15 @@ export default function IntegracaoPage() {
     <main>
       {/* Hero */}
       <LandingSection>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar para a home
-        </Link>
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para a home
+          </Link>
+        </div>
         <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">
           Para devs e agentes
         </span>
@@ -99,7 +101,7 @@ export default function IntegracaoPage() {
             <h3 className="font-semibold mb-2">Modelo de autenticação</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Duas camadas: <strong>JWT</strong> para usuários autenticados do
-              portal (via Gov.Br OIDC ou Google OAuth) e{' '}
+              portal (via Gov.Br OIDC) e{' '}
               <strong>OIDC de service account</strong> para workers, DAGs e
               integrações internas. Queries públicas de catálogo permanecem sem
               auth.
@@ -188,7 +190,7 @@ export default function IntegracaoPage() {
               <h2 className="text-3xl font-bold tracking-tight">
                 Servidor MCP
               </h2>
-              <StatusPill status="em breve" />
+              <StatusPill status="em desenvolvimento" />
             </div>
             <p className="mt-2 text-muted-foreground">
               Model Context Protocol para integração nativa com Claude Desktop,
@@ -255,15 +257,9 @@ export default function IntegracaoPage() {
         </div>
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <Button variant="outline" asChild>
-            <a
-              href="https://github.com/destaquesgovbr/govbrnews-mcp"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Github className="h-4 w-4" />
-              Ver repositório
-            </a>
+          <Button variant="ghost" disabled>
+            <Github className="h-4 w-4" />
+            Repositório (em breve)
           </Button>
         </div>
       </LandingSection>

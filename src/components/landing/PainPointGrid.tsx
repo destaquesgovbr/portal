@@ -16,12 +16,12 @@ export function PainPointGrid({ items }: Props) {
       {items.map((item) => (
         <div
           key={item.title}
-          className="flex flex-col gap-3 rounded-lg border border-border/60 bg-background p-6"
+          className="flex flex-col gap-4 rounded-xl border border-border/60 bg-background p-8 shadow-sm transition-shadow hover:shadow-md"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-destructive/10 text-destructive [&_svg]:h-7 [&_svg]:w-7">
             {item.icon}
           </div>
-          <h3 className="font-semibold text-base">{item.title}</h3>
+          <h3 className="font-semibold text-lg tracking-tight">{item.title}</h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {item.description}
           </p>

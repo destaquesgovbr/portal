@@ -18,7 +18,6 @@ import {
   Search,
   Sparkles,
   VolumeX,
-  Zap,
 } from 'lucide-react'
 import Link from 'next/link'
 import { FeatureCard } from '@/components/landing/FeatureCard'
@@ -363,7 +362,7 @@ export default async function Home() {
             description="Dashboard analítico com temas emergentes, volume de publicações por órgão e tendências discursivas nas últimas semanas."
             flow="inteligencia"
             badge="experimental"
-            href="https://panorama-dgb-streamlit.app"
+            href="https://streamlit-panorama-dgb-klvx64dufq-rj.a.run.app/"
             linkLabel="Abrir Panorama"
           />
           <FeatureCard
@@ -380,6 +379,7 @@ export default async function Home() {
             title="Servidor MCP"
             description="Conecte Claude Desktop, ChatGPT ou qualquer aplicação agêntica ao DGB via Model Context Protocol. Acesso direto a busca, facets, análise temporal e artigos similares — com prompts guiados prontos para uso."
             flow="integracao"
+            badge="em breve"
             href="/integracao#mcp"
             linkLabel="Ver documentação"
           />
