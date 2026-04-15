@@ -60,7 +60,7 @@ export default function ClientArticle({
       <div className="container mx-auto px-4 max-w-5xl">
         {/* Botão de voltar */}
         <div className="mb-8">
-          <Link href="/artigos">
+          <Link href="/noticias">
             <Button
               variant="ghost"
               className="text-primary/80 hover:text-primary"
@@ -196,10 +196,7 @@ export default function ClientArticle({
             </h2>
             <div className="flex flex-wrap gap-2">
               {article.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/artigos?tags=${encodeURIComponent(tag)}`}
-                >
+                <Link key={tag} href={`/busca?q=${encodeURIComponent(tag)}`}>
                   <Badge className="bg-white text-primary font-medium hover:bg-primary/5 transition-colors cursor-pointer">
                     <Tag className="w-3 h-3 mr-1 text-primary/70" />
                     {tag}
