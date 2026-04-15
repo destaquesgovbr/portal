@@ -24,10 +24,24 @@ test.describe('Home Page (landing)', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' })
 
     await expect(
-      page.getByRole('heading', { name: /dois fluxos/i }),
+      page.getByRole('heading', { name: /três fluxos/i }),
     ).toBeVisible()
     await expect(
       page.getByRole('heading', { name: /em desenvolvimento/i }),
+    ).toBeVisible()
+  })
+
+  test('should display integração features', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+    await expect(
+      page.getByRole('heading', { name: /chat com agente/i }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: /servidor mcp/i }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: /api graphql/i }).first(),
     ).toBeVisible()
   })
 

@@ -1,7 +1,7 @@
-import { Radar, Radio } from 'lucide-react'
+import { Plug, Radar, Radio } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Flow = 'difusao' | 'inteligencia' | 'ambos'
+type Flow = 'difusao' | 'inteligencia' | 'integracao' | 'ambos'
 
 type Props = {
   flow: Flow
@@ -22,9 +22,14 @@ const config: Record<
     className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     Icon: Radar,
   },
+  integracao: {
+    label: 'Integração',
+    className: 'bg-violet-50 text-violet-700 border-violet-200',
+    Icon: Plug,
+  },
   ambos: {
     label: 'Difusão + Inteligência',
-    className: 'bg-violet-50 text-violet-700 border-violet-200',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
     Icon: Radio,
   },
 }

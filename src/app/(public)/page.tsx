@@ -1,12 +1,16 @@
 import {
   Bell,
   BookOpen,
+  Braces,
   Github,
   Hourglass,
   LayoutGrid,
   LineChart,
+  MessageCircle,
   MessageSquare,
+  Network,
   Newspaper,
+  Plug,
   Puzzle,
   Radar,
   Radio,
@@ -145,24 +149,26 @@ export default async function Home() {
         />
       </LandingSection>
 
-      {/* ==== Solução em dois fluxos ==== */}
+      {/* ==== Solução em três fluxos ==== */}
       <LandingSection id="solucao">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             Como resolvemos
           </span>
           <h2 className="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">
-            Dois fluxos, uma plataforma
+            Três fluxos, uma plataforma
           </h2>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            O DestaquesGovBr organiza tudo que seu órgão precisa em duas
+            O DestaquesGovBr organiza tudo que seu órgão precisa em três
             direções complementares: <strong>Difusão</strong>, para levar sua
-            comunicação ao cidadão, e <strong>Inteligência</strong>, para trazer
-            o que importa até quem decide.
+            comunicação ao cidadão, <strong>Inteligência</strong>, para trazer o
+            que importa até quem decide, e <strong>Integração</strong>, para
+            conectar o DGB a qualquer sistema ou agente que precise operar sobre
+            a base do governo federal.
           </p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="grid gap-8 lg:grid-cols-3">
           {/* Difusão */}
           <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-transparent p-8">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
@@ -252,6 +258,51 @@ export default async function Home() {
               <Link href="#features">Ver as ferramentas de inteligência</Link>
             </Button>
           </div>
+
+          {/* Integração */}
+          <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-transparent p-8">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
+              <Plug className="h-3 w-3" />
+              Para devs e agentes
+            </span>
+            <h3 className="mt-4 text-2xl font-bold">
+              Conecte qualquer sistema à base do DGB
+            </h3>
+            <p className="mt-3 text-muted-foreground leading-relaxed">
+              Desenvolvedores de órgãos, pesquisadores, jornalistas e aplicações
+              agênticas têm acesso programático completo ao DGB. Consultem
+              notícias, operem sobre recortes temáticos, busquem semanticamente
+              no acervo, acompanhem tendências — via API GraphQL tipada,
+              servidor MCP nativo para LLMs ou chat conversacional com agente
+              especializado.
+            </p>
+            <ul className="mt-6 space-y-3">
+              <li className="flex gap-3 text-sm">
+                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-violet-600 flex-shrink-0" />
+                <span>
+                  <strong>API GraphQL tipada:</strong> uma interface única para
+                  consulta e configuração, com codegen TypeScript
+                </span>
+              </li>
+              <li className="flex gap-3 text-sm">
+                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-violet-600 flex-shrink-0" />
+                <span>
+                  <strong>MCP nativo:</strong> aplicações com Claude, ChatGPT ou
+                  agentes customizados se conectam sem glue code
+                </span>
+              </li>
+              <li className="flex gap-3 text-sm">
+                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-violet-600 flex-shrink-0" />
+                <span>
+                  <strong>Chat especializado:</strong> converse com um agente
+                  que já conhece o acervo e sabe analisar
+                </span>
+              </li>
+            </ul>
+            <Button variant="outline" asChild className="mt-6">
+              <Link href="#features">Ver as ferramentas de integração</Link>
+            </Button>
+          </div>
         </div>
       </LandingSection>
 
@@ -315,6 +366,32 @@ export default async function Home() {
             href="https://panorama-dgb-streamlit.app"
             linkLabel="Abrir Panorama"
           />
+          <FeatureCard
+            icon={<MessageCircle className="h-5 w-5" />}
+            title="Chat com agente de análise"
+            description="Converse com um agente de IA especializado em comunicação governamental. Peça análises temporais, comparações entre órgãos, cruzamentos temáticos — tudo em linguagem natural, com respostas fundamentadas no acervo."
+            flow="integracao"
+            badge="em breve"
+            href="/integracao#chat"
+            linkLabel="Ver documentação"
+          />
+          <FeatureCard
+            icon={<Network className="h-5 w-5" />}
+            title="Servidor MCP"
+            description="Conecte Claude Desktop, ChatGPT ou qualquer aplicação agêntica ao DGB via Model Context Protocol. Acesso direto a busca, facets, análise temporal e artigos similares — com prompts guiados prontos para uso."
+            flow="integracao"
+            href="/integracao#mcp"
+            linkLabel="Ver documentação"
+          />
+          <FeatureCard
+            icon={<Braces className="h-5 w-5" />}
+            title="API GraphQL"
+            description="Uma API tipada e unificada para consultar o acervo, configurar clippings, gerenciar marketplace e integrar sistemas externos. Substitui dezenas de rotas REST por um schema único, com codegen TypeScript e playground interativo."
+            flow="integracao"
+            badge="em breve"
+            href="/integracao#graphql"
+            linkLabel="Ver documentação"
+          />
         </div>
       </LandingSection>
 
@@ -354,7 +431,7 @@ export default async function Home() {
             evolui em conjunto com o feedback dos órgãos que já a utilizam.
           </p>
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2">
           <div className="rounded-lg border border-border/60 bg-background p-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
               <Sparkles className="h-5 w-5" />
@@ -364,6 +441,18 @@ export default async function Home() {
               A partir de um clipping, gere um rascunho de notícia no tom e
               estilo do seu órgão. O clipping vira motor editorial, não apenas
               ferramenta de leitura.
+            </p>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-background p-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+              <Braces className="h-5 w-5" />
+            </div>
+            <h3 className="mt-4 font-semibold">API GraphQL pública</h3>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              Um único endpoint tipado para consultar tudo do DGB — notícias,
+              temas, métricas, clippings — com schema documentado, playground
+              interativo e codegen para TypeScript. Em desenvolvimento em ciclos
+              de TDD.
             </p>
           </div>
           <div className="rounded-lg border border-border/60 bg-background p-6">
@@ -379,13 +468,14 @@ export default async function Home() {
           </div>
           <div className="rounded-lg border border-border/60 bg-background p-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-              <Zap className="h-5 w-5" />
+              <Network className="h-5 w-5" />
             </div>
-            <h3 className="mt-4 font-semibold">Web Difusora como padrão</h3>
+            <h3 className="mt-4 font-semibold">Ecossistema agêntico</h3>
             <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-              Nossa aposta é que as ferramentas do DGB se tornem parte natural
-              de qualquer portal governamental — um megafone cívico
-              compartilhado.
+              Servidor MCP para integração nativa com Claude, ChatGPT e agentes
+              customizados, mais um chat conversacional com agente especializado
+              em análise do acervo governamental. Pronto para a era dos agentes
+              de IA.
             </p>
           </div>
         </div>

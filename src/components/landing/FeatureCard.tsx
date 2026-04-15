@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card'
 import { FlowBadge } from './FlowBadge'
 
-type Flow = 'difusao' | 'inteligencia' | 'ambos'
+type Flow = 'difusao' | 'inteligencia' | 'integracao' | 'ambos'
 
 type Props = {
   icon: ReactNode
