@@ -6,9 +6,9 @@ O DestaquesGovBr é uma plataforma pública de informação governamental. Acred
 
 <span id="prateleira-de-clippings"></span>
 
-## Prateleira de Clippings
+## Galeria de Clippings
 
-A Prateleira de Clippings (`/clippings`) é o espaço onde cidadãos podem descobrir e seguir clippings temáticos publicados pela comunidade. Abaixo explicamos como funcionam a ordenação, os filtros e a curadoria algorítmica desta página.
+A Galeria de Clippings (`/clippings`) é o espaço onde cidadãos podem descobrir e seguir clippings temáticos publicados pela comunidade. Abaixo explicamos como funcionam a ordenação, os filtros e a curadoria algorítmica desta página.
 
 ### Ordenação "Mais recentes"
 

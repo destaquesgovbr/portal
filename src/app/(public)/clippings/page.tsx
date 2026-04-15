@@ -92,7 +92,7 @@ export default async function MarketplacePage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">
-          Prateleira de Clippings
+          Galeria de Clippings
         </h1>
         <p className="mt-2 text-muted-foreground">
           Descubra e siga clippings criados pela comunidade

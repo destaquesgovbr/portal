@@ -50,7 +50,7 @@ test.describe('Zen Mode', () => {
     await page.locator('button[aria-label="Modo leitura"]').first().click()
     await page.waitForTimeout(500)
 
-    await page.goto('/artigos')
+    await page.goto('/busca')
     await page.waitForLoadState('networkidle')
 
     // Should still be in zen mode (persisted in localStorage)

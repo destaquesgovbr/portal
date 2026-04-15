@@ -55,7 +55,7 @@ function ThemeTreeItem({
         )}
 
         <Link
-          href={`/artigos?temas=${node.code}`}
+          href={`/busca?temas=${node.code}`}
           className="flex-1 flex items-center justify-between text-sm font-medium hover:text-primary transition-colors group-hover:underline"
         >
           <span>
