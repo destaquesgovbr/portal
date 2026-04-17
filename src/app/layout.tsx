@@ -3,9 +3,9 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './govbr.css'
 import './globals.css'
 import { headers } from 'next/headers'
-import { Suspense } from 'react'
 import { Toaster } from 'sonner'
 import { Providers } from '@/components/common/Providers'
+import TestFeatureBanner from '@/components/growthbook/TestFeatureBanner'
 import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
 import { ZenModeFab } from '@/components/layout/ZenModeFab'
@@ -72,9 +72,10 @@ export default async function RootLayout({
             <ServiceWorkerRegistrar />
             <Toaster position="top-right" />
             <Header />
+            <TestFeatureBanner />
             <ZenModeFab />
             <div className="pt-[110px] md:pt-[130px]" data-main-content>
-              <Suspense>{children}</Suspense>
+              {children}
             </div>
             <Footer />
           </Providers>
