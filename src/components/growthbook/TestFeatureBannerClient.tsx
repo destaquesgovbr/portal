@@ -11,12 +11,6 @@ export function TestFeatureBannerClient() {
   // Hook do GrowthBook para verificar se a feature está ativa
   const enabled = useFeatureIsOn('test-feature')
 
-  // Debug: log para verificar o valor
-  console.log(
-    '[TestFeatureBannerClient] Feature test-feature enabled:',
-    enabled,
-  )
-
   // Se a feature não estiver ativa, não renderiza nada
   if (!enabled) return null
 
