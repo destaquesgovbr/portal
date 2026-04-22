@@ -2,7 +2,6 @@
 
 import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { TagFacet } from '@/app/(public)/artigos/actions'
 import { TagFilter } from '@/components/articles/TagFilter'
 import { AgencyMultiSelect } from '@/components/filters/AgencyMultiSelect'
 import { ThemeMultiSelect } from '@/components/filters/ThemeMultiSelect'
@@ -11,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
+import type { TagFacet } from '@/types/article'
 
 type DateFilterProps = {
   label: string

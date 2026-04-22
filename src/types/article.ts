@@ -27,3 +27,8 @@ export type ArticleRow = {
   // Manter theme_1_level_1 como alias para compatibilidade
   theme_1_level_1?: string | null
 }
+
+export type TagFacet = {
+  value: string
+  count: number
+}

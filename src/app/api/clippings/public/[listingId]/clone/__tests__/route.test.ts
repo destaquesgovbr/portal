@@ -145,13 +145,13 @@ describe('POST /api/clippings/public/[listingId]/clone', () => {
     expect(response.status).toBe(404)
   })
 
-  it('returns 400 when user has 10 clippings (limit)', async () => {
+  it('does not enforce clipping limit (MAX_CLIPPINGS=0)', async () => {
+    // The clipping limit was disabled. Users with many existing clippings
+    // can still clone from the marketplace.
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
     setupFirestoreMocks({ clippingCount: 10 })
     const response = await POST(makeRequest(), routeParams)
-    expect(response.status).toBe(400)
-    const body = await response.json()
-    expect(body.error).toMatch(/limit|máximo|max/i)
+    expect(response.status).toBe(201)
   })
 
   it('creates independent clipping copy with correct data', async () => {

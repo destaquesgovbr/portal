@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test.describe('Prateleira de Clippings — Infinite Scroll', () => {
+test.describe('Galeria de Clippings — Infinite Scroll', () => {
   test('loads initial clippings and more on scroll', async ({ page }) => {
     await page.goto('/clippings')
     await page.waitForLoadState('networkidle')

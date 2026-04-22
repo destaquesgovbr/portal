@@ -12,7 +12,7 @@ import SearchBar from '@/components/search/SearchBar'
 import { Button } from '@/components/ui/button'
 
 const routeLinks = [
-  { href: '/artigos', label: 'Notícias' },
+  { href: '/noticias', label: 'Notícias' },
   { href: '/orgaos', label: 'Órgãos' },
   { href: '/temas', label: 'Temas' },
 ]
