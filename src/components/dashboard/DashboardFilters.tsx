@@ -3,6 +3,7 @@
 import { X } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 type DatePreset = 'week' | 'month' | 'semester' | 'year' | 'custom'
@@ -127,14 +128,16 @@ export function DashboardFilters() {
                     }
                   />
                   {startDate && (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleDateChange('start', undefined)}
                       aria-label="Limpar data de início"
-                      className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground rounded-full p-2 hover:bg-gray-200 hover:cursor-pointer transition-colors"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-muted-foreground hover:bg-gray-200"
                     >
                       <X className="h-4 w-4" />
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -160,14 +163,16 @@ export function DashboardFilters() {
                     value={endDate ? endDate.toISOString().split('T')[0] : ''}
                   />
                   {endDate && (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleDateChange('end', undefined)}
                       aria-label="Limpar data de fim"
-                      className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground rounded-full p-2 hover:bg-gray-200 hover:cursor-pointer transition-colors"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-muted-foreground hover:bg-gray-200"
                     >
                       <X className="h-4 w-4" />
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

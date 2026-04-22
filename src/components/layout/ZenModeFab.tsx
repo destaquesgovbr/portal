@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 function CollapseIcon({ className }: { className?: string }) {
   return (
@@ -34,8 +35,10 @@ export function ZenModeFab() {
   if (!active) return null
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       onClick={() => {
         document.body.classList.remove('zen-mode')
         try {
@@ -43,12 +46,12 @@ export function ZenModeFab() {
         } catch {}
         setActive(false)
       }}
-      className="fixed top-4 right-4 flex items-center justify-center h-12 w-12 rounded-full bg-foreground/10 backdrop-blur-sm text-foreground/60 hover:bg-foreground/20 hover:text-foreground transition-all cursor-pointer shadow-lg"
+      className="fixed top-4 right-4 h-12 w-12 rounded-full bg-foreground/10 backdrop-blur-sm text-foreground/60 hover:bg-foreground/20 hover:text-foreground shadow-lg"
       style={{ zIndex: 9999 }}
       title="Sair do modo leitura (Alt+Z)"
       aria-label="Sair do modo leitura"
     >
       <CollapseIcon className="h-5 w-5" />
-    </button>
+    </Button>
   )
 }

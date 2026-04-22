@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import type { DeliveryChannels } from '@/types/clipping'
 import { ExtraEmailsInput } from './ExtraEmailsInput'
 
@@ -111,14 +112,15 @@ export function ChannelSelector({
         {!hasTelegram && (
           <p className="text-xs text-muted-foreground pl-7">
             Vincule sua conta Telegram para ativar —{' '}
-            <button
+            <Button
               type="button"
+              variant="link"
               onClick={handleConnectTelegram}
               disabled={linkLoading}
-              className="text-primary underline hover:no-underline disabled:opacity-50 cursor-pointer"
+              className="h-auto p-0 text-xs"
             >
               {linkLoading ? 'Gerando link…' : 'conectar Telegram'}
-            </button>
+            </Button>
           </p>
         )}
       </div>

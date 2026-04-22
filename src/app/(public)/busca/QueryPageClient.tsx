@@ -10,6 +10,7 @@ import { useUmamiTrack } from '@/components/analytics/useUmamiTrack'
 import { ArticleFilters } from '@/components/articles/ArticleFilters'
 import NewsCard from '@/components/articles/NewsCard'
 import { FeedLink } from '@/components/common/FeedLink'
+import { Button } from '@/components/ui/button'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
 import { queryArticles } from './actions'
@@ -304,20 +305,18 @@ export default function QueryPageClient({
             {/* Semantic search toggle */}
             {query && (
               <div className="mb-4 flex items-center gap-2">
-                <button
+                <Button
                   type="button"
+                  variant={semantic ? 'default' : 'secondary'}
+                  size="sm"
                   onClick={handleSemanticToggle}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                    semantic
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
+                  className="rounded-full gap-1.5"
                   aria-label="busca inteligente"
                   aria-pressed={semantic}
                 >
                   <Sparkles className="h-3.5 w-3.5" />
                   Busca inteligente
-                </button>
+                </Button>
               </div>
             )}
             <motion.div
