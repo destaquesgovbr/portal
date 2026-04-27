@@ -1,8 +1,10 @@
-# Portal DestaquesGovBr
+# Portal DestaquesGovBr — Web Difusora
 
 [![Licença: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-Este é um projeto [Next.js](https://nextjs.org) criado com [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Plataforma do Governo Federal brasileiro que agrega conteúdo de ministérios e órgãos governamentais. Oferece clippings automatizados por IA, marketplace de clippings, widgets embarcáveis, notificações push, feeds RSS/Atom/JSON e busca semântica.
+
+Desenvolvido com [Next.js 15](https://nextjs.org) (App Router), TypeScript, Tailwind CSS, shadcn/ui e Typesense.
 
 ## Primeiros Passos
 
@@ -40,6 +42,17 @@ AUTH_GOOGLE_SECRET=seu-client-secret
 ```
 
 Se nenhuma variável de auth for configurada, o botão de login simplesmente não aparece — o portal continua funcionando normalmente.
+
+#### GrowthBook — A/B Testing (opcional)
+
+```env
+NEXT_PUBLIC_GROWTHBOOK_API_HOST=https://cdn.growthbook.io
+NEXT_PUBLIC_GROWTHBOOK_CLIENT_KEY=sdk-xxxxx
+```
+
+Se não configurado, feature flags usam valores padrão.
+
+Veja `.env.example` para a lista completa de variáveis de ambiente disponíveis (analytics, email, embeddings, admin, etc.).
 
 ### 3. Executar o servidor de desenvolvimento
 
@@ -184,12 +197,14 @@ curl -H "X-TYPESENSE-API-KEY: sua-api-key" http://localhost:8108/collections
 
 ## Saiba Mais
 
-Para aprender mais sobre Next.js, confira os seguintes recursos:
+- [Documentação do Next.js](https://nextjs.org/docs)
+- [Typesense Docs](https://typesense.org/docs/)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [GrowthBook Docs](https://docs.growthbook.io/)
+- [NextAuth.js v5 Docs](https://authjs.dev/)
+- [Gov.Br SSO — Documentação](https://manual-roteiro-integracao-login-unico.servicos.gov.br/)
 
-- [Documentação do Next.js](https://nextjs.org/docs) - aprenda sobre recursos e API do Next.js.
-- [Aprenda Next.js](https://nextjs.org/learn) - um tutorial interativo de Next.js.
-
-Você pode conferir o [repositório do Next.js no GitHub](https://github.com/vercel/next.js) - seu feedback e contribuições são bem-vindos!
+Para detalhes completos da arquitetura, convenções e padrões do projeto, consulte o [`CLAUDE.md`](./CLAUDE.md).
 
 ## Deploy em Produção
 
