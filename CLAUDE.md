@@ -416,6 +416,21 @@ AUTH_GOOGLE_SECRET=
 - `AUTH_SECRET` é obrigatório sempre que qualquer provedor for ativado.
 - Em Cloud Run, adicione também `AUTH_URL=https://seu-dominio.com` para que os redirects funcionem corretamente.
 
+### Clipping Worker (opcional — necessário para geração de recortes com IA)
+
+```env
+# URL do serviço clipping-worker (Python/FastAPI)
+# Endpoints: /agent/generate-recortes, /dispatch
+CLIPPING_WORKER_URL=http://localhost:8000
+```
+
+**Para desenvolvimento local**: Rodar container do clipping-worker ou deixar vazio (funcionalidade desabilitada). Quando ausente, as seguintes funcionalidades retornam erro:
+- Geração de recortes com IA (botão "Gerar Recortes com IA")
+- Envio manual de clipping (botão "Enviar Agora")
+- Primeiro envio automático ao criar clipping (falha silenciosa)
+
+**Em produção**: URL do Cloud Run do clipping-worker (ex: `https://clipping-worker-xxxxx-uc.a.run.app`). A autenticação é feita automaticamente via OIDC token obtido do GCP Metadata Service.
+
 ### Admin e Email (opcional)
 
 ```env
