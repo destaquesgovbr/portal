@@ -2,6 +2,7 @@
 
 import { Info } from 'lucide-react'
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 import {
   Tooltip,
   TooltipContent,
@@ -32,13 +33,15 @@ export function WidgetTooltip({
       <TooltipProvider>
         <Tooltip open={open} onOpenChange={setOpen}>
           <TooltipTrigger asChild>
-            <button
+            <Button
               type="button"
-              className="absolute top-2 right-2 p-1.5 rounded-full bg-muted/80 hover:bg-muted transition-colors"
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 h-7 w-7 rounded-full bg-muted/80 hover:bg-muted"
               aria-label="Informações sobre o widget"
             >
               <Info className="w-4 h-4 text-muted-foreground" />
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>
             <p className="text-sm">Exibindo todas as notícias recentes</p>
@@ -52,13 +55,15 @@ export function WidgetTooltip({
     <TooltipProvider>
       <Tooltip open={open} onOpenChange={setOpen}>
         <TooltipTrigger asChild>
-          <button
+          <Button
             type="button"
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-muted/80 hover:bg-muted transition-colors z-10"
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 h-7 w-7 rounded-full bg-muted/80 hover:bg-muted z-10"
             aria-label="Informações sobre filtros aplicados"
           >
             <Info className="w-4 h-4 text-muted-foreground" />
-          </button>
+          </Button>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">
           <div className="space-y-2">

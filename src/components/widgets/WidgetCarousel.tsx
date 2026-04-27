@@ -4,6 +4,7 @@ import useEmblaCarousel from 'embla-carousel-react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 interface WidgetCarouselProps {
   children: ReactNode[]
@@ -73,25 +74,29 @@ export function WidgetCarousel({
 
       {/* Navigation buttons */}
       {canScrollPrev && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={scrollPrev}
-          className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg rounded-full p-2 transition-all hover:scale-110 z-10"
+          className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg rounded-full hover:scale-110 z-10"
           aria-label="Anterior"
         >
           <ChevronLeft className="w-5 h-5 text-primary" />
-        </button>
+        </Button>
       )}
 
       {canScrollNext && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={scrollNext}
-          className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg rounded-full p-2 transition-all hover:scale-110 z-10"
+          className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg rounded-full hover:scale-110 z-10"
           aria-label="Próximo"
         >
           <ChevronRight className="w-5 h-5 text-primary" />
-        </button>
+        </Button>
       )}
     </div>
   )

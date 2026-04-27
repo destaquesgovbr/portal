@@ -3,6 +3,7 @@
 import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import * as React from 'react'
+import { Button } from '@/components/ui/button'
 
 export type ThemeNode = {
   code: string
@@ -40,16 +41,18 @@ function ThemeTreeItem({
         style={{ paddingLeft: `${level * 16 + 12}px` }}
       >
         {hasChildren ? (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => onExpandToggle(node.code)}
-            className="p-0 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+            className="h-6 w-6 p-0 flex-shrink-0"
             aria-label={isExpanded ? 'Recolher' : 'Expandir'}
           >
             <ChevronDown
               className={`h-4 w-4 transition-transform text-muted-foreground ${isExpanded ? '' : '-rotate-90'}`}
             />
-          </button>
+          </Button>
         ) : (
           <div className="w-4 flex-shrink-0" />
         )}

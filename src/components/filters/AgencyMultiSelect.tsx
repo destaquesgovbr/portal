@@ -3,6 +3,7 @@
 import { Maximize2, X } from 'lucide-react'
 import * as React from 'react'
 import { Portal } from '@/components/layout/Portal'
+import { Button } from '@/components/ui/button'
 
 type Agency = {
   key: string
@@ -177,10 +178,11 @@ export function AgencyMultiSelect({
       ref={dropdownRef}
     >
       {/* Trigger Button */}
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full h-10 px-3 py-2 border border-input rounded-md text-left text-sm bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        className="w-full justify-start font-normal bg-white hover:bg-gray-50"
       >
         <span
           className={
@@ -193,7 +195,7 @@ export function AgencyMultiSelect({
             ? 'Selecione órgãos...'
             : `${selectedAgencies.length} selecionado${selectedAgencies.length > 1 ? 's' : ''}`}
         </span>
-      </button>
+      </Button>
 
       {/* Dropdown */}
       {isOpen && (
@@ -207,17 +209,18 @@ export function AgencyMultiSelect({
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 px-3 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
             />
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="icon"
               onClick={() => {
                 setIsExpanded(true)
                 setIsOpen(false)
               }}
-              className="px-3 py-2 border border-input rounded-md hover:bg-gray-50 transition-colors"
               title="Expandir visualização"
             >
               <Maximize2 className="h-4 w-4 text-muted-foreground" />
-            </button>
+            </Button>
           </div>
 
           {/* List */}
@@ -230,6 +233,7 @@ export function AgencyMultiSelect({
       {/* Expanded Modal */}
       {isExpanded && (
         <Portal>
+          {/* raw button: backdrop overlay — needs inset-0 positioning incompatible with Button sizing */}
           <button
             type="button"
             className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 animate-in fade-in-0 p-4 pointer-events-auto border-0"
@@ -252,14 +256,16 @@ export function AgencyMultiSelect({
                 >
                   Selecionar Órgãos
                 </h2>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setIsExpanded(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="rounded-full"
                   aria-label="Fechar"
                 >
                   <X className="h-5 w-5 text-muted-foreground" />
-                </button>
+                </Button>
               </div>
 
               {/* Modal Search */}
@@ -287,13 +293,9 @@ export function AgencyMultiSelect({
                   {selectedAgencies.length !== 1 ? 's' : ''} selecionado
                   {selectedAgencies.length !== 1 ? 's' : ''}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setIsExpanded(false)}
-                  className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors font-medium"
-                >
+                <Button type="button" onClick={() => setIsExpanded(false)}>
                   Confirmar
-                </button>
+                </Button>
               </div>
             </div>
           </button>

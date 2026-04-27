@@ -6,6 +6,7 @@ import { TagFilter } from '@/components/articles/TagFilter'
 import { AgencyMultiSelect } from '@/components/filters/AgencyMultiSelect'
 import { ThemeMultiSelect } from '@/components/filters/ThemeMultiSelect'
 import { Portal } from '@/components/layout/Portal'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
@@ -33,14 +34,16 @@ function DateFilter({ label, value, onChange }: DateFilterProps) {
           value={value ? value.toISOString().split('T')[0] : ''}
         />
         {value && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => onChange(undefined)}
             aria-label="Limpar data"
-            className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground rounded-full p-2 hover:bg-gray-200 hover:cursor-pointer transition-colors"
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-muted-foreground hover:bg-gray-200"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -176,13 +179,14 @@ export function ArticleFilters({
                     <span className="text-sm font-semibold text-primary">
                       Órgãos selecionados ({selectedAgencies.length})
                     </span>
-                    <button
+                    <Button
                       type="button"
+                      variant="link"
                       onClick={() => onAgenciesChange([])}
-                      className="text-xs text-muted-foreground hover:text-primary underline"
+                      className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
                     >
                       Limpar todos
-                    </button>
+                    </Button>
                   </div>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {selectedAgencies.map((key) => (
@@ -193,18 +197,20 @@ export function ArticleFilters({
                         <span className="truncate text-primary/90 flex-1 min-w-0">
                           {getAgencyName(key)}
                         </span>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon"
                           onClick={() =>
                             onAgenciesChange(
                               selectedAgencies.filter((k) => k !== key),
                             )
                           }
-                          className="text-primary/50 hover:text-primary p-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                          className="h-6 w-6 p-0 text-primary/50 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                           aria-label={`Remover ${getAgencyName(key)}`}
                         >
                           <X className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -234,13 +240,14 @@ export function ArticleFilters({
                     <span className="text-sm font-semibold text-primary">
                       Temas selecionados ({selectedThemes.length})
                     </span>
-                    <button
+                    <Button
                       type="button"
+                      variant="link"
                       onClick={() => onThemesChange([])}
-                      className="text-xs text-muted-foreground hover:text-primary underline"
+                      className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
                     >
                       Limpar todos
-                    </button>
+                    </Button>
                   </div>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {selectedThemes.map((key) => (
@@ -263,19 +270,21 @@ export function ArticleFilters({
                           >
                             {getThemeName(key)}
                           </span>
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon"
                             onClick={() =>
                               onThemesChange(
                                 selectedThemes.filter((k) => k !== key),
                               )
                             }
-                            className="text-primary/50 hover:text-primary p-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                            className="h-6 w-6 p-0 text-primary/50 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                             aria-label={`Remover ${getThemeName(key)}`}
                             title=""
                           >
                             <X className="h-4 w-4" />
-                          </button>
+                          </Button>
                         </div>
                       </Tooltip>
                     ))}

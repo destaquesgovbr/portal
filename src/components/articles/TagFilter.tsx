@@ -2,6 +2,7 @@
 
 import { ChevronDown, ChevronUp, Search, Tag, X } from 'lucide-react'
 import * as React from 'react'
+import { Button } from '@/components/ui/button'
 import type { TagFacet } from '@/types/article'
 
 type TagFilterProps = {
@@ -60,10 +61,11 @@ export function TagFilter({
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Input trigger */}
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 py-2 border border-border rounded-md bg-white hover:bg-primary/5 transition-colors text-sm"
+        className="w-full justify-between font-normal bg-white hover:bg-primary/5"
       >
         <span className="text-primary/70">
           {selectedTags.length > 0
@@ -75,7 +77,7 @@ export function TagFilter({
         ) : (
           <ChevronDown className="w-4 h-4 text-primary/50" />
         )}
-      </button>
+      </Button>
 
       {/* Dropdown */}
       {isOpen && (
@@ -101,14 +103,16 @@ export function TagFilter({
                 {displayedTags.map((tag) => {
                   const isSelected = selectedTags.includes(tag.value)
                   return (
-                    <button
+                    <Button
                       key={tag.value}
                       type="button"
+                      variant={isSelected ? 'default' : 'ghost'}
+                      size="sm"
                       onClick={() => toggleTag(tag.value)}
-                      className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-colors ${
-                        isSelected
-                          ? 'bg-primary text-white'
-                          : 'bg-primary/5 text-primary/80 hover:bg-primary/10'
+                      className={`h-auto px-2 py-1 text-xs rounded-full gap-1 ${
+                        !isSelected
+                          ? 'bg-primary/5 text-primary/80 hover:bg-primary/10'
+                          : ''
                       }`}
                     >
                       <Tag className="w-3 h-3" />
@@ -118,7 +122,7 @@ export function TagFilter({
                       <span className="text-[10px] opacity-70">
                         ({tag.count})
                       </span>
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -132,15 +136,16 @@ export function TagFilter({
           {/* Show more/less button */}
           {filteredTags.length > 20 && (
             <div className="p-2 border-t border-border">
-              <button
+              <Button
                 type="button"
+                variant="link"
                 onClick={() => setShowAll(!showAll)}
-                className="w-full text-xs text-primary/70 hover:text-primary"
+                className="w-full h-auto p-0 text-xs text-primary/70 hover:text-primary"
               >
                 {showAll
                   ? 'Mostrar menos'
                   : `Ver todas (${filteredTags.length} tags)`}
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -156,14 +161,16 @@ export function TagFilter({
             >
               <Tag className="w-3 h-3" />
               <span className="truncate max-w-[120px]">{tag}</span>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => toggleTag(tag)}
-                className="hover:text-red-600 transition-colors"
+                className="h-4 w-4 p-0 hover:text-red-600"
                 aria-label={`Remover ${tag}`}
               >
                 <X className="w-3 h-3" />
-              </button>
+              </Button>
             </span>
           ))}
         </div>

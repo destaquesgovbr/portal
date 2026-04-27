@@ -98,23 +98,24 @@ export default function WidgetConfiguratorPage() {
                     {(
                       ['list', 'grid-2', 'grid-3', 'carousel'] as WidgetLayout[]
                     ).map((layout) => (
-                      <button
+                      <Button
                         key={layout}
                         type="button"
+                        variant="outline"
                         onClick={() => updateConfig({ layout })}
-                        className={`p-4 border-2 rounded-lg text-left transition-all hover:shadow-md ${
+                        className={`h-auto p-4 text-left flex-col items-start border-2 hover:shadow-md ${
                           config.layout === layout
                             ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
+                            : 'hover:border-primary/50'
                         }`}
                       >
                         <div className="font-semibold mb-1">
                           {WIDGET_LAYOUT_LABELS[layout]}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground font-normal">
                           {WIDGET_LAYOUT_DESCRIPTIONS[layout]}
                         </div>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -126,26 +127,27 @@ export default function WidgetConfiguratorPage() {
                     {(
                       ['small', 'medium', 'large', 'custom'] as WidgetSize[]
                     ).map((size) => (
-                      <button
+                      <Button
                         key={size}
                         type="button"
+                        variant="outline"
                         onClick={() => updateConfig({ size })}
-                        className={`p-3 border-2 rounded-lg transition-all ${
+                        className={`h-auto p-3 flex-col items-start border-2 ${
                           config.size === size
                             ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
+                            : 'hover:border-primary/50'
                         }`}
                       >
                         <div className="font-semibold text-sm">
                           {WIDGET_SIZE_LABELS[size]}
                         </div>
                         {size !== 'custom' && (
-                          <div className="text-xs text-muted-foreground mt-1">
+                          <div className="text-xs text-muted-foreground font-normal mt-1">
                             {WIDGET_PRESETS[config.layout][size].width}×
                             {WIDGET_PRESETS[config.layout][size].height}px
                           </div>
                         )}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
