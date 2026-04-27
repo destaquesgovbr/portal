@@ -2,6 +2,7 @@
 
 import { ChevronDown, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { AGENCY_TYPE_GROUPS } from '@/data/agency-groups'
 
 type Agency = { key: string; name: string; type: string }
@@ -117,10 +118,11 @@ export function AgencyGroupedSelect({
 
           return (
             <div key={group.label} className="border rounded-md">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => toggleCollapse(group.label)}
-                className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium hover:bg-muted/50 transition-colors"
+                className="w-full justify-between px-3 py-2 h-auto font-medium"
               >
                 <span className="flex items-center gap-2">
                   <ChevronDown
@@ -136,19 +138,20 @@ export function AgencyGroupedSelect({
                     {selectedInGroup}
                   </span>
                 )}
-              </button>
+              </Button>
 
               {!isCollapsed && (
                 <div className="px-3 pb-2 space-y-0.5">
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
                     onClick={() => toggleGroup(group.agencies)}
-                    className="text-xs text-primary hover:underline mb-1"
+                    className="h-auto p-0 text-xs mb-1"
                   >
                     {group.agencies.every((a) => selectedSet.has(a.key))
                       ? 'Desmarcar todos'
                       : 'Selecionar todos'}
-                  </button>
+                  </Button>
                   {group.agencies.map((agency) => (
                     <label
                       key={agency.key}

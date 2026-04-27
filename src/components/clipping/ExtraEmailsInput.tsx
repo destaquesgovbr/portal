@@ -102,14 +102,16 @@ export function ExtraEmailsInput({ emails, onChange }: Props) {
               className="inline-flex items-center gap-1 pr-1 bg-muted"
             >
               {email}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => removeEmail(email)}
-                className="ml-1 hover:text-destructive transition-colors"
+                className="h-4 w-4 p-0 ml-1 hover:text-destructive"
                 aria-label={`Remover ${email}`}
               >
                 <X className="h-3 w-3" />
-              </button>
+              </Button>
             </Badge>
           ))}
           <span className="text-xs text-muted-foreground self-center">

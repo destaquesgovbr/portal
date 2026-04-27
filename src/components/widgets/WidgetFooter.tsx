@@ -4,6 +4,7 @@ import { ExternalLink, Info } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 import {
   Tooltip,
   TooltipContent,
@@ -94,13 +95,15 @@ export function WidgetFooter({
           <TooltipProvider>
             <Tooltip open={tooltipOpen} onOpenChange={setTooltipOpen}>
               <TooltipTrigger asChild>
-                <button
+                <Button
                   type="button"
-                  className="p-1.5 rounded-full hover:bg-muted transition-colors flex-shrink-0"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-full flex-shrink-0"
                   aria-label="Informações sobre filtros"
                 >
                   <Info className="w-4 h-4 text-muted-foreground" />
-                </button>
+                </Button>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-xs">
                 {!hasFilters ? (

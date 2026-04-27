@@ -184,14 +184,16 @@ export function RecorteEditor({
             {recorte.keywords.map((kw) => (
               <Badge key={kw} className="inline-flex items-center gap-1 pr-1">
                 {kw}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => removeKeyword(kw)}
-                  className="ml-1 hover:text-destructive transition-colors"
+                  className="h-4 w-4 p-0 ml-1 hover:text-destructive"
                   aria-label={`Remover ${kw}`}
                 >
                   <X className="h-3 w-3" />
-                </button>
+                </Button>
               </Badge>
             ))}
           </div>
