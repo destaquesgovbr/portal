@@ -137,11 +137,13 @@ export function ListingActions({
       <div className="flex flex-wrap items-center gap-2">
         {/* Like — GitHub style: button + count badge */}
         <div className="inline-flex items-center rounded-md border border-input overflow-hidden">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={handleLike}
             disabled={liking}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm cursor-pointer transition-colors ${
+            className={`rounded-none gap-1.5 ${
               liked
                 ? 'bg-red-50 text-red-600 hover:bg-red-100'
                 : 'bg-background hover:bg-accent'
@@ -153,7 +155,7 @@ export function ListingActions({
               <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
             )}
             Curtir
-          </button>
+          </Button>
           <span className="border-l border-input px-2.5 py-1.5 text-sm text-muted-foreground bg-muted/30 tabular-nums">
             {likeCount}
           </span>
@@ -161,11 +163,13 @@ export function ListingActions({
 
         {/* Follow — GitHub style */}
         <div className="inline-flex items-center rounded-md border border-input overflow-hidden">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={handleFollowClick}
             disabled={unfollowing}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm cursor-pointer transition-colors ${
+            className={`rounded-none gap-1.5 ${
               follows
                 ? 'bg-primary/10 text-primary hover:bg-primary/20'
                 : 'bg-background hover:bg-accent'
@@ -179,7 +183,7 @@ export function ListingActions({
               <UserPlus className="h-4 w-4" />
             )}
             {follows ? 'Seguindo' : 'Seguir'}
-          </button>
+          </Button>
           <span className="border-l border-input px-2.5 py-1.5 text-sm text-muted-foreground bg-muted/30 tabular-nums">
             {followerCount}
           </span>
@@ -187,11 +191,13 @@ export function ListingActions({
 
         {/* Clone — GitHub style */}
         <div className="inline-flex items-center rounded-md border border-input overflow-hidden">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={handleClone}
             disabled={cloning}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-background hover:bg-accent cursor-pointer transition-colors"
+            className="rounded-none gap-1.5 bg-background hover:bg-accent"
           >
             {cloning ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -199,7 +205,7 @@ export function ListingActions({
               <Copy className="h-4 w-4" />
             )}
             Clonar
-          </button>
+          </Button>
           <span className="border-l border-input px-2.5 py-1.5 text-sm text-muted-foreground bg-muted/30 tabular-nums">
             {listing.cloneCount}
           </span>

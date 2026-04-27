@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MarketplaceCard } from '@/components/marketplace/MarketplaceCard'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { MarketplaceListing } from '@/types/clipping'
 import type { ThemeChip } from './page'
@@ -201,43 +202,37 @@ export function ClippingsPageClient({
       {/* Chips row */}
       <div className="flex flex-wrap gap-2 mb-3">
         {/* Frequency chips */}
-        <button
+        <Button
           type="button"
+          variant={selectedFrequency === 'daily' ? 'default' : 'outline'}
+          size="sm"
           onClick={() => toggleFrequency('daily')}
-          className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-            selectedFrequency === 'daily'
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-background border-input hover:bg-accent text-foreground'
-          }`}
+          className="rounded-full"
         >
           Diários
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant={selectedFrequency === 'weekdays' ? 'default' : 'outline'}
+          size="sm"
           onClick={() => toggleFrequency('weekdays')}
-          className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-            selectedFrequency === 'weekdays'
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-background border-input hover:bg-accent text-foreground'
-          }`}
+          className="rounded-full"
         >
           Dias úteis
-        </button>
+        </Button>
 
         {/* Theme chips */}
         {themeChips.map((tc) => (
-          <button
+          <Button
             key={tc.code}
             type="button"
+            variant={selectedThemes.includes(tc.code) ? 'default' : 'outline'}
+            size="sm"
             onClick={() => toggleTheme(tc.code)}
-            className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-              selectedThemes.includes(tc.code)
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-background border-input hover:bg-accent text-foreground'
-            }`}
+            className="rounded-full"
           >
             {tc.label} ({tc.count})
-          </button>
+          </Button>
         ))}
       </div>
 

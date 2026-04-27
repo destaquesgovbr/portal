@@ -1,9 +1,10 @@
 'use client'
 
-import { Copy, Rss } from 'lucide-react'
+import { Copy, Rss, X } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { AgencyMultiSelect } from '@/components/filters/AgencyMultiSelect'
 import { ThemeMultiSelect } from '@/components/filters/ThemeMultiSelect'
+import { Button } from '@/components/ui/button'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
 
@@ -97,17 +98,19 @@ export default function FeedsPageClient({
                     className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded"
                   >
                     {agencyNameMap[key] ?? key}
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() =>
                         setSelectedAgencies((prev) =>
                           prev.filter((a) => a !== key),
                         )
                       }
-                      className="hover:text-red-600"
+                      className="h-4 w-4 p-0 hover:text-red-600"
                     >
-                      &times;
-                    </button>
+                      <X className="h-3 w-3" />
+                    </Button>
                   </span>
                 ))}
               </div>
@@ -131,17 +134,19 @@ export default function FeedsPageClient({
                     className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded"
                   >
                     {themeNameMap[key] ?? key}
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() =>
                         setSelectedThemes((prev) =>
                           prev.filter((t) => t !== key),
                         )
                       }
-                      className="hover:text-red-600"
+                      className="h-4 w-4 p-0 hover:text-red-600"
                     >
-                      &times;
-                    </button>
+                      <X className="h-3 w-3" />
+                    </Button>
                   </span>
                 ))}
               </div>
@@ -201,10 +206,11 @@ export default function FeedsPageClient({
               <code className="text-xs text-muted-foreground truncate flex-1">
                 {url}
               </code>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => copyToClipboard(url, label)}
-                className="shrink-0 p-2 hover:bg-muted rounded transition-colors"
                 title="Copiar URL"
               >
                 {copied === label ? (
@@ -212,7 +218,7 @@ export default function FeedsPageClient({
                 ) : (
                   <Copy className="w-4 h-4 text-muted-foreground" />
                 )}
-              </button>
+              </Button>
             </div>
           ))}
         </div>

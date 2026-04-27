@@ -325,20 +325,18 @@ export function ClippingWizard({
         <div className="flex items-center gap-2">
           {STEPS.map((label, i) => (
             <div key={label} className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
+                variant={i <= step ? 'default' : 'secondary'}
+                size="icon"
                 onClick={() => isEditing && setStep(i)}
                 disabled={!isEditing}
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
-                  i < step
-                    ? 'bg-primary text-primary-foreground'
-                    : i === step
-                      ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2'
-                      : 'bg-muted text-muted-foreground'
+                className={`h-7 w-7 rounded-full p-0 text-xs font-semibold ${
+                  i === step ? 'ring-2 ring-primary ring-offset-2' : ''
                 } ${isEditing ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 hover:ring-offset-1' : ''}`}
               >
                 {i + 1}
-              </button>
+              </Button>
               <span
                 className={`hidden sm:inline text-sm ${i === step ? 'font-semibold' : 'text-muted-foreground'}`}
               >
@@ -365,28 +363,22 @@ export function ClippingWizard({
             {/* Creation mode toggle */}
             {!isEditing && (
               <div className="flex items-center gap-3 text-sm">
-                <button
+                <Button
                   type="button"
+                  variant={creationMode === 'agent' ? 'default' : 'secondary'}
+                  size="sm"
                   onClick={() => setCreationMode('agent')}
-                  className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                    creationMode === 'agent'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
                 >
                   Assistente IA
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant={creationMode === 'manual' ? 'default' : 'secondary'}
+                  size="sm"
                   onClick={() => setCreationMode('manual')}
-                  className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                    creationMode === 'manual'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
                 >
                   Configuração manual
-                </button>
+                </Button>
               </div>
             )}
 

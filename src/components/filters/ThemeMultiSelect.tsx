@@ -3,6 +3,7 @@
 import { ChevronDown, X } from 'lucide-react'
 import * as React from 'react'
 import { Portal } from '@/components/layout/Portal'
+import { Button } from '@/components/ui/button'
 
 type Theme = {
   key: string
@@ -90,16 +91,18 @@ function ThemeTreeItem({
         style={{ marginLeft: `${level * 16}px` }}
       >
         {hasChildren ? (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => onExpandToggle(node.code)}
-            className="p-0 hover:bg-gray-200 rounded transition-colors"
+            className="h-6 w-6 p-0"
             aria-label={isExpanded ? 'Recolher' : 'Expandir'}
           >
             <ChevronDown
               className={`h-4 w-4 transition-transform ${isExpanded ? '' : '-rotate-90'}`}
             />
-          </button>
+          </Button>
         ) : (
           <div className="w-4" />
         )}
@@ -244,10 +247,11 @@ export function ThemeMultiSelect({
 
   return (
     <div className="relative w-full">
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => setIsExpanded(true)}
-        className="w-full h-10 px-3 py-2 border border-input rounded-md text-left text-sm bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        className="w-full justify-start font-normal bg-white hover:bg-gray-50"
       >
         <span
           className={
@@ -260,11 +264,12 @@ export function ThemeMultiSelect({
             ? 'Selecione temas...'
             : `${selectedThemes.length} selecionado${selectedThemes.length > 1 ? 's' : ''}`}
         </span>
-      </button>
+      </Button>
 
       {isExpanded && (
         <Portal>
           <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+            {/* raw button: backdrop overlay — needs inset-0 positioning incompatible with Button sizing */}
             <button
               type="button"
               className="absolute inset-0 bg-black/50 animate-in fade-in-0 border-0"
@@ -284,14 +289,16 @@ export function ThemeMultiSelect({
                 >
                   Selecionar Temas
                 </h2>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setIsExpanded(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="rounded-full"
                   aria-label="Fechar"
                 >
                   <X className="h-5 w-5 text-muted-foreground" />
-                </button>
+                </Button>
               </div>
 
               <div className="p-6 border-b border-border flex gap-4">
@@ -332,13 +339,9 @@ export function ThemeMultiSelect({
                   {selectedThemes.length !== 1 ? 's' : ''} selecionado
                   {selectedThemes.length !== 1 ? 's' : ''}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setIsExpanded(false)}
-                  className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors font-medium"
-                >
+                <Button type="button" onClick={() => setIsExpanded(false)}>
                   Confirmar
-                </button>
+                </Button>
               </div>
             </div>
           </div>
