@@ -176,9 +176,18 @@ export function ClippingWizard({
         deliveryChannels.push ||
         deliveryChannels.webhook
       if (!anyEnabled) return 'Selecione ao menos um canal de entrega.'
+      if (deliveryChannels.email && extraEmails.length === 0)
+        return 'Adicione ao menos um email para receber o clipping.'
     }
     return null
-  }, [currentStepLabel, name, recortes, deliveryChannels, estimatedTotal])
+  }, [
+    currentStepLabel,
+    name,
+    recortes,
+    deliveryChannels,
+    estimatedTotal,
+    extraEmails,
+  ])
 
   const handleNext = useCallback(() => {
     const err = validateStep()
@@ -210,10 +219,19 @@ export function ClippingWizard({
       deliveryChannels.push ||
       deliveryChannels.webhook
     if (!anyChannel) return 'Selecione ao menos um canal de entrega.'
+    if (deliveryChannels.email && extraEmails.length === 0)
+      return 'Adicione ao menos um email para receber o clipping.'
     if (deliveryChannels.webhook && !webhookUrl)
       return 'URL do webhook é obrigatória quando webhook está ativo.'
     return null
-  }, [name, recortes, deliveryChannels, estimatedTotal, webhookUrl])
+  }, [
+    name,
+    recortes,
+    deliveryChannels,
+    estimatedTotal,
+    extraEmails,
+    webhookUrl,
+  ])
 
   const ensurePushSubscription = useCallback(async () => {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
@@ -588,7 +606,7 @@ export function ClippingWizard({
             <Button
               type="button"
               onClick={handleConfirm}
-              disabled={loading}
+              disabled={loading || !!validateStep()}
               className="cursor-pointer"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
