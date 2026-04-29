@@ -24,8 +24,8 @@ export const ClippingPayloadSchema = z
     schedule: z
       .string()
       .refine((v) => isValidCron(v), 'Expressão cron inválida'),
-    startDate: z.string().datetime().nullable().optional(),
-    endDate: z.string().datetime().nullable().optional(),
+    startDate: z.string().date().nullable().optional(),
+    endDate: z.string().date().nullable().optional(),
     deliveryChannels: z.object({
       email: z.boolean(),
       telegram: z.boolean(),
