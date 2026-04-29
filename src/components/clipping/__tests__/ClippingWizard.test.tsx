@@ -105,6 +105,8 @@ vi.mock('../ChannelSelector', () => ({
     onChange,
     webhookUrl,
     onWebhookUrlChange,
+    extraEmails,
+    onExtraEmailsChange,
   }: {
     value: {
       email: boolean
@@ -116,6 +118,8 @@ vi.mock('../ChannelSelector', () => ({
     hasTelegram: boolean
     webhookUrl: string
     onWebhookUrlChange: (url: string) => void
+    extraEmails: string[]
+    onExtraEmailsChange: (emails: string[]) => void
   }) => (
     <div data-testid="channel-selector">
       <input
@@ -139,6 +143,15 @@ vi.mock('../ChannelSelector', () => ({
         onChange={(e) => onWebhookUrlChange(e.target.value)}
         aria-label="webhook url"
       />
+      <button
+        type="button"
+        data-testid="add-extra-email"
+        onClick={() =>
+          onExtraEmailsChange([...extraEmails, 'test@example.com'])
+        }
+      >
+        Adicionar email
+      </button>
     </div>
   ),
 }))
@@ -214,6 +227,8 @@ describe('ClippingWizard (3-step flow, prompt step hidden)', () => {
 
     // Enable email channel
     await user.click(screen.getByTestId('channel-email'))
+    // Add an email (required by new validation)
+    await user.click(screen.getByTestId('add-extra-email'))
 
     await user.click(screen.getByRole('button', { name: /confirmar/i }))
 
@@ -246,6 +261,8 @@ describe('ClippingWizard (3-step flow, prompt step hidden)', () => {
     await user.click(screen.getByRole('button', { name: /próximo/i }))
 
     await user.click(screen.getByTestId('channel-email'))
+    // Add an email (required by new validation)
+    await user.click(screen.getByTestId('add-extra-email'))
     await user.click(screen.getByRole('button', { name: /confirmar/i }))
 
     await waitFor(() => {
