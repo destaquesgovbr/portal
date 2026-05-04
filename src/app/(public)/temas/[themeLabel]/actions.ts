@@ -45,12 +45,17 @@ export async function getArticles(
       q: '*',
       sort_by: 'published_at:desc, unique_id:desc',
       filter_by: filter_by.join(" && "),
+      group_by: 'content_hash',
+      group_limit: 1,
       limit: PAGE_SIZE,
       page
     })
 
   return {
-    articles: result.hits?.map((hit) => hit.document) ?? [],
+    articles:
+      result.grouped_hits?.flatMap((group) =>
+        group.hits.map((hit) => hit.document),
+      ) ?? [],
     page: page + 1,
   }
 }

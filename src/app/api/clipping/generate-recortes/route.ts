@@ -32,8 +32,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   }
 
-  const body = await request.json()
-  const prompt = (body.prompt ?? '').trim()
+  let body: Record<string, unknown>
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
+  }
+
+  const prompt =
+    typeof body.prompt === 'string'
+      ? body.prompt.trim()
+      : String(body.prompt ?? '').trim()
 
   if (!prompt) {
     return NextResponse.json({ error: 'Prompt é obrigatório' }, { status: 400 })

@@ -23,9 +23,13 @@ const fetchLatestArticles = cache(async (): Promise<ArticleRow[]> => {
         q: '*',
         limit: 50,
         sort_by: 'published_at:desc',
+        group_by: 'content_hash',
+        group_limit: 1,
       })
 
-    const articles = result.hits?.map((hit) => hit.document) as ArticleRow[]
+    const articles = result.grouped_hits?.flatMap((group) =>
+      group.hits.map((hit) => hit.document),
+    ) as ArticleRow[]
 
     // Aplicar priorização
     const prioritized = getPrioritizedArticles(articles, config, 11)
@@ -42,8 +46,12 @@ const fetchLatestArticles = cache(async (): Promise<ArticleRow[]> => {
         q: '*',
         limit: 11,
         sort_by: 'published_at:desc',
+        group_by: 'content_hash',
+        group_limit: 1,
       })
-    return result.hits?.map((hit) => hit.document) as ArticleRow[]
+    return result.grouped_hits?.flatMap((group) =>
+      group.hits.map((hit) => hit.document),
+    ) as ArticleRow[]
   }
 })
 
