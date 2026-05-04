@@ -4,7 +4,6 @@ test.use({ storageState: 'e2e/.auth/user.json' })
 
 test.describe('Clipping — Edit Flow', () => {
   let editUrl: string | null = null
-  let clippingName: string | null = null
 
   test.beforeAll(async ({ browser }) => {
     const context = await browser.newContext({
@@ -19,11 +18,11 @@ test.describe('Clipping — Edit Flow', () => {
     if (await editLink.isVisible().catch(() => false)) {
       editUrl = await editLink.getAttribute('href')
 
-      // Get the clipping name from the card
+      // Get the clipping name from the card (for debugging)
       const card = editLink.locator(
         'xpath=ancestor::div[contains(@class,"rounded")]',
       )
-      clippingName = await card
+      await card
         .locator('h3, .font-bold, .font-semibold')
         .first()
         .innerText()
@@ -102,7 +101,7 @@ test.describe('Clipping — Edit Flow', () => {
 
     // Modify name
     await nameInput.clear()
-    await nameInput.fill(originalName + ' (editado)')
+    await nameInput.fill(`${originalName} (editado)`)
 
     // Verify the change is reflected
     const newName = await nameInput.inputValue()
