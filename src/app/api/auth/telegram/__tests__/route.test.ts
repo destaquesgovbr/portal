@@ -98,8 +98,8 @@ describe('GET /api/auth/telegram', () => {
   it('returns 400 if token is expired', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
 
-    const expiredTime = { toDate: () => new Date(Date.now() - 3600 * 1000) }
-    makeTokenDocChain(true, { expiresAt: expiredTime, chatId: '12345' })
+    const expiredTimeMs = Date.now() - 3600 * 1000
+    makeTokenDocChain(true, { expiresAtMs: expiredTimeMs, chatId: '12345' })
 
     const request = new NextRequest(
       'http://localhost/api/auth/telegram?state=expiredtoken',
@@ -114,8 +114,8 @@ describe('GET /api/auth/telegram', () => {
   it('redirects to callback when token is valid', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
 
-    const futureTime = { toDate: () => new Date(Date.now() + 3600 * 1000) }
-    makeTokenDocChain(true, { expiresAt: futureTime, chatId: '12345' })
+    const futureTimeMs = Date.now() + 3600 * 1000
+    makeTokenDocChain(true, { expiresAtMs: futureTimeMs, chatId: '12345' })
 
     const request = new NextRequest(
       'http://localhost/api/auth/telegram?state=validtoken',

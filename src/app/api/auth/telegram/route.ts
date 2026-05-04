@@ -1,4 +1,3 @@
-import { Timestamp } from 'firebase-admin/firestore'
 import { redirect } from 'next/navigation'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
@@ -37,10 +36,7 @@ export async function GET(request: Request) {
     }
 
     const tokenData = tokenDoc.data()!
-    const expiresAt: Date =
-      tokenData.expiresAt instanceof Timestamp
-        ? tokenData.expiresAt.toDate()
-        : tokenData.expiresAt.toDate()
+    const expiresAt = new Date(tokenData.expiresAtMs)
 
     if (expiresAt < new Date()) {
       return NextResponse.json({ error: 'Token expirado' }, { status: 400 })
