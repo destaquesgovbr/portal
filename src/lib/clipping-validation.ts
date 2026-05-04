@@ -1,6 +1,41 @@
 import { z } from 'zod'
 import { isValidCron } from '@/lib/cron-utils'
 
+function isSecureWebhookUrl(url: string): boolean {
+  if (!url) return true // empty is valid (optional)
+
+  try {
+    const parsed = new URL(url)
+
+    // Apenas HTTPS em produção
+    if (parsed.protocol !== 'https:') return false
+
+    // Bloquear hosts internos
+    const blocked = [
+      'localhost',
+      '127.0.0.1',
+      '169.254.169.254',
+      'metadata.google.internal',
+      'metadata',
+      '[::1]',
+      '0.0.0.0',
+    ]
+    const hostname = parsed.hostname.toLowerCase()
+    if (blocked.some((h) => hostname === h || hostname.endsWith(`.${h}`))) {
+      return false
+    }
+
+    // Bloquear IPs privados (10.x, 172.16-31.x, 192.168.x)
+    if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(parsed.hostname)) {
+      return false
+    }
+
+    return true
+  } catch {
+    return false
+  }
+}
+
 export const RecorteSchema = z
   .object({
     id: z.string().min(1),
@@ -34,7 +69,16 @@ export const ClippingPayloadSchema = z
     }),
     active: z.boolean(),
     extraEmails: z.array(z.string().email()).max(3).default([]),
-    webhookUrl: z.string().url().optional().or(z.literal('')).default(''),
+    webhookUrl: z
+      .string()
+      .url()
+      .refine(isSecureWebhookUrl, {
+        message:
+          'URL de webhook deve ser HTTPS e apontar para host externo (IPs privados e hosts internos não são permitidos)',
+      })
+      .optional()
+      .or(z.literal(''))
+      .default(''),
     includeHistory: z.boolean().optional().default(false),
   })
   .refine(
@@ -65,7 +109,16 @@ export const FollowListingSchema = z
       webhook: z.boolean().optional().default(false),
     }),
     extraEmails: z.array(z.string().email()).optional().default([]),
-    webhookUrl: z.string().url().optional().or(z.literal('')).default(''),
+    webhookUrl: z
+      .string()
+      .url()
+      .refine(isSecureWebhookUrl, {
+        message:
+          'URL de webhook deve ser HTTPS e apontar para host externo (IPs privados e hosts internos não são permitidos)',
+      })
+      .optional()
+      .or(z.literal(''))
+      .default(''),
   })
   .refine(
     (data) =>
