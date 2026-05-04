@@ -39,7 +39,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
   }
 
-  const prompt = (body.prompt ?? '').trim()
+  const prompt =
+    typeof body.prompt === 'string'
+      ? body.prompt.trim()
+      : String(body.prompt ?? '').trim()
 
   if (!prompt) {
     return NextResponse.json({ error: 'Prompt é obrigatório' }, { status: 400 })
