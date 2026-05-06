@@ -56,7 +56,7 @@ function makeDocRef(exists: boolean, data: object = {}) {
 
 function validTokenData(chatId = '31949381') {
   return {
-    expiresAt: { toDate: () => new Date(Date.now() + 600_000) },
+    expiresAtMs: Date.now() + 600_000,
     chatId,
     userId: null,
   }
@@ -64,7 +64,7 @@ function validTokenData(chatId = '31949381') {
 
 function expiredTokenData(chatId = '31949381') {
   return {
-    expiresAt: { toDate: () => new Date(Date.now() - 600_000) },
+    expiresAtMs: Date.now() - 600_000,
     chatId,
     userId: null,
   }

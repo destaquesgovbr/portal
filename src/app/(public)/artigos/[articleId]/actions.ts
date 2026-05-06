@@ -54,8 +54,14 @@ export async function getSimilarArticles(
       q: '*',
       filter_by: filters.join(' && '),
       sort_by: 'published_at:desc',
+      group_by: 'content_hash',
+      group_limit: 1,
       limit,
     })
 
-  return result.hits?.map((hit) => hit.document) ?? []
+  return (
+    result.grouped_hits?.flatMap((group) =>
+      group.hits.map((hit) => hit.document),
+    ) ?? []
+  )
 }

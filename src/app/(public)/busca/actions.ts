@@ -310,6 +310,8 @@ export async function queryArticles(
           vector_query: `content_embedding:([${embedding.join(',')}], alpha:0.8)`,
           filter_by: filterByStr || undefined,
           exclude_fields: 'content_embedding',
+          group_by: 'content_hash',
+          group_limit: 1,
           limit: PAGE_SIZE,
           page,
         }],
@@ -317,8 +319,10 @@ export async function queryArticles(
       const result = response.results?.[0]
       return {
         articles:
-          result?.hits?.map((hit: { document: ArticleRow }) => hit.document) ??
-          [],
+          // biome-ignore lint/suspicious/noExplicitAny: multiSearch response types are not fully typed
+          result?.grouped_hits?.flatMap((group: any) =>
+            group.hits.map((hit: { document: ArticleRow }) => hit.document),
+          ) ?? [],
         page: page + 1,
         found: result?.found ?? 0,
       }
@@ -335,12 +339,17 @@ export async function queryArticles(
       query_by: 'title, content',
       sort_by: 'published_at:desc, unique_id:desc',
       filter_by: filterByStr,
+      group_by: 'content_hash',
+      group_limit: 1,
       limit: PAGE_SIZE,
       page
     })
 
   return {
-    articles: result.hits?.map((hit) => hit.document) ?? [],
+    articles:
+      result.grouped_hits?.flatMap((group) =>
+        group.hits.map((hit) => hit.document),
+      ) ?? [],
     page: page + 1,
     found: result.found ?? 0,
   }
