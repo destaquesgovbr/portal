@@ -26,11 +26,11 @@ export async function getArticles(
   const filter_by: string[] = [`agency:=${agency}`]
 
   if (startDate) {
-    filter_by.push(`published_at:>${Math.floor(startDate / 1000)}`)
+    filter_by.push(`published_at:>=${Math.floor(startDate / 1000)}`)
   }
 
   if (endDate) {
-    filter_by.push(`published_at:<${Math.floor(endDate / 1000 + 60 * 60 * 3)}`)
+    filter_by.push(`published_at:<${Math.floor(endDate / 1000) + 86400}`)
   }
 
   if (themes && themes.length > 0) {
