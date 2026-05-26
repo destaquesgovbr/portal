@@ -272,11 +272,11 @@ export async function queryArticles(
   const filter_by: string[] = []
 
   if (startDate) {
-    filter_by.push(`published_at:>${Math.floor(startDate / 1000)}`)
+    filter_by.push(`published_at:>=${Math.floor(startDate / 1000)}`)
   }
 
   if (endDate) {
-    filter_by.push(`published_at:<${Math.floor(endDate / 1000 + 60 * 60 * 3)}`)
+    filter_by.push(`published_at:<${Math.floor(endDate / 1000) + 86400}`)
   }
 
   if (agencies && agencies.length > 0) {

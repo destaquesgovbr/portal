@@ -29,9 +29,15 @@ function DateFilter({ label, value, onChange }: DateFilterProps) {
         <Input
           id={inputId}
           type="date"
-          onChange={(e) => onChange(new Date(e.target.value))}
+          onChange={(e) =>
+            onChange(e.target.value ? new Date(e.target.value) : undefined)
+          }
           className={value ? 'pr-9' : undefined}
-          value={value ? value.toISOString().split('T')[0] : ''}
+          value={
+            value && !isNaN(value.getTime())
+              ? value.toISOString().split('T')[0]
+              : ''
+          }
         />
         {value && (
           <Button
