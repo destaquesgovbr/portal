@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { ClippingWizard } from '@/components/clipping/ClippingWizard'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
+import { useClippingService } from '@/services/clipping'
 import type { ClippingPayload } from '@/types/clipping'
 
 type Props = {
@@ -15,17 +16,10 @@ type Props = {
 
 export function NovoClippingClient({ agencies, themes, hasTelegram }: Props) {
   const router = useRouter()
+  const clippingService = useClippingService()
 
   const handleSubmit = async (data: ClippingPayload) => {
-    const res = await fetch('/api/clipping', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-
-    if (!res.ok) {
-      throw new Error('Falha ao criar clipping')
-    }
+    await clippingService.createClipping(data)
 
     toast.success('Clipping criado! Seu primeiro envio está sendo gerado.', {
       description:

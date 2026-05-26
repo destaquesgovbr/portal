@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { ClippingCard } from '@/components/clipping/ClippingCard'
+import { useClippingService } from '@/services/clipping'
 import type { Clipping } from '@/types/clipping'
 
 type Props = {
@@ -16,11 +17,12 @@ export function ClippingListClient({
   themeMap = {},
   agencyMap = {},
 }: Props) {
+  const clippingService = useClippingService()
   const [clippings, setClippings] = useState<Clipping[]>(initialClippings)
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/clipping/${id}`, { method: 'DELETE' })
+      await clippingService.deleteClipping(id)
       setClippings((prev) => prev.filter((c) => c.id !== id))
     } catch (err) {
       console.error('Failed to delete clipping:', err)
@@ -28,6 +30,12 @@ export function ClippingListClient({
   }
 
   const handleToggleActive = async (id: string, active: boolean) => {
+    // O facade GraphQL persiste 'active' via updateClipping; o REST atual
+    // usa um PATCH simples. Para manter compatibilidade durante a migração
+    // continuamos com fetch direto aqui (PATCH no REST). Quando o GraphQL
+    // expor uma mutation de toggle dedicada, atualizamos para usar o
+    // facade. Por enquanto, atualizamos o estado otimisticamente e o
+    // backend processa via PATCH (REST) ou via updateClipping (GraphQL).
     try {
       const res = await fetch(`/api/clipping/${id}`, {
         method: 'PATCH',
@@ -45,19 +53,13 @@ export function ClippingListClient({
   }
 
   const handleSend = async (id: string) => {
-    const res = await fetch(`/api/clipping/${id}/send`, { method: 'POST' })
-    if (!res.ok) {
-      throw new Error(`Send failed: ${res.status}`)
-    }
+    await clippingService.sendNow(id)
   }
 
   const refreshClippings = async () => {
     try {
-      const res = await fetch('/api/clipping')
-      if (res.ok) {
-        const data = await res.json()
-        setClippings(data)
-      }
+      const data = await clippingService.listClippings()
+      setClippings(data)
     } catch (err) {
       console.error('Failed to refresh clippings:', err)
     }
