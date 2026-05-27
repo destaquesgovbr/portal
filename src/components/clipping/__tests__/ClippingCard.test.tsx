@@ -14,6 +14,18 @@ import { render } from '@/__tests__/test-utils'
 import type { Clipping } from '@/types/clipping'
 import { ClippingCard } from '../ClippingCard'
 
+vi.mock('@/lib/feature-flags', () => ({
+  GRAPHQL_FLAGS: {
+    CLIPPINGS: 'graphql.clippings',
+    MARKETPLACE: 'graphql.marketplace',
+    AGENT: 'graphql.agent',
+    PUSH: 'graphql.push',
+    WIDGETS: 'graphql.widgets',
+  },
+  useFeatureFlag: (_key: string, defaultValue: boolean) => defaultValue,
+  getFeatureFlag: (_key: string, defaultValue: boolean) => defaultValue,
+}))
+
 function makeClipping(overrides: Partial<Clipping> = {}): Clipping {
   return {
     id: 'c1',
