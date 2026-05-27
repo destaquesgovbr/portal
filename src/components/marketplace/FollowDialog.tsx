@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useMarketplaceService } from '@/services/marketplace'
 import type { DeliveryChannels } from '@/types/clipping'
 
 type Props = {
@@ -53,6 +54,7 @@ export function FollowDialog({
   )
   const [webhookUrl, setWebhookUrl] = useState(initialWebhookUrl ?? '')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const marketplaceService = useMarketplaceService()
 
   const hasChannel =
     channels.email || channels.telegram || channels.push || channels.webhook
@@ -63,20 +65,16 @@ export function FollowDialog({
     setIsSubmitting(true)
 
     try {
-      const res = await fetch(`/api/clippings/public/${listingId}/follow`, {
-        method: isEditing ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          deliveryChannels: channels,
-          extraEmails,
-          webhookUrl,
-        }),
+      // D2: o facade traduz `listingId` → `clippingId` quando o transport
+      // for GraphQL e chama `subscribeToClipping`. No path REST mantém o
+      // POST/PUT em `/follow`.
+      await marketplaceService.subscribe({
+        listingId,
+        deliveryChannels: channels,
+        extraEmails,
+        webhookUrl,
+        isEditing,
       })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        throw new Error(data?.error ?? 'Erro ao seguir listing')
-      }
 
       toast.success(
         isEditing

@@ -25,6 +25,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { cronToHumanReadable } from '@/lib/cron-utils'
+import { useMarketplaceService } from '@/services/marketplace'
 import type { DeliveryChannels, MarketplaceListing } from '@/types/clipping'
 import { FollowDialog } from './FollowDialog'
 
@@ -44,6 +45,7 @@ type Props = {
 
 export function FollowCard({ follow, hasTelegram }: Props) {
   const router = useRouter()
+  const marketplaceService = useMarketplaceService()
   const [editOpen, setEditOpen] = useState(false)
   const [unfollowing, setUnfollowing] = useState(false)
 
@@ -52,16 +54,7 @@ export function FollowCard({ follow, hasTelegram }: Props) {
   const handleUnfollow = async () => {
     setUnfollowing(true)
     try {
-      const res = await fetch(
-        `/api/clippings/public/${follow.listingId}/follow`,
-        { method: 'DELETE' },
-      )
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        throw new Error(data?.error ?? 'Erro ao deixar de seguir')
-      }
-
+      await marketplaceService.unsubscribe(follow.listingId)
       toast.success('Você deixou de seguir este clipping')
       router.refresh()
     } catch (err) {
