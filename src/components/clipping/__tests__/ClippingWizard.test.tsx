@@ -225,10 +225,8 @@ describe('ClippingWizard (3-step flow, prompt step hidden)', () => {
     await user.click(screen.getByRole('button', { name: /próximo/i }))
     await user.click(screen.getByRole('button', { name: /próximo/i }))
 
-    // Enable email channel
+    // Enable email channel (sem emails extras — basta o email do usuário logado)
     await user.click(screen.getByTestId('channel-email'))
-    // Add an email (required by new validation)
-    await user.click(screen.getByTestId('add-extra-email'))
 
     await user.click(screen.getByRole('button', { name: /confirmar/i }))
 
@@ -261,8 +259,6 @@ describe('ClippingWizard (3-step flow, prompt step hidden)', () => {
     await user.click(screen.getByRole('button', { name: /próximo/i }))
 
     await user.click(screen.getByTestId('channel-email'))
-    // Add an email (required by new validation)
-    await user.click(screen.getByTestId('add-extra-email'))
     await user.click(screen.getByRole('button', { name: /confirmar/i }))
 
     await waitFor(() => {
@@ -270,6 +266,54 @@ describe('ClippingWizard (3-step flow, prompt step hidden)', () => {
     })
 
     resolveSubmit()
+  })
+
+  it('permite confirmar com apenas o canal Email e sem emails extras', async () => {
+    const handleSubmit = vi.fn().mockResolvedValue(undefined)
+    const { user } = render(
+      <ClippingWizard onSubmit={handleSubmit} themes={[]} agencies={[]} />,
+    )
+
+    await fillRecorteAndName(user)
+
+    // Avança até Canais
+    await user.click(screen.getByRole('button', { name: /próximo/i }))
+    await user.click(screen.getByRole('button', { name: /próximo/i }))
+
+    // Marca apenas Email — sem adicionar emails extras
+    await user.click(screen.getByTestId('channel-email'))
+
+    const confirmBtn = screen.getByRole('button', { name: /confirmar/i })
+    expect(confirmBtn).toBeEnabled()
+
+    await user.click(confirmBtn)
+
+    await waitFor(() => {
+      expect(handleSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deliveryChannels: expect.objectContaining({ email: true }),
+          extraEmails: [],
+        }),
+      )
+    })
+  })
+
+  it('mantém Confirmar desabilitado quando nenhum canal está selecionado', async () => {
+    const { user } = render(
+      <ClippingWizard onSubmit={defaultOnSubmit} themes={[]} agencies={[]} />,
+    )
+
+    await fillRecorteAndName(user)
+
+    // Avança até Canais sem marcar nenhum canal
+    await user.click(screen.getByRole('button', { name: /próximo/i }))
+    await user.click(screen.getByRole('button', { name: /próximo/i }))
+
+    expect(screen.getByText(/3\/3/i)).toBeInTheDocument()
+    expect(screen.getByTestId('channel-selector')).toBeInTheDocument()
+
+    const confirmBtn = screen.getByRole('button', { name: /confirmar/i })
+    expect(confirmBtn).toBeDisabled()
   })
 
   it('includes webhookUrl in submit payload', async () => {

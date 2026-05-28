@@ -66,8 +66,8 @@ export function ExtraEmailsInput({ emails, onChange }: Props) {
   return (
     <div className="space-y-2 pl-7">
       <p className="text-xs text-muted-foreground">
-        Adicione até {MAX_EXTRA_EMAILS} emails extras para receber cópia do
-        clipping.
+        Opcional: adicione até {MAX_EXTRA_EMAILS} emails extras para receber
+        cópia do clipping (além do seu email cadastrado).
       </p>
       <div className="flex gap-2">
         <Input

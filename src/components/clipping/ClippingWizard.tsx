@@ -176,18 +176,9 @@ export function ClippingWizard({
         deliveryChannels.push ||
         deliveryChannels.webhook
       if (!anyEnabled) return 'Selecione ao menos um canal de entrega.'
-      if (deliveryChannels.email && extraEmails.length === 0)
-        return 'Adicione ao menos um email para receber o clipping.'
     }
     return null
-  }, [
-    currentStepLabel,
-    name,
-    recortes,
-    deliveryChannels,
-    estimatedTotal,
-    extraEmails,
-  ])
+  }, [currentStepLabel, name, recortes, deliveryChannels, estimatedTotal])
 
   const handleNext = useCallback(() => {
     const err = validateStep()
@@ -219,19 +210,10 @@ export function ClippingWizard({
       deliveryChannels.push ||
       deliveryChannels.webhook
     if (!anyChannel) return 'Selecione ao menos um canal de entrega.'
-    if (deliveryChannels.email && extraEmails.length === 0)
-      return 'Adicione ao menos um email para receber o clipping.'
     if (deliveryChannels.webhook && !webhookUrl)
       return 'URL do webhook é obrigatória quando webhook está ativo.'
     return null
-  }, [
-    name,
-    recortes,
-    deliveryChannels,
-    estimatedTotal,
-    extraEmails,
-    webhookUrl,
-  ])
+  }, [name, recortes, deliveryChannels, estimatedTotal, webhookUrl])
 
   const ensurePushSubscription = useCallback(async () => {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
