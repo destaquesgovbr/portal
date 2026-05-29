@@ -46,6 +46,7 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
+      testIgnore: /\.authed\.spec\.ts$/,
     },
     {
       name: 'chromium-authed',
@@ -60,6 +61,7 @@ export default defineConfig({
       name: 'mobile',
       use: { ...devices['Pixel 5'] },
       dependencies: ['setup'],
+      testIgnore: /\.authed\.spec\.ts$/,
     },
     {
       name: 'mobile-authed',

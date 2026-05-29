@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test'
 
-test.use({ storageState: 'e2e/.auth/user.json' })
-
 test.describe('Meus Clippings — Listagem', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/minha-conta/clipping')
