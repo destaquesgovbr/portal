@@ -18,7 +18,7 @@ test.describe
       page,
     }) => {
       await page.goto('/minha-conta/clipping/novo')
-      await page.waitForLoadState('networkidle')
+      await page.waitForLoadState('networkidle').catch(() => {})
 
       // Agent mode should be default
       await expect(page.locator('#agent-prompt')).toBeVisible()
@@ -31,12 +31,14 @@ test.describe
 
       // SSE timeline should show progress
       await expect(page.locator('text=Analisando o pedido')).toBeVisible({
-        timeout: 10000,
+        timeout: 15_000,
       })
 
-      // Wait for completion (agent takes ~30-60s)
+      // Wait for completion. Em runs encadeados (chromium → mobile),
+      // o Bedrock pode throttlar o request mobile aumentando muito a
+      // latência. 180s evita flake sem mascarar regressão real.
       await expect(page.locator('text=Pronto!')).toBeVisible({
-        timeout: 120000,
+        timeout: 180_000,
       })
 
       // Recortes preview should appear
@@ -54,7 +56,7 @@ test.describe
 
       // Wait for result
       await expect(page.locator('text=Usar estes recortes')).toBeVisible({
-        timeout: 120000,
+        timeout: 180_000,
       })
 
       // Accept
@@ -79,7 +81,7 @@ test.describe
       await page.fill('#agent-prompt', 'tecnologia e inovacao')
       await page.click('text=Gerar Recortes com IA')
       await expect(page.locator('text=Usar estes recortes')).toBeVisible({
-        timeout: 120000,
+        timeout: 180_000,
       })
       await page.click('text=Usar estes recortes')
 
