@@ -3,6 +3,38 @@ import { expect, test } from '@playwright/test'
 const createdClippingId: string | null = null
 
 test.describe('Clipping — Manual Creation & Edit', () => {
+  test('wizard novo não dispara pageerror (regressão GrowthBook race)', async ({
+    page,
+  }) => {
+    // Regressão: páginas autenticadas que usam `useClippingService()` →
+    // `useFeatureFlag()` explodiam com "Missing or invalid GrowthBookProvider"
+    // durante a janela entre o initial render e o `setGrowthbook(gb)` do
+    // `useEffect` async no `GrowthBookProvider` customizado.
+    //
+    // Esse teste capta qualquer `pageerror` (erro não tratado no
+    // navegador) que ocorra na navegação do wizard.
+    const pageErrors: Error[] = []
+    page.on('pageerror', (err) => {
+      pageErrors.push(err)
+    })
+
+    await page.goto('/minha-conta/clipping/novo')
+    await page.waitForLoadState('networkidle')
+
+    // Aguarda o conteúdo principal do wizard renderizar (qualquer um dos
+    // dois modos: assistente IA ou configuração manual).
+    await expect(
+      page.locator('text=Assistente IA').or(page.locator('#clipping-name')),
+    ).toBeVisible({ timeout: 10000 })
+
+    // Garante que nenhum erro do tipo "Missing or invalid GrowthBookProvider"
+    // (nem nenhum outro) escapou para o error boundary do Next.js.
+    expect(
+      pageErrors.map((e) => e.message),
+      `pageerror events captured: ${pageErrors.map((e) => e.message).join(', ')}`,
+    ).toEqual([])
+  })
+
   test.afterAll(async ({ request }) => {
     // Cleanup: delete the test clipping if created
     if (createdClippingId) {
