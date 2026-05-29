@@ -16,6 +16,9 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "e2e": "playwright test",
+    "e2e:staging": "PLAYWRIGHT_BASE_URL=https://destaquesgovbr-portal-staging-klvx64dufq-rj.a.run.app playwright test",
+    "e2e:smoke": "PLAYWRIGHT_BASE_URL=https://destaquesgovbr-portal-staging-klvx64dufq-rj.a.run.app playwright test --grep @smoke",
     "graphql:codegen": "graphql-codegen --config codegen.ts",
     "prepare": "husky"
   },
@@ -97,6 +100,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@auth/core": "0.41.0",
     "@biomejs/biome": "2.2.0",
     "@govbr-ds/release-config": "4.3.0",
     "@graphql-codegen/cli": "^7.0.0",

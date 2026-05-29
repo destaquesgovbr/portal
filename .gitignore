@@ -15,6 +15,10 @@
 /playwright-report/
 /test-results/
 
+# Playwright storage state (contém cookies de sessão — não commitar)
+/e2e/.auth/staging.json
+/e2e/.auth/*.local.json
+
 # next.js
 /.next/
 /out/
