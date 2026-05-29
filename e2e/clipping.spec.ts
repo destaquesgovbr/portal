@@ -36,15 +36,27 @@ test.describe('Push Subscriber — Banner de Clipping', () => {
         'button[aria-label="Ativar notificações"]:visible, button[aria-label="Gerenciar notificações (ativas)"]:visible',
       )
       .first()
-    await expect(bellButton).toBeVisible({ timeout: 10000 })
-    await bellButton.click()
+    await expect(bellButton).toBeVisible({ timeout: 10_000 })
 
-    // Aguarda o conteúdo do Sheet aparecer
-    await page.waitForTimeout(300)
+    // O Sheet do Radix só monta após o click ter sido processado pelo
+    // handler React — em cold start de Cloud Run isso pode demorar. Em
+    // vez de um único click + sleep fixo, fazemos retries até detectar
+    // o conteúdo do Sheet (SheetTitle "Notificações WebPush").
+    const sheetTitle = page.getByText(/notificações webpush/i)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await bellButton.click({ timeout: 5_000 }).catch(() => {})
+      const opened = await sheetTitle
+        .first()
+        .isVisible({ timeout: 3_000 })
+        .catch(() => false)
+      if (opened) break
+    }
+    await expect(sheetTitle.first()).toBeVisible({ timeout: 5_000 })
 
-    // Verifica que o banner de promoção do Clipping está visível
+    // Verifica que o banner de promoção do Clipping está visível.
+    // O texto está dentro de um `<p>` parcial — usamos regex parcial.
     await expect(page.getByText(/recursos avançados/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 10_000,
     })
 
     // Verifica o link de login
@@ -61,11 +73,20 @@ test.describe('Push Subscriber — Banner de Clipping', () => {
         'button[aria-label="Ativar notificações"]:visible, button[aria-label="Gerenciar notificações (ativas)"]:visible',
       )
       .first()
-    await expect(bellButton).toBeVisible({ timeout: 10000 })
-    await bellButton.click()
+    await expect(bellButton).toBeVisible({ timeout: 10_000 })
 
-    // Aguarda o conteúdo do Sheet abrir (Radix anima) — usar `expect` em
-    // vez de timeout fixo evita flakes em cold start.
+    // Retries até o Sheet abrir (mesmo motivo do teste anterior).
+    const sheetTitle = page.getByText(/notificações webpush/i)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await bellButton.click({ timeout: 5_000 }).catch(() => {})
+      const opened = await sheetTitle
+        .first()
+        .isVisible({ timeout: 3_000 })
+        .catch(() => false)
+      if (opened) break
+    }
+    await expect(sheetTitle.first()).toBeVisible({ timeout: 5_000 })
+
     const signinLink = page.getByRole('link', { name: /faça login/i })
     await expect(signinLink).toBeVisible({ timeout: 10_000 })
     await expect(signinLink).toHaveAttribute('href', '/api/auth/signin')
