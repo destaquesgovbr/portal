@@ -12,8 +12,11 @@
 
 'use client'
 
-import type { GrowthBook } from '@growthbook/growthbook-react'
-import { useFeatureValue } from '@growthbook/growthbook-react'
+import {
+  type GrowthBook,
+  GrowthBookContext,
+} from '@growthbook/growthbook-react'
+import { useContext } from 'react'
 import { isGrowthBookConfigured } from '@/ab-testing/growthbook'
 
 /**
@@ -40,24 +43,45 @@ export type GraphQLFlagKey = (typeof GRAPHQL_FLAGS)[keyof typeof GRAPHQL_FLAGS]
  *   - Se GrowthBook não estiver configurado **ou** falhar, retorna `defaultValue`.
  *   - Wrapper estável para uso na migração GraphQL (B2-B5).
  *
+ * Implementação: lê o `growthbook` directamente do `GrowthBookContext`
+ * via `useContext` (em vez de `useFeatureValue`, que THROWA "Missing or
+ * invalid GrowthBookProvider" quando consumido fora do `<GBProvider>`).
+ *
+ * O `GrowthBookProvider` custom do portal renderiza children sem o
+ * `<GBProvider>` ancestor durante a janela entre o initial render e o
+ * `setGrowthbook(gb)` do `useEffect` async. Usar `useContext` evita
+ * propagar essa exceção e fazer páginas autenticadas (clipping wizard,
+ * marketplace, …) explodirem com "Application error".
+ *
+ * Trade-off conhecido: a leitura via `gb.getFeatureValue()` directa não
+ * subscreve a re-renders quando o GrowthBook recebe novas features via
+ * streaming. Para `GRAPHQL_FLAGS` (toggles operados manualmente, com
+ * reload aceitável) isso é aceitável; para experimentos A/B "ao vivo",
+ * usar os hooks específicos do `src/ab-testing/`.
+ *
  * @example
  *   const useGraphQL = useFeatureFlag('graphql.clippings', false)
  *   if (useGraphQL) { ... } else { ... fallback REST ... }
  */
 export function useFeatureFlag(key: string, defaultValue: boolean): boolean {
-  // Chama o hook do GrowthBook incondicionalmente (regras de hooks)
-  const value = useFeatureValue<boolean>(key, defaultValue)
+  // Lê o GrowthBook do contexto sem throwar quando o provider está ausente
+  // ou ainda inicializando (estado intermediário do `GrowthBookProvider`).
+  const { growthbook } = useContext(GrowthBookContext)
 
-  if (!isGrowthBookConfigured()) {
+  if (!growthbook || !isGrowthBookConfigured()) {
     return defaultValue
   }
 
-  // GrowthBook pode retornar undefined/null se a flag não existir
-  if (typeof value !== 'boolean') {
+  try {
+    const value = growthbook.getFeatureValue<boolean>(key, defaultValue)
+    if (typeof value !== 'boolean') {
+      return defaultValue
+    }
+    return value
+  } catch {
+    // Falha graciosa: nunca quebra o portal por causa de uma flag.
     return defaultValue
   }
-
-  return value
 }
 
 /**
