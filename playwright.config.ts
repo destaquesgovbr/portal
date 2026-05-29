@@ -25,7 +25,9 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: [['html'], ['json', { outputFile: 'test-results/results.json' }]],
-  timeout: isRemote ? 60_000 : 15_000,
+  // Em remote (Cloud Run staging) cold starts podem levar 20-40s. Usamos
+  // tempos generosos para evitar flakes oriundos de infraestrutura.
+  timeout: isRemote ? 90_000 : 15_000,
   expect: {
     timeout: isRemote ? 10_000 : 3_000,
   },
@@ -33,7 +35,7 @@ export default defineConfig({
     baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    navigationTimeout: isRemote ? 30_000 : 10_000,
+    navigationTimeout: isRemote ? 60_000 : 10_000,
     actionTimeout: isRemote ? 15_000 : 5_000,
   },
   projects: [
