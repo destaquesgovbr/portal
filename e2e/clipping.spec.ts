@@ -27,8 +27,15 @@ test.describe('Push Subscriber — Banner de Clipping', () => {
   }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' })
 
-    // Abre o sheet do push subscriber clicando no ícone de sino
-    const bellButton = page.locator('button:has(svg.lucide-bell)').first()
+    // Abre o sheet do push subscriber clicando no ícone de sino.
+    // O ícone alterna entre `Bell` (subscrito) e `BellOff` (não subscrito) —
+    // o usuário não autenticado em ambiente CI sempre vê `BellOff`. Usamos
+    // o aria-label estável do botão em vez do classname do svg.
+    const bellButton = page
+      .locator(
+        'button[aria-label="Ativar notificações"]:visible, button[aria-label="Gerenciar notificações (ativas)"]:visible',
+      )
+      .first()
     await expect(bellButton).toBeVisible({ timeout: 10000 })
     await bellButton.click()
 
@@ -49,13 +56,18 @@ test.describe('Push Subscriber — Banner de Clipping', () => {
   }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' })
 
-    const bellButton = page.locator('button:has(svg.lucide-bell)').first()
+    const bellButton = page
+      .locator(
+        'button[aria-label="Ativar notificações"]:visible, button[aria-label="Gerenciar notificações (ativas)"]:visible',
+      )
+      .first()
     await expect(bellButton).toBeVisible({ timeout: 10000 })
     await bellButton.click()
 
-    await page.waitForTimeout(300)
-
+    // Aguarda o conteúdo do Sheet abrir (Radix anima) — usar `expect` em
+    // vez de timeout fixo evita flakes em cold start.
     const signinLink = page.getByRole('link', { name: /faça login/i })
+    await expect(signinLink).toBeVisible({ timeout: 10_000 })
     await expect(signinLink).toHaveAttribute('href', '/api/auth/signin')
   })
 })

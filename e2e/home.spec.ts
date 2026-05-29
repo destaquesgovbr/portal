@@ -95,15 +95,32 @@ test.describe('Search Page', () => {
   test('should have search functionality', async ({ page, viewport }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' })
 
-    // On mobile, we need to click the search button to reveal the search bar
+    // Em mobile o input fica atrás de um botão que abre o overlay (client-
+    // side). Aguardamos a hidratação concluir antes de clicar e tentamos
+    // múltiplas vezes em ambientes lentos (cold start staging).
     const isMobile = viewport && viewport.width < 768
     if (isMobile) {
-      const searchButton = page.locator('button:has(svg.lucide-search)')
-      await searchButton.first().click()
-      await page.waitForTimeout(200)
+      await page
+        .waitForLoadState('networkidle', { timeout: 30_000 })
+        .catch(() => {})
+      const searchButton = page.locator('button:has(svg.lucide-search):visible')
+      const visibleInput = page.locator('input[placeholder*="Buscar"]:visible')
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await searchButton
+          .first()
+          .click({ timeout: 5_000 })
+          .catch(() => {})
+        const opened = await visibleInput
+          .first()
+          .isVisible({ timeout: 3_000 })
+          .catch(() => false)
+        if (opened) break
+      }
     }
 
-    const searchInput = page.locator('input[placeholder*="Buscar"]').last()
-    await expect(searchInput).toBeVisible()
+    const searchInput = page
+      .locator('input[placeholder*="Buscar"]:visible')
+      .last()
+    await expect(searchInput).toBeVisible({ timeout: 10_000 })
   })
 })
