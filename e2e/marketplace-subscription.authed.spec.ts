@@ -10,23 +10,27 @@ test.describe('Marketplace — Follow via Subscriptions', () => {
 
   test('listing detail page shows follow button', async ({ page }) => {
     await page.goto('/clippings')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('networkidle').catch(() => {})
 
-    // Click first listing card
-    const firstCard = page.locator('a[href*="/clippings/"]').first()
-    if (await firstCard.isVisible()) {
-      await firstCard.click()
-      await page.waitForLoadState('networkidle')
-
-      // Should show follow or following state
-      const followBtn = page.locator('button:has-text("Seguir")')
-      const followingBadge = page.locator('text=Seguindo')
-
-      const hasFollow = await followBtn.isVisible().catch(() => false)
-      const hasFollowing = await followingBadge.isVisible().catch(() => false)
-
-      expect(hasFollow || hasFollowing).toBe(true)
+    // O nav do header tem `/clippings?sort=trending`; cards de listing
+    // apontam para `/clippings/<id>`. Filtramos só os links de detalhe
+    // (path com slug, sem query string).
+    const detailLinks = page.locator('a[href^="/clippings/"]:not([href*="?"])')
+    const linkCount = await detailLinks.count()
+    if (linkCount === 0) {
+      test.skip(true, 'Nenhum listing no marketplace — nada para seguir')
+      return
     }
+
+    await detailLinks.first().click()
+    await page.waitForURL(/\/clippings\/[^?#]+/, { timeout: 10_000 })
+    await page.waitForLoadState('networkidle').catch(() => {})
+
+    // Deve haver botão "Seguir" OU já estar "Seguindo".
+    const followOrFollowing = page
+      .getByRole('button', { name: /seguir|seguindo/i })
+      .first()
+    await expect(followOrFollowing).toBeVisible({ timeout: 10_000 })
   })
 
   test('meus clippings page shows followed section when following', async ({

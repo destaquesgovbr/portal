@@ -9,7 +9,9 @@ test.describe('Marketplace — Navegação', () => {
     await expect(clippingsLink).toBeVisible()
     await clippingsLink.click()
 
-    await expect(page).toHaveURL('/clippings')
+    // O link do header é `/clippings?sort=trending` (sort default).
+    // Aceita ambos com/sem query string para robustez.
+    await expect(page).toHaveURL(/\/clippings(\?.*)?$/)
     await expect(page.getByText('Galeria de Clippings')).toBeVisible()
   })
 
