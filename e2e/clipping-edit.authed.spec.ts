@@ -1,13 +1,15 @@
 import { expect, test } from '@playwright/test'
 
-test.use({ storageState: 'e2e/.auth/user.json' })
+const AUTH_STATE_FILE = process.env.PLAYWRIGHT_BASE_URL
+  ? 'e2e/.auth/staging.json'
+  : 'e2e/.auth/user.json'
 
 test.describe('Clipping — Edit Flow', () => {
   let editUrl: string | null = null
 
   test.beforeAll(async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: 'e2e/.auth/user.json',
+      storageState: AUTH_STATE_FILE,
     })
     const page = await context.newPage()
     await page.goto('/minha-conta/clipping')

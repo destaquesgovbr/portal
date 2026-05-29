@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
 
-test.use({ storageState: 'e2e/.auth/user.json' })
+const AUTH_STATE_FILE = process.env.PLAYWRIGHT_BASE_URL
+  ? 'e2e/.auth/staging.json'
+  : 'e2e/.auth/user.json'
 
 test.describe('Release Page', () => {
   let releaseUrl: string | null = null
@@ -8,7 +10,7 @@ test.describe('Release Page', () => {
   test.beforeAll(async ({ browser }) => {
     // Find a release URL from a listing's releases
     const context = await browser.newContext({
-      storageState: 'e2e/.auth/user.json',
+      storageState: AUTH_STATE_FILE,
     })
     const page = await context.newPage()
 

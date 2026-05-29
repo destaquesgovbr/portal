@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test'
 
-const createdClippingId: string | null = null
+let createdClippingId: string | null = null
 
 test.describe('Clipping — Manual Creation & Edit', () => {
   test.afterAll(async ({ request }) => {
     // Cleanup: delete the test clipping if created
+    // TODO: portar para GraphQL no §9 R1 (RUNBOOK-R1.md) — endpoint REST será removido
     if (createdClippingId) {
       await request.delete(`/api/clipping/${createdClippingId}`)
     }
@@ -72,6 +73,12 @@ test.describe('Clipping — Manual Creation & Edit', () => {
 
     // Should redirect to listing
     await expect(page).toHaveURL(/minha-conta\/clipping/, { timeout: 10000 })
+
+    // Captura o ID do clipping criado para cleanup no afterAll
+    const match = page.url().match(/\/minha-conta\/clipping\/([^/?#]+)/)
+    if (match?.[1] && match[1] !== 'novo') {
+      createdClippingId = match[1]
+    }
   })
 
   test('meus clippings page shows created clippings', async ({ page }) => {
