@@ -106,11 +106,11 @@ function mapClipping(node: ClippingGraphQL): Clipping {
 }
 
 function payloadToInput(payload: ClippingPayload): ClippingInputGraphQL {
+  // RecorteInput do schema não tem `id`; ClippingInput não tem `active`.
   return {
     name: payload.name,
     description: payload.description ?? null,
     recortes: payload.recortes.map((r) => ({
-      id: r.id,
       title: r.title,
       themes: r.themes,
       agencies: r.agencies,
@@ -122,7 +122,6 @@ function payloadToInput(payload: ClippingPayload): ClippingInputGraphQL {
     endDate: payload.endDate ?? null,
     extraEmails: payload.extraEmails ?? [],
     includeHistory: payload.includeHistory ?? false,
-    active: payload.active,
   }
 }
 
@@ -169,7 +168,7 @@ export function createGraphQLClippingService(
       if (result.error) {
         throw unwrapError(result.error, 'Erro ao carregar clippings')
       }
-      const nodes = result.data?.myClippings ?? []
+      const nodes = result.data?.clippings ?? []
       return nodes.map(mapClipping)
     },
 
@@ -269,31 +268,34 @@ export function createGraphQLClippingService(
     },
 
     async estimate(recortes: Recorte[]): Promise<EstimateResult> {
-      const result = await client
-        .query<ClippingEstimateQueryData>(CLIPPING_ESTIMATE_QUERY, {
-          recortes: recortes.map((r) => ({
-            id: r.id,
-            title: r.title,
-            themes: r.themes,
-            agencies: r.agencies,
-            keywords: r.keywords,
-          })),
-        })
-        .toPromise()
-      if (result.error) {
-        throw unwrapError(result.error, 'Erro ao estimar contagem')
-      }
-      const node = result.data?.clippingEstimate
+      // O schema expõe `clippingEstimate(themes, agencies, keywords)` (estimativa
+      // única). Montamos a estimativa por-recorte chamando uma vez por recorte
+      // e somando o total. Em paralelo para minimizar latência.
+      const perRecorteResults = await Promise.all(
+        recortes.map(async (r) => {
+          const result = await client
+            .query<ClippingEstimateQueryData>(CLIPPING_ESTIMATE_QUERY, {
+              themes: r.themes,
+              agencies: r.agencies,
+              keywords: r.keywords,
+            })
+            .toPromise()
+          if (result.error) {
+            throw unwrapError(result.error, 'Erro ao estimar contagem')
+          }
+          return result.data?.clippingEstimate?.totalEstimate ?? 0
+        }),
+      )
       return {
-        total: node?.total ?? 0,
-        perRecorte: node?.perRecorte ?? [],
+        total: perRecorteResults.reduce((acc, n) => acc + n, 0),
+        perRecorte: perRecorteResults,
       }
     },
 
     async sendNow(clippingId: string): Promise<void> {
       const result = await client
         .mutation<SendClippingNowMutationData>(SEND_CLIPPING_NOW_MUTATION, {
-          clippingId,
+          id: clippingId,
         })
         .toPromise()
       if (result.error) {

@@ -71,8 +71,8 @@ const CLIPPING_FIELDS = gql`
 /** Lista os clippings do usuário autenticado (autorados + inscritos). */
 export const MY_CLIPPINGS_QUERY = gql`
   ${CLIPPING_FIELDS}
-  query MyClippings {
-    myClippings {
+  query Clippings {
+    clippings {
       ...ClippingFields
     }
   }
@@ -81,7 +81,7 @@ export const MY_CLIPPINGS_QUERY = gql`
 /** Carrega um único clipping pelo ID. */
 export const CLIPPING_QUERY = gql`
   ${CLIPPING_FIELDS}
-  query Clipping($id: ID!) {
+  query Clipping($id: String!) {
     clipping(id: $id) {
       ...ClippingFields
     }
@@ -90,7 +90,7 @@ export const CLIPPING_QUERY = gql`
 
 /** Lista releases (edições enviadas) de um clipping. */
 export const CLIPPING_RELEASES_QUERY = gql`
-  query ClippingReleases($id: ID!, $limit: Int, $before: DateTime) {
+  query ClippingReleases($id: String!, $limit: Int, $before: DateTime) {
     clipping(id: $id) {
       id
       releases(limit: $limit, before: $before) {
@@ -107,12 +107,20 @@ export const CLIPPING_RELEASES_QUERY = gql`
   }
 `
 
-/** Estima o número total de artigos para um conjunto de recortes. */
+/**
+ * Estima o número de artigos para UM recorte (themes/agencies/keywords).
+ * O schema expõe `clippingEstimate(themes, agencies, keywords): EstimateResult`
+ * (estimativa única). A estimativa por-recorte é montada no service chamando
+ * esta query uma vez por recorte.
+ */
 export const CLIPPING_ESTIMATE_QUERY = gql`
-  query ClippingEstimate($recortes: [RecorteInput!]!) {
-    clippingEstimate(recortes: $recortes) {
-      total
-      perRecorte
+  query ClippingEstimate(
+    $themes: [String!]!
+    $agencies: [String!]!
+    $keywords: [String!]!
+  ) {
+    clippingEstimate(themes: $themes, agencies: $agencies, keywords: $keywords) {
+      totalEstimate
     }
   }
 `
@@ -130,7 +138,7 @@ export const CREATE_CLIPPING_MUTATION = gql`
 
 export const UPDATE_CLIPPING_MUTATION = gql`
   ${CLIPPING_FIELDS}
-  mutation UpdateClipping($id: ID!, $input: ClippingInput!) {
+  mutation UpdateClipping($id: String!, $input: ClippingInput!) {
     updateClipping(id: $id, input: $input) {
       ...ClippingFields
     }
@@ -138,7 +146,7 @@ export const UPDATE_CLIPPING_MUTATION = gql`
 `
 
 export const DELETE_CLIPPING_MUTATION = gql`
-  mutation DeleteClipping($id: ID!) {
+  mutation DeleteClipping($id: String!) {
     deleteClipping(id: $id)
   }
 `
@@ -151,7 +159,7 @@ export const DELETE_CLIPPING_MUTATION = gql`
  */
 export const UPDATE_MY_SUBSCRIPTION_MUTATION = gql`
   mutation UpdateMySubscription(
-    $clippingId: ID!
+    $clippingId: String!
     $channels: DeliveryChannelsInput!
     $extraEmails: [String!]
     $webhookUrl: String
@@ -179,11 +187,8 @@ export const UPDATE_MY_SUBSCRIPTION_MUTATION = gql`
 
 /** Dispara o envio imediato de um clipping (catchup manual). */
 export const SEND_CLIPPING_NOW_MUTATION = gql`
-  mutation SendClippingNow($clippingId: ID!) {
-    sendClippingNow(clippingId: $clippingId) {
-      ok
-      dispatched
-    }
+  mutation SendClipping($id: String!) {
+    sendClipping(id: $id)
   }
 `
 
@@ -248,21 +253,28 @@ export interface ReleaseGraphQL {
   publishedAt: string
 }
 
+/** RecorteInput do schema NÃO tem `id` (diferente do `Recorte` de saída). */
+export interface RecorteInputGraphQL {
+  title: string
+  themes: string[]
+  agencies: string[]
+  keywords: string[]
+}
+
 export interface ClippingInputGraphQL {
   name: string
   description?: string | null
-  recortes: RecorteGraphQL[]
+  recortes: RecorteInputGraphQL[]
   prompt?: string | null
   schedule: string
   startDate?: string | null
   endDate?: string | null
   extraEmails?: string[]
   includeHistory?: boolean
-  active?: boolean
 }
 
 export interface MyClippingsQueryData {
-  myClippings: ClippingGraphQL[]
+  clippings: ClippingGraphQL[]
 }
 
 export interface CreateClippingMutationData {
@@ -282,16 +294,12 @@ export interface UpdateMySubscriptionMutationData {
 }
 
 export interface SendClippingNowMutationData {
-  sendClippingNow: {
-    ok: boolean
-    dispatched: boolean
-  }
+  sendClipping: boolean
 }
 
 export interface ClippingEstimateQueryData {
   clippingEstimate: {
-    total: number
-    perRecorte: number[]
+    totalEstimate: number
   }
 }
 

@@ -137,10 +137,10 @@ function makePayload(
 // ---------- Tests ----------
 
 describe('graphqlClippingService — listClippings', () => {
-  it('test_clippingList_uses_graphql_when_flag_on: query MyClippings e mapeia para Clipping', async () => {
+  it('test_clippingList_uses_graphql_when_flag_on: query Clippings e mapeia para Clipping', async () => {
     const { client, queries } = makeClientStub({
       onQuery: () => ({
-        myClippings: [makeClippingNode(), makeClippingNode({ id: 'c2' })],
+        clippings: [makeClippingNode(), makeClippingNode({ id: 'c2' })],
       }),
     })
 
@@ -148,7 +148,7 @@ describe('graphqlClippingService — listClippings', () => {
     const result = await service.listClippings()
 
     expect(queries).toHaveLength(1)
-    expect(queries[0].query).toContain('MyClippings')
+    expect(queries[0].query).toContain('clippings')
     expect(result).toHaveLength(2)
     expect(result[0].id).toBe('c1')
     expect(result[0].deliveryChannels).toEqual({
@@ -308,10 +308,12 @@ describe('graphqlClippingService — deleteClipping', () => {
 })
 
 describe('graphqlClippingService — estimate', () => {
-  it('test_clipping_estimate_via_graphql: query ClippingEstimate retorna total/perRecorte', async () => {
+  it('test_clipping_estimate_via_graphql: chama ClippingEstimate por recorte e soma', async () => {
+    // O schema estima por (themes,agencies,keywords) e retorna `totalEstimate`.
+    // O service chama uma vez por recorte; aqui cada chamada devolve 15.
     const { client, queries } = makeClientStub({
       onQuery: () => ({
-        clippingEstimate: { total: 42, perRecorte: [12, 30] },
+        clippingEstimate: { totalEstimate: 15 },
       }),
     })
 
@@ -321,16 +323,18 @@ describe('graphqlClippingService — estimate', () => {
       { id: 'r2', title: 't2', themes: [], agencies: ['mfin'], keywords: [] },
     ])
 
-    expect(result).toEqual({ total: 42, perRecorte: [12, 30] })
+    // 2 recortes × 15 = 30 total; perRecorte = [15, 15].
+    expect(result).toEqual({ total: 30, perRecorte: [15, 15] })
+    expect(queries).toHaveLength(2)
     expect(queries[0].query).toContain('ClippingEstimate')
   })
 })
 
 describe('graphqlClippingService — sendNow', () => {
-  it('test_send_clipping_now_via_graphql: mutation SendClippingNow com clippingId', async () => {
+  it('test_send_clipping_now_via_graphql: mutation SendClipping com id', async () => {
     const { client, mutations } = makeClientStub({
       onMutation: () => ({
-        sendClippingNow: { ok: true, dispatched: true },
+        sendClipping: true,
       }),
     })
 
@@ -338,8 +342,8 @@ describe('graphqlClippingService — sendNow', () => {
     await service.sendNow('c-7')
 
     expect(mutations).toHaveLength(1)
-    expect(mutations[0].query).toContain('SendClippingNow')
-    expect((mutations[0].vars as { clippingId: string }).clippingId).toBe('c-7')
+    expect(mutations[0].query).toContain('SendClipping')
+    expect((mutations[0].vars as { id: string }).id).toBe('c-7')
   })
 
   it('propaga erro quando o servidor retorna error', async () => {

@@ -109,18 +109,23 @@ describe('push facade — GraphQL routing (flag ON)', () => {
     })
   })
 
-  it('test_pushFiltersData_via_graphql: retorna agências do schema GraphQL', async () => {
-    const agencies = [
-      { key: 'mfin', name: 'Ministério da Fazenda', type: 'agency' },
-      { key: 'mec', name: 'Ministério da Educação', type: 'agency' },
+  it('test_pushFiltersData_via_graphql: mapeia Agency{code,label} → {key,name,type}', async () => {
+    // O schema expõe `Agency { code, label }`; o service mapeia para o shape
+    // `{key,name,type}` consumido pela UI (contrato REST legado).
+    const schemaAgencies = [
+      { code: 'mfin', label: 'Ministério da Fazenda' },
+      { code: 'mec', label: 'Ministério da Educação' },
     ]
     const { client, queries } = makeClientStub({
-      onQuery: () => ({ pushFiltersData: { agencies } }),
+      onQuery: () => ({ pushFiltersData: { agencies: schemaAgencies } }),
     })
 
     const result = await getPushFiltersData({ useGraphQL: true, client })
 
-    expect(result.agencies).toEqual(agencies)
+    expect(result.agencies).toEqual([
+      { key: 'mfin', name: 'Ministério da Fazenda', type: 'agency' },
+      { key: 'mec', name: 'Ministério da Educação', type: 'agency' },
+    ])
     expect(queries[0].query).toContain('PushFiltersData')
   })
 

@@ -95,6 +95,32 @@ export function GrowthBookProvider({ children }: GrowthBookProviderProps) {
       // url: window.location.href,
     })
 
+    // E2E/local: permite forçar valores de features via cookie
+    // `gb_force_features` (JSON `{ "graphql.clippings": true, ... }`). Em
+    // produção o cookie nunca existe — nenhum efeito. Quando presente, montamos
+    // o provider imediatamente com as features forçadas (sem esperar o init de
+    // rede), eliminando a janela de race onde a flag resolve para o default.
+    const forcedRaw = getCookie('gb_force_features')
+    let hasForced = false
+    if (forcedRaw) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(forcedRaw)) as Record<
+          string,
+          unknown
+        >
+        gb.setForcedFeatures(new Map(Object.entries(parsed)))
+        hasForced = true
+      } catch (error) {
+        console.warn('[A/B Testing] gb_force_features inválido:', error)
+      }
+    }
+
+    // Em modo forçado (testes), monta o provider já com os overrides ativos.
+    if (hasForced) {
+      setGrowthbook(gb)
+      setIsReady(true)
+    }
+
     // Load features from GrowthBook API
     gb.init({ streaming: true })
       .then(() => {

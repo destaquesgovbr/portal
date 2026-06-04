@@ -10,6 +10,8 @@ declare module 'next-auth' {
       image?: string | null
       roles: string[]
     }
+    /** Access token (JWT Keycloak) para chamadas autenticadas ao graphql-api. */
+    accessToken?: string
   }
 
   interface User {
