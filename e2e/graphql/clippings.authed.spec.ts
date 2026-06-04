@@ -16,7 +16,6 @@
 import { expect, test } from '@playwright/test'
 import {
   assertDataPreconditions,
-  type CreatedClipping,
   cleanupTestClippings,
   createE2EGraphQLClient,
   type E2EGraphQLClient,

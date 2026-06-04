@@ -87,15 +87,28 @@ test.describe('Widgets via GraphQL', () => {
     }
   })
 
-  test('widgetArticles aceita request cross-origin (CORS para embed)', async () => {
-    // Simula um embed externo: Origin diferente do portal.
-    const data = await publicGraphQL<{
-      widgetArticles: { articles: unknown[] }
-    }>(
-      WIDGET_ARTICLES,
-      { config: { agencies: [], themes: [], articlesPerPage: 3 }, page: 1 },
-      { Origin: 'https://exemplo-orgao.gov.br' },
-    )
-    expect(data.widgetArticles.articles.length).toBeGreaterThan(0)
+  test('graphql-api responde CORS preflight para a origin permitida', async () => {
+    // CORS é enforced pelo BROWSER, não por fetch no Node — validamos o que é
+    // verificável server-side: o preflight OPTIONS da origin permitida
+    // (CORS_ALLOW_ORIGINS, localmente http://localhost:3000) retorna
+    // `access-control-allow-origin`. Confirma que o CORSMiddleware está ativo.
+    // NB: embed em origin EXTERNA (widget de terceiros) exige CORS aberto em
+    // prod (CORS_ALLOW_ORIGINS=* ou lista de origens) — config de deploy, não
+    // validável neste setup local restrito.
+    const allowedOrigin =
+      process.env.E2E_PORTAL_ORIGIN ?? 'http://localhost:3000'
+    const res = await fetch(graphqlApiUrl(), {
+      method: 'OPTIONS',
+      headers: {
+        Origin: allowedOrigin,
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'content-type',
+      },
+    })
+    const allowOrigin = res.headers.get('access-control-allow-origin')
+    expect(
+      allowOrigin,
+      'graphql-api deve retornar access-control-allow-origin para a origin permitida',
+    ).toBeTruthy()
   })
 })

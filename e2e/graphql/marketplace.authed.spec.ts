@@ -17,7 +17,6 @@ import {
   type E2EGraphQLClient,
   makeClipping,
   publishListing,
-  removeClipping,
   unpublishListing,
 } from '../fixtures'
 
@@ -52,8 +51,10 @@ test.beforeEach(async () => {
 })
 
 test.afterEach(async () => {
-  await unpublishListing(client, listing.id).catch(() => {
-    // listing pode já ter sido removido por um teste — segue para limpar o resto.
+  await unpublishListing(client, listing.id).catch((err) => {
+    // listing pode já ter sido removido por um teste — registra e segue para
+    // limpar o resto (não silenciar: o erro vai pro log do runner).
+    console.warn('teardown unpublish:', (err as Error).message)
   })
   await cleanupTestClippings(client)
 })

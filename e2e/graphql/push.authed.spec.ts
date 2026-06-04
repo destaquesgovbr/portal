@@ -17,9 +17,9 @@ import {
   type E2EGraphQLClient,
 } from '../fixtures'
 
-// Contrato CORRETO do graphql-api (o tipo `Agency` expõe `code`/`label`).
-// NB: o portal em push.ts ainda consulta `key/name/type` (drift documentado em
-// _plan/R1-DRIFT-CATALOG.md) — a correção do portal é escopo da Fase 5.
+// Contrato do graphql-api: o tipo `Agency` expõe `code`/`label`. O portal
+// (push.ts) consulta exatamente isto e mapeia para `{key,name,type}` no service
+// — alinhamento feito neste mesmo PR (ver R1-DRIFT-CATALOG.md).
 const PUSH_FILTERS_DATA = /* GraphQL */ `
   query PushFiltersData {
     pushFiltersData { agencies { code label } }
