@@ -69,7 +69,7 @@ export const MARKETPLACE_LISTINGS_QUERY = gql`
 /** Carrega um único listing pelo ID. */
 export const MARKETPLACE_LISTING_QUERY = gql`
   ${LISTING_FIELDS}
-  query MarketplaceListing($id: ID!) {
+  query MarketplaceListing($id: String!) {
     marketplaceListing(id: $id) {
       ...MarketplaceListingFields
     }
@@ -81,7 +81,7 @@ export const MARKETPLACE_LISTING_QUERY = gql`
 /** Publica clipping no marketplace. */
 export const PUBLISH_TO_MARKETPLACE_MUTATION = gql`
   ${LISTING_FIELDS}
-  mutation PublishToMarketplace($clippingId: ID!, $input: PublishInput!) {
+  mutation PublishToMarketplace($clippingId: String!, $input: PublishInput!) {
     publishToMarketplace(clippingId: $clippingId, input: $input) {
       ...MarketplaceListingFields
     }
@@ -90,22 +90,25 @@ export const PUBLISH_TO_MARKETPLACE_MUTATION = gql`
 
 /** Remove um listing do marketplace (somente o autor). */
 export const UNPUBLISH_FROM_MARKETPLACE_MUTATION = gql`
-  mutation UnpublishFromMarketplace($listingId: ID!) {
+  mutation UnpublishFromMarketplace($listingId: String!) {
     unpublishFromMarketplace(listingId: $listingId)
   }
 `
 
 /** Curte/descurte um listing. */
 export const LIKE_MARKETPLACE_LISTING_MUTATION = gql`
-  mutation LikeMarketplaceListing($listingId: ID!) {
+  mutation LikeMarketplaceListing($listingId: String!) {
     likeMarketplaceListing(listingId: $listingId)
   }
 `
 
-/** Clona um listing como clipping próprio. */
+/** Clona um listing como clipping próprio. Retorna o clipping criado. */
 export const CLONE_FROM_LISTING_MUTATION = gql`
-  mutation CloneFromListing($listingId: ID!) {
-    cloneMarketplaceListing(listingId: $listingId)
+  mutation CloneFromListing($listingId: String!) {
+    cloneMarketplaceListing(listingId: $listingId) {
+      id
+      name
+    }
   }
 `
 
@@ -138,7 +141,7 @@ export const SUBSCRIBE_TO_CLIPPING_MUTATION = gql`
 
 /** Remove a inscrição do usuário em um clipping. */
 export const UNSUBSCRIBE_FROM_CLIPPING_MUTATION = gql`
-  mutation UnsubscribeFromClipping($clippingId: ID!) {
+  mutation UnsubscribeFromClipping($clippingId: String!) {
     unsubscribeFromClipping(clippingId: $clippingId)
   }
 `
@@ -201,7 +204,10 @@ export interface LikeMarketplaceListingMutationData {
 }
 
 export interface CloneFromListingMutationData {
-  cloneMarketplaceListing: boolean
+  cloneMarketplaceListing: {
+    id: string
+    name: string
+  }
 }
 
 export interface DeliveryChannelsInputGraphQL {

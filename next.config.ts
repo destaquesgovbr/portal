@@ -13,6 +13,19 @@ const umamiOrigin = (() => {
   }
 })()
 
+// Origin do graphql-api (queries/mutations via urql + SSE em /graphql/stream).
+// O cliente urql roda no BROWSER, então a origin precisa estar no connect-src —
+// senão o navegador bloqueia (CSP) toda chamada GraphQL ("Refused to connect").
+const graphqlOrigin = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_GRAPHQL_URL
+      ? new URL(process.env.NEXT_PUBLIC_GRAPHQL_URL).origin
+      : ''
+  } catch {
+    return ''
+  }
+})()
+
 const cspConnectSrc = [
   "'self'",
   umamiOrigin,
@@ -20,6 +33,7 @@ const cspConnectSrc = [
   'www.clarity.ms',
   process.env.NEXT_PUBLIC_GROWTHBOOK_API_HOST || 'https://cdn.growthbook.io',
   process.env.NEXT_PUBLIC_PUSH_WORKER_URL || '',
+  graphqlOrigin,
 ]
   .filter(Boolean)
   .join(' ')

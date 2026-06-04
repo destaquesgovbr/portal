@@ -20,7 +20,7 @@ interface PushPreferencesQueryResult {
 }
 
 interface PushFiltersDataQueryResult {
-  pushFiltersData: { agencies: AgencyOption[] }
+  pushFiltersData: { agencies: Array<{ code: string; label: string }> }
 }
 
 export async function getPushPreferencesViaGraphQL(
@@ -84,5 +84,10 @@ export async function getPushFiltersDataViaGraphQL(
   if (result.error) {
     throw result.error
   }
-  return { agencies: result.data?.pushFiltersData?.agencies ?? [] }
+  // Mapeia `Agency { code, label }` (schema) → `AgencyOption { key, name, type }`
+  // (shape REST legado consumido pela UI de push).
+  const agencies: AgencyOption[] = (
+    result.data?.pushFiltersData?.agencies ?? []
+  ).map((a) => ({ key: a.code, name: a.label, type: 'agency' }))
+  return { agencies }
 }

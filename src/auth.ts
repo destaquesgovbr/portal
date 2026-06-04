@@ -126,6 +126,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       session.user.id = (token.stableUserId as string) ?? token.sub ?? ''
       session.user.roles = (token.roles as string[]) ?? []
+      // Expõe o access_token (JWT do Keycloak) na sessão para o client urql
+      // enviá-lo como `Authorization: Bearer` ao graphql-api. O auth-exchange
+      // (src/lib/graphql/auth-exchange.ts) lê via getToken → /api/auth/session.
+      session.accessToken = (token.accessToken as string) ?? undefined
       return session
     },
   },

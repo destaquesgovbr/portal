@@ -71,7 +71,18 @@ export function createGraphQLClient(opts: CreateGraphQLClientOptions): Client {
 
   if (!opts.skipSubscriptions) {
     const sseClient = createSSEClient({
-      url: opts.url,
+      // O graphql-api expõe SSE (graphql-sse spec) em `/graphql/stream`, não em
+      // `/graphql` (que é POST de queries/mutations). Sem este ajuste, a
+      // subscription `generateRecortes` falha com "Failed to fetch".
+      url: toStreamUrl(opts.url),
+      // Reusa o mesmo token da sessão para autenticar a stream (o agente exige
+      // usuário autenticado no graphql-api).
+      headers: opts.getToken
+        ? async (): Promise<Record<string, string>> => {
+            const token = await opts.getToken?.()
+            return token ? { Authorization: `Bearer ${token}` } : {}
+          }
+        : undefined,
     })
     exchanges.push(
       subscriptionExchange({
@@ -92,6 +103,41 @@ export function createGraphQLClient(opts: CreateGraphQLClientOptions): Client {
     url: opts.url,
     exchanges,
   })
+}
+
+/**
+ * Deriva a URL do endpoint SSE (`/graphql/stream`) a partir da URL do endpoint
+ * GraphQL (`/graphql`). Se a URL não terminar em `/graphql`, faz append de
+ * `/stream` mesmo assim (defensivo para configs não-canônicas).
+ */
+export function toStreamUrl(graphqlUrl: string): string {
+  if (graphqlUrl.endsWith('/graphql')) {
+    return `${graphqlUrl}/stream`
+  }
+  if (graphqlUrl.endsWith('/graphql/')) {
+    return `${graphqlUrl}stream`
+  }
+  return `${graphqlUrl.replace(/\/$/, '')}/graphql/stream`
+}
+
+/**
+ * Lê o access token da sessão NextAuth no browser via `/api/auth/session`.
+ * Retorna `null` se não houver sessão/token (chamadas anônimas seguem sem
+ * Authorization). Server-side usa um getToken próprio (ver `createSSRClient`).
+ */
+async function getBrowserSessionToken(): Promise<string | null> {
+  try {
+    const res = await fetch('/api/auth/session', {
+      credentials: 'include',
+    })
+    if (!res.ok) {
+      return null
+    }
+    const session = (await res.json()) as { accessToken?: string } | null
+    return session?.accessToken ?? null
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -122,7 +168,7 @@ export function getClient(): Client {
   if (!_client) {
     _client = createGraphQLClient({
       url: resolveGraphQLUrl(),
-      getToken: async () => null,
+      getToken: getBrowserSessionToken,
     })
   }
   return _client

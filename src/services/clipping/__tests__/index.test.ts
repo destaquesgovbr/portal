@@ -74,14 +74,14 @@ function makeClientStub(handlers: {
 describe('getClippingService — roteamento por flag', () => {
   it('test_clippingList_uses_graphql_when_flag_on: dispara query GraphQL', async () => {
     const { client, queries } = makeClientStub({
-      onQuery: () => ({ myClippings: [] }),
+      onQuery: () => ({ clippings: [] }),
     })
 
     const service = getClippingService({ useGraphQL: true, client })
     await service.listClippings()
 
     expect(queries).toHaveLength(1)
-    expect(queries[0].query).toContain('MyClippings')
+    expect(queries[0].query).toContain('clippings')
   })
 
   it('test_clippingList_uses_rest_when_flag_off: chama /api/clipping via fetch', async () => {

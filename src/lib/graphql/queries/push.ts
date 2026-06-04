@@ -25,14 +25,17 @@ export const PUSH_PREFERENCES_QUERY = gql`
   }
 `
 
-/** Lê dados de filtros (agências disponíveis) para o UI de push. */
+/**
+ * Lê dados de filtros (agências disponíveis) para o UI de push.
+ * O tipo `Agency` do schema expõe `code`/`label`; o service mapeia para o
+ * shape `{key,name,type}` que o portal usa (contrato REST legado).
+ */
 export const PUSH_FILTERS_DATA_QUERY = gql`
   query PushFiltersData {
     pushFiltersData {
       agencies {
-        key
-        name
-        type
+        code
+        label
       }
     }
   }

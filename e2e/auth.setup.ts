@@ -180,8 +180,18 @@ setup(
       maxAge: SESSION_MAX_AGE_SECONDS,
     })
 
-    // 5. Injeta cookie no Playwright context.
+    // 5. Injeta cookie de sessão + override de feature flags no Playwright
+    //    context. O `gb_force_features` faz o GrowthBookProvider forçar as 5
+    //    flags `graphql.*` ON — a suíte E2E exercita SEMPRE o caminho GraphQL
+    //    (não o REST legado), de forma determinística (sem race do SDK).
     const portalHost = new URL(portalUrl).hostname
+    const gbForceFeatures = JSON.stringify({
+      'graphql.clippings': true,
+      'graphql.marketplace': true,
+      'graphql.agent': true,
+      'graphql.push': true,
+      'graphql.widgets': true,
+    })
     await context.addCookies([
       {
         name: cookieName,
@@ -189,6 +199,16 @@ setup(
         domain: portalHost,
         path: '/',
         httpOnly: true,
+        secure: isHttps,
+        sameSite: 'Lax',
+        expires: sessionPayload.exp,
+      },
+      {
+        name: 'gb_force_features',
+        value: encodeURIComponent(gbForceFeatures),
+        domain: portalHost,
+        path: '/',
+        httpOnly: false,
         secure: isHttps,
         sameSite: 'Lax',
         expires: sessionPayload.exp,

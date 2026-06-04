@@ -216,10 +216,10 @@ export function createGraphQLMarketplaceService(
       if (result.error) {
         throw unwrapError(result.error, 'Erro ao clonar listing')
       }
-      // Schema A3 atual devolve apenas booleano de sucesso; o ID do novo
-      // clipping é resolvido via redirect server-side ou refetch. Para o
-      // facade, retornamos string vazia — caller deve navegar para /minha-conta/clipping.
-      return { id: '' }
+      // O schema retorna o `Clipping` criado; devolvemos seu id para o caller
+      // navegar direto ao novo clipping.
+      const cloned = result.data?.cloneMarketplaceListing
+      return { id: cloned?.id ?? '' }
     },
 
     async subscribe(
