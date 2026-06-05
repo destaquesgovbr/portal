@@ -21,20 +21,17 @@ type AgentEvent =
   | { type: 'thinking'; message: string }
   | {
       type: 'tool_call'
-      iteration: number
       recorte: string
       filters: { themes: string[]; agencies: string[]; keywords: string[] }
     }
   | {
       type: 'tool_result'
-      iteration: number
       count: number
       top_themes: { code: string; label: string; count: number }[]
       top_agencies: { key: string; name: string; count: number }[]
     }
   | {
       type: 'sample_result'
-      iteration: number
       count: number
       articles: { title: string; summary: string; agency_name: string }[]
     }
@@ -86,7 +83,6 @@ function mapGraphQLEventToLocal(ev: AgentEventGraphQL): AgentEvent | null {
         }
         return {
           type: 'tool_call',
-          iteration: ev.iteration,
           recorte: args.recorte ?? '',
           filters: {
             themes: args.filters?.themes ?? [],
@@ -107,7 +103,6 @@ function mapGraphQLEventToLocal(ev: AgentEventGraphQL): AgentEvent | null {
         }
         return {
           type: 'tool_result',
-          iteration: ev.iteration,
           count: result.count ?? 0,
           top_themes: result.top_themes ?? [],
           top_agencies: result.top_agencies ?? [],
@@ -124,7 +119,6 @@ function mapGraphQLEventToLocal(ev: AgentEventGraphQL): AgentEvent | null {
         }
         return {
           type: 'sample_result',
-          iteration: ev.iteration,
           count: payload.count ?? 0,
           articles: payload.articles ?? [],
         }
@@ -455,7 +449,7 @@ function AgentRecorteGeneratorView({
       {events.length > 0 && (
         <div className="space-y-2 text-sm">
           {events.map((event, idx) => {
-            const eventKey = `${event.type}-${'iteration' in event ? event.iteration : idx}`
+            const eventKey = `${event.type}-${idx}`
             const isLast = idx === events.length - 1
             return (
               <div
