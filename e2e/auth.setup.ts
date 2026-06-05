@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import path from 'node:path'
 import { encode } from '@auth/core/jwt'
 import { expect, test as setup } from '@playwright/test'
+import { writeTokenCache } from './fixtures/keycloak'
 
 /**
  * Setup project para autenticação contra portal staging — bypassa o browser
@@ -133,6 +134,11 @@ setup(
       username: botUsername,
       password: botPassword,
     })
+
+    // 1b. Pré-popula o cache de token compartilhado para que as fixtures
+    //     reusem este grant (evita rajada de Direct Access Grants em paralelo,
+    //     que dispara o brute-force/quick-login lockout do Keycloak).
+    writeTokenCache(tokens)
 
     // 2. Decode access_token claims (sem validar — só para extrair metadados).
     const claims = decodeJwtPayload<AccessTokenClaims>(tokens.access_token)
