@@ -32,17 +32,14 @@ export const GENERATE_RECORTES_SUBSCRIPTION = gql`
         message
       }
       ... on AgentEventToolCall {
-        iteration
         tool
         argsJson
       }
       ... on AgentEventToolResult {
-        iteration
         tool
         resultJson
       }
       ... on AgentEventSampleResult {
-        iteration
         payloadJson
       }
       ... on AgentEventAdjusting {
@@ -78,21 +75,18 @@ export type AgentEventGraphQL =
     }
   | {
       __typename: 'AgentEventToolCall'
-      iteration: number
       tool: string
       /** JSON serializado com `{ recorte, filters: { themes, agencies, keywords } }`. */
       argsJson: string
     }
   | {
       __typename: 'AgentEventToolResult'
-      iteration: number
       tool: string
       /** JSON serializado com `{ count, top_themes, top_agencies }`. */
       resultJson: string
     }
   | {
       __typename: 'AgentEventSampleResult'
-      iteration: number
       /** JSON serializado com `{ count, articles: [{ title, summary, agency_name }] }`. */
       payloadJson: string
     }

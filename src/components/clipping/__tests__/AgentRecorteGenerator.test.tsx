@@ -219,7 +219,6 @@ describe('AgentRecorteGenerator — renderização de eventos GraphQL', () => {
       data: {
         generateRecortes: {
           __typename: 'AgentEventToolCall',
-          iteration: 1,
           tool: 'searchArticles',
           argsJson: JSON.stringify({
             recorte: 'Educação básica',
