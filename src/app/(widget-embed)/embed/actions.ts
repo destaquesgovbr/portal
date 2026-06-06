@@ -34,8 +34,19 @@ interface GraphqlWidgetArticle {
   tags?: string[] | null
   agency?: string | null
   agencyName?: string | null
-  publishedAt?: number | null
-  extractedAt?: number | null
+  publishedAt?: string | null
+  extractedAt?: string | null
+}
+
+/**
+ * Converte uma data ISO (formato do GraphQL) para timestamp Unix em segundos,
+ * que é o que `ArticleRow.published_at` espera (e `formatDateTime` multiplica
+ * por 1000). Retorna `null` para entradas ausentes ou inválidas.
+ */
+function isoToUnixSeconds(iso?: string | null): number | null {
+  if (!iso) return null
+  const ms = Date.parse(iso)
+  return Number.isNaN(ms) ? null : Math.floor(ms / 1000)
 }
 
 /**
@@ -52,7 +63,7 @@ function mapGraphqlArticleToRow(article: GraphqlWidgetArticle): ArticleRow {
   return {
     unique_id: article.uniqueId ?? '',
     agency: article.agency ?? null,
-    published_at: article.publishedAt ?? null,
+    published_at: isoToUnixSeconds(article.publishedAt),
     title: article.title ?? null,
     url: article.url ?? null,
     image: article.image ?? null,
@@ -62,7 +73,7 @@ function mapGraphqlArticleToRow(article: GraphqlWidgetArticle): ArticleRow {
     summary: article.summary ?? null,
     subtitle: article.subtitle ?? null,
     editorial_lead: article.editorialLead ?? null,
-    extracted_at: article.extractedAt ?? null,
+    extracted_at: isoToUnixSeconds(article.extractedAt),
     // A query não retorna hierarquia de temas; usamos `category` como rótulo
     // de tema para o badge do card renderizar como antes.
     theme_1_level_1_code: null,
