@@ -39,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cronToHumanReadable } from '@/lib/cron-utils'
+import { useMarketplaceService } from '@/services/marketplace'
 import type { Clipping } from '@/types/clipping'
 
 type SendStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -71,6 +72,7 @@ export function ClippingCard({
   const [confirmUnpublish, setConfirmUnpublish] = useState(false)
   const [isUnpublishing, setIsUnpublishing] = useState(false)
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
+  const marketplaceService = useMarketplaceService()
 
   const isPublished =
     clipping.publishedToMarketplace && clipping.marketplaceListingId
@@ -104,15 +106,9 @@ export function ClippingCard({
     setIsUnpublishing(true)
 
     try {
-      const res = await fetch(
-        `/api/clippings/public/${clipping.marketplaceListingId}`,
-        { method: 'DELETE' },
-      )
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        throw new Error(data?.error ?? 'Erro ao despublicar')
-      }
+      // GraphQL é o único caminho: roteia para a mutation
+      // `unpublishFromMarketplace` (lança em caso de erro).
+      await marketplaceService.unpublish(clipping.marketplaceListingId)
 
       toast.success('Clipping removido do marketplace')
       setConfirmUnpublish(false)
