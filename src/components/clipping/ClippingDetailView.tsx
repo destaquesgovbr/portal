@@ -22,6 +22,11 @@ type Props = {
   hasMoreReleases: boolean
   releasesPagePath?: string
   releasesApiPath?: string
+  /**
+   * ID do clipping para carregar mais edições via facade GraphQL (contexto do
+   * autor). Tem prioridade sobre `releasesApiPath`.
+   */
+  releasesClippingId?: string
 
   actions?: React.ReactNode
   feedLinks?: { rss: string; json: string }
@@ -41,6 +46,7 @@ export function ClippingDetailView({
   hasMoreReleases,
   releasesPagePath,
   releasesApiPath,
+  releasesClippingId,
   actions,
   feedLinks,
 }: Props) {
@@ -87,6 +93,7 @@ export function ClippingDetailView({
           listingId=""
           initialReleases={releases}
           hasMore={hasMoreReleases}
+          clippingId={releasesClippingId}
           releasesPagePath={releasesPagePath}
           releasesApiPath={releasesApiPath}
         />

@@ -362,6 +362,7 @@ describe('graphqlClippingService — listReleases', () => {
       clippingId: 'c1',
       clippingName: 'Meu Clipping',
       digestHtml: `<p>${id}</p>`,
+      articlesCount: 9,
       releaseUrl: `/clipping/release/${id}`,
       refTime: '2026-05-26T08:00:00Z',
       sinceHours: 24,
@@ -380,8 +381,25 @@ describe('graphqlClippingService — listReleases', () => {
     const result = await service.listReleases('c1', { limit: 2 })
 
     expect(queries[0].query).toContain('ClippingReleases')
+    expect(queries[0].query).toContain('articlesCount')
     expect(result.releases).toHaveLength(2)
     expect(result.hasMore).toBe(true)
     expect(result.releases[0].digestHtml).toBe('<p>rel-1</p>')
+    // articlesCount agora vem do schema (antes era hardcoded 0).
+    expect(result.releases[0].articlesCount).toBe(9)
+  })
+
+  it('passa o cursor `before` para a query quando fornecido', async () => {
+    const { client, queries } = makeClientStub({
+      onQuery: () => ({ clipping: { id: 'c1', releases: [] } }),
+    })
+
+    const service = createGraphQLClippingService(client)
+    await service.listReleases('c1', { before: '2026-05-26T08:00:00Z' })
+
+    expect(queries[0].vars).toMatchObject({
+      id: 'c1',
+      before: '2026-05-26T08:00:00Z',
+    })
   })
 })

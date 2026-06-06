@@ -319,13 +319,14 @@ export function createGraphQLClippingService(
 
     async listReleases(
       clippingId: string,
-      opts: { page?: number; limit?: number } = {},
+      opts: { limit?: number; before?: string } = {},
     ): Promise<ReleasesPage> {
       const limit = opts.limit ?? 10
       const result = await client
         .query<ClippingReleasesQueryData>(CLIPPING_RELEASES_QUERY, {
           id: clippingId,
           limit: limit + 1,
+          before: opts.before ?? null,
         })
         .toPromise()
       if (result.error) {
@@ -341,7 +342,7 @@ export function createGraphQLClippingService(
         clippingName: r.clippingName,
         digest: '',
         digestHtml: r.digestHtml,
-        articlesCount: 0,
+        articlesCount: r.articlesCount,
         createdAt: r.createdAt,
         releaseUrl: r.releaseUrl ?? `/clipping/release/${r.id}`,
         refTime: r.refTime,

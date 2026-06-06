@@ -62,9 +62,16 @@ export interface ClippingService {
   /** Dispara o envio imediato do clipping (catchup). */
   sendNow(clippingId: string): Promise<void>
 
-  /** Lista releases (edições enviadas) de um clipping. */
+  /**
+   * Lista releases (edições enviadas) de um clipping.
+   *
+   * Paginação por cursor `before` (DateTime ISO): o schema GraphQL retorna as
+   * releases mais recentes primeiro e usa `before` para buscar as anteriores a
+   * um dado instante (em vez de `page`/offset). Para a próxima página, passe o
+   * `refTime` (ou `createdAt`) da última release recebida.
+   */
   listReleases(
     clippingId: string,
-    opts?: { page?: number; limit?: number },
+    opts?: { limit?: number; before?: string },
   ): Promise<ReleasesPage>
 }
