@@ -13,6 +13,7 @@ import { useCallback, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useClippingService } from '@/services/clipping'
 
 type ReleaseItem = {
   id: string
@@ -29,6 +30,13 @@ type ReleaseListProps = {
   listingId: string
   initialReleases: ReleaseItem[]
   hasMore: boolean
+  /**
+   * ID do clipping do qual carregar mais edições via facade GraphQL
+   * (`clipping(id) { releases }`). Usado no contexto do AUTOR (área logada),
+   * onde o usuário tem acesso às releases. Quando presente, tem prioridade
+   * sobre `releasesApiPath` (caminho REST legado).
+   */
+  clippingId?: string
   releasesApiPath?: string
   releasesPagePath?: string
   showAllCards?: boolean
@@ -80,10 +88,12 @@ export function ReleaseList({
   listingId,
   initialReleases,
   hasMore: initialHasMore,
+  clippingId,
   releasesApiPath,
   releasesPagePath,
   showAllCards = false,
 }: ReleaseListProps) {
+  const clippingService = useClippingService()
   const [releases, setReleases] = useState<ReleaseItem[]>(initialReleases)
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [page, setPage] = useState(1)
@@ -92,6 +102,30 @@ export function ReleaseList({
   const loadMore = useCallback(async () => {
     setLoading(true)
     try {
+      // Contexto do AUTOR: paginação por cursor via facade GraphQL
+      // (`clipping(id) { releases(before:) }`). O cursor `before` é o
+      // `refTime`/`createdAt` da release mais antiga já carregada.
+      if (clippingId) {
+        const oldest = releases[releases.length - 1]
+        const before = oldest?.refTime ?? oldest?.createdAt ?? undefined
+        const data = await clippingService.listReleases(clippingId, { before })
+        const incoming: ReleaseItem[] = data.releases.map((r) => ({
+          id: r.id,
+          clippingName: r.clippingName,
+          articlesCount: r.articlesCount,
+          createdAt: r.createdAt,
+          releaseUrl: r.releaseUrl,
+          refTime: r.refTime,
+          sinceHours: r.sinceHours,
+        }))
+        setReleases((prev) => [...prev, ...incoming])
+        setHasMore(data.hasMore)
+        return
+      }
+
+      // Contexto PÚBLICO (listing): caminho REST legado por página.
+      // GraphQL não expõe releases de um listing público para visitantes não
+      // inscritos (ver gap de schema em graphql-api).
       const nextPage = page + 1
       const basePath =
         releasesApiPath ?? `/api/clippings/public/${listingId}/releases`
@@ -105,7 +139,7 @@ export function ReleaseList({
     } finally {
       setLoading(false)
     }
-  }, [listingId, page, releasesApiPath])
+  }, [clippingId, clippingService, listingId, page, releases, releasesApiPath])
 
   if (releases.length === 0) {
     return (

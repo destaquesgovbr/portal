@@ -98,6 +98,7 @@ export const CLIPPING_RELEASES_QUERY = gql`
         clippingId
         clippingName
         digestHtml
+        articlesCount
         releaseUrl
         refTime
         sinceHours
@@ -257,6 +258,7 @@ export interface ReleaseGraphQL {
   clippingId: string
   clippingName: string
   digestHtml: string
+  articlesCount: number
   releaseUrl: string | null
   refTime: string | null
   sinceHours: number | null

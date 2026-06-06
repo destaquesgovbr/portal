@@ -3,9 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from '@/__tests__/test-utils'
 import { ReleaseList } from '../ReleaseList'
 
-// Mock fetch globally
+// Mock fetch globally (caminho REST público legado)
 const mockFetch = vi.fn()
 global.fetch = mockFetch
+
+// Mock do facade de clipping: o contexto do AUTOR usa
+// `useClippingService().listReleases(clippingId, { before })` em vez de REST.
+const listReleasesMock = vi.fn()
+vi.mock('@/services/clipping', () => ({
+  useClippingService: () => ({
+    listReleases: listReleasesMock,
+  }),
+}))
 
 function makeRelease(id: string, overrides: Record<string, unknown> = {}) {
   return {
@@ -194,6 +203,86 @@ describe('ReleaseList', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         '/api/clippings/public/listing-1/releases?page=3',
       )
+    })
+  })
+
+  describe('contexto do autor (facade GraphQL)', () => {
+    it('carrega mais edições via facade quando clippingId é fornecido (sem REST)', async () => {
+      listReleasesMock.mockResolvedValueOnce({
+        releases: [
+          {
+            id: 'r2',
+            clippingName: 'Meio Ambiente',
+            articlesCount: 7,
+            createdAt: '2025-02-20T10:00:00.000Z',
+            releaseUrl: 'https://example.com/releases/r2',
+            refTime: null,
+            sinceHours: null,
+          },
+        ],
+        hasMore: false,
+      })
+
+      const { user } = render(
+        <ReleaseList
+          listingId=""
+          clippingId="clip-1"
+          initialReleases={[
+            makeRelease('r1', { createdAt: '2025-03-10T10:00:00.000Z' }),
+          ]}
+          hasMore={true}
+        />,
+      )
+
+      await user.click(screen.getByRole('button', { name: /Ver mais/i }))
+
+      // Usa o facade com cursor `before` (createdAt da release mais antiga).
+      await waitFor(() => {
+        expect(listReleasesMock).toHaveBeenCalledWith('clip-1', {
+          before: '2025-03-10T10:00:00.000Z',
+        })
+      })
+
+      // Nova edição renderiza e o REST não é tocado.
+      await waitFor(() => {
+        expect(screen.getByText(/20 de fevereiro de 2025/)).toBeInTheDocument()
+      })
+      expect(mockFetch).not.toHaveBeenCalled()
+
+      // Botão some após a última página.
+      expect(
+        screen.queryByRole('button', { name: /Ver mais/i }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('usa refTime como cursor quando presente', async () => {
+      listReleasesMock.mockResolvedValueOnce({
+        releases: [],
+        hasMore: false,
+      })
+
+      const { user } = render(
+        <ReleaseList
+          listingId=""
+          clippingId="clip-1"
+          initialReleases={[
+            makeRelease('r1', {
+              createdAt: '2025-03-10T10:00:00.000Z',
+              refTime: '2025-03-09T06:00:00.000Z',
+            }),
+          ]}
+          hasMore={true}
+        />,
+      )
+
+      await user.click(screen.getByRole('button', { name: /Ver mais/i }))
+
+      await waitFor(() => {
+        expect(listReleasesMock).toHaveBeenCalledWith('clip-1', {
+          before: '2025-03-09T06:00:00.000Z',
+        })
+      })
+      expect(mockFetch).not.toHaveBeenCalled()
     })
   })
 })
