@@ -9,22 +9,23 @@
  */
 
 import { screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from '@/__tests__/test-utils'
 import type { Clipping } from '@/types/clipping'
 import { ClippingCard } from '../ClippingCard'
 
-vi.mock('@/lib/feature-flags', () => ({
-  GRAPHQL_FLAGS: {
-    CLIPPINGS: 'graphql.clippings',
-    MARKETPLACE: 'graphql.marketplace',
-    AGENT: 'graphql.agent',
-    PUSH: 'graphql.push',
-    WIDGETS: 'graphql.widgets',
-  },
-  useFeatureFlag: (_key: string, defaultValue: boolean) => defaultValue,
-  getFeatureFlag: (_key: string, defaultValue: boolean) => defaultValue,
+// Mock do facade de marketplace: o ClippingCard usa `useMarketplaceService()`
+// para despublicar via GraphQL (mutation `unpublishFromMarketplace`).
+const unpublishMock = vi.fn().mockResolvedValue(undefined)
+vi.mock('@/services/marketplace', () => ({
+  useMarketplaceService: () => ({
+    unpublish: unpublishMock,
+  }),
 }))
+
+beforeEach(() => {
+  unpublishMock.mockClear()
+})
 
 function makeClipping(overrides: Partial<Clipping> = {}): Clipping {
   return {
@@ -162,5 +163,41 @@ describe('ClippingCard — read-only para não-autor', () => {
     expect(screen.getByText('Editar')).toBeInTheDocument()
     expect(screen.getByText('Excluir')).toBeInTheDocument()
     expect(screen.getByText('Desativar')).toBeInTheDocument()
+  })
+})
+
+describe('ClippingCard — despublicar via GraphQL', () => {
+  function makePublishedClipping(): Clipping {
+    return makeClipping({
+      publishedToMarketplace: true,
+      marketplaceListingId: 'listing-123',
+    })
+  }
+
+  it('chama marketplaceService.unpublish(listingId) ao confirmar despublicação', async () => {
+    const clipping = makePublishedClipping()
+    const onUnpublished = vi.fn()
+
+    const { user } = render(
+      <ClippingCard
+        clipping={clipping}
+        onDelete={vi.fn()}
+        onToggleActive={vi.fn()}
+        onSend={vi.fn().mockResolvedValue(undefined)}
+        onUnpublished={onUnpublished}
+      />,
+    )
+
+    // Abre o menu de ações.
+    await user.click(screen.getByRole('button'))
+
+    // Primeiro clique em "Despublicar" pede confirmação.
+    await user.click(screen.getByText('Despublicar'))
+
+    // Confirma a despublicação.
+    await user.click(screen.getByText(/confirmar despublica/i))
+
+    expect(unpublishMock).toHaveBeenCalledWith('listing-123')
+    expect(onUnpublished).toHaveBeenCalled()
   })
 })
