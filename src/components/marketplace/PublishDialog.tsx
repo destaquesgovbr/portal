@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import { useMarketplaceService } from '@/services/marketplace'
 import type { Clipping } from '@/types/clipping'
 
 type Props = {
@@ -33,6 +34,7 @@ export function PublishDialog({
   themeMap = {},
   agencyMap = {},
 }: Props) {
+  const marketplaceService = useMarketplaceService()
   const [isPublishing, setIsPublishing] = useState(false)
   const [description, setDescription] = useState(clipping.description ?? '')
   const [backfillCount, setBackfillCount] = useState(0)
@@ -43,20 +45,11 @@ export function PublishDialog({
     setIsPublishing(true)
 
     try {
-      const res = await fetch('/api/clippings/publish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clippingId: clipping.id,
-          description: description.trim(),
-          backfillCount,
-        }),
+      await marketplaceService.publish({
+        clippingId: clipping.id,
+        description: description.trim(),
+        backfillCount,
       })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        throw new Error(data?.error ?? 'Erro ao publicar no marketplace')
-      }
 
       toast.success('Clipping publicado no marketplace!')
       onOpenChange(false)

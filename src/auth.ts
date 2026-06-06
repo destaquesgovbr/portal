@@ -126,6 +126,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       session.user.id = (token.stableUserId as string) ?? token.sub ?? ''
       session.user.roles = (token.roles as string[]) ?? []
+      // Expõe o access_token (JWT do Keycloak) na sessão para o client urql
+      // enviá-lo como `Authorization: Bearer` ao graphql-api. O auth-exchange
+      // (src/lib/graphql/auth-exchange.ts) lê via getToken → /api/auth/session.
+      //
+      // TRADE-OFF DE SEGURANÇA (decisão R1): isto torna o access_token legível
+      // por JS no browser, então um XSS poderia exfiltrá-lo (antes só o cookie
+      // de sessão httpOnly do NextAuth era exposto). Aceito porque: (a) o urql
+      // client-side precisa do Bearer para o graphql-api; (b) o token Keycloak
+      // tem TTL curto (~5min) e é renovado pelo refresh; (c) o CSP restringe
+      // origens de script. Mitigação futura: proxy GraphQL server-side para
+      // manter o Bearer fora do browser.
+      session.accessToken = (token.accessToken as string) ?? undefined
       return session
     },
   },

@@ -1,8 +1,5 @@
 import { expect, test } from '@playwright/test'
 
-// Only run in authenticated desktop (zen mode requires login + desktop header)
-test.use({ storageState: 'e2e/.auth/user.json' })
-
 test.describe('Zen Mode', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
@@ -11,12 +8,15 @@ test.describe('Zen Mode', () => {
 
   test('toggle button is visible for logged-in users', async ({ page }) => {
     await expect(
-      page.locator('button[aria-label="Modo leitura"]').first(),
+      page.locator('button[aria-label="Modo leitura"]:visible').first(),
     ).toBeVisible()
   })
 
   test('clicking toggle hides header and footer', async ({ page }) => {
-    await page.locator('button[aria-label="Modo leitura"]').first().click()
+    await page
+      .locator('button[aria-label="Modo leitura"]:visible')
+      .first()
+      .click()
     await page.waitForTimeout(500)
 
     await expect(page.locator('header')).toHaveCSS('opacity', '0')
@@ -24,7 +24,10 @@ test.describe('Zen Mode', () => {
   })
 
   test('FAB appears in zen mode and exits on click', async ({ page }) => {
-    await page.locator('button[aria-label="Modo leitura"]').first().click()
+    await page
+      .locator('button[aria-label="Modo leitura"]:visible')
+      .first()
+      .click()
     await page.waitForTimeout(500)
 
     const fab = page.locator('button[aria-label="Sair do modo leitura"]')
@@ -47,7 +50,10 @@ test.describe('Zen Mode', () => {
   })
 
   test('zen mode persists across page navigation', async ({ page }) => {
-    await page.locator('button[aria-label="Modo leitura"]').first().click()
+    await page
+      .locator('button[aria-label="Modo leitura"]:visible')
+      .first()
+      .click()
     await page.waitForTimeout(500)
 
     await page.goto('/busca')

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { ClippingWizard } from '@/components/clipping/ClippingWizard'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
+import { useClippingService } from '@/services/clipping'
 import type { Clipping, ClippingPayload } from '@/types/clipping'
 
 type Props = {
@@ -21,14 +22,26 @@ export function EditarClippingClient({
   hasTelegram,
 }: Props) {
   const router = useRouter()
+  const clippingService = useClippingService()
   const [clipping, setClipping] = useState<Clipping | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/clipping')
-      .then((res) => (res.ok ? res.json() : Promise.reject(res)))
-      .then((data: Clipping[]) => {
+    let cancelled = false
+    // Reseta o estado a cada fetch. Crucial durante a migração GraphQL: no
+    // 1º render a flag `graphql.clippings` ainda não resolveu, então
+    // `useClippingService()` devolve o serviço REST (lê a coleção legada) e
+    // pode setar erro "Clipping não encontrado". Quando a flag resolve, o
+    // `clippingService` muda → este efeito re-roda via GraphQL. Sem limpar
+    // `error`/`loading` aqui, o erro da tentativa REST persistia e mascarava
+    // o sucesso do re-fetch (false-green do flag-race).
+    setLoading(true)
+    setError(null)
+    clippingService
+      .listClippings()
+      .then((data) => {
+        if (cancelled) return
         const found = data.find((c) => c.id === id)
         if (!found) {
           setError('Clipping não encontrado.')
@@ -36,21 +49,19 @@ export function EditarClippingClient({
           setClipping(found)
         }
       })
-      .catch(() => setError('Erro ao carregar o clipping.'))
-      .finally(() => setLoading(false))
-  }, [id])
+      .catch(() => {
+        if (!cancelled) setError('Erro ao carregar o clipping.')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, clippingService])
 
   const handleSubmit = async (data: ClippingPayload) => {
-    const res = await fetch(`/api/clipping/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-
-    if (!res.ok) {
-      throw new Error('Falha ao atualizar clipping')
-    }
-
+    await clippingService.updateClipping(id, data)
     router.push('/minha-conta/clipping')
   }
 

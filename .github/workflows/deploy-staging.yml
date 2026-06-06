@@ -50,7 +50,8 @@ jobs:
             --build-arg NEXT_PUBLIC_UMAMI_WEBSITE_ID="${{ secrets.UMAMI_WEBSITE_ID }}" \
             --build-arg NEXT_PUBLIC_UMAMI_SCRIPT_URL="${{ secrets.UMAMI_SCRIPT_URL }}" \
             --build-arg NEXT_PUBLIC_GROWTHBOOK_API_HOST="${{ secrets.NEXT_PUBLIC_GROWTHBOOK_API_HOST }}" \
-            --build-arg NEXT_PUBLIC_GROWTHBOOK_CLIENT_KEY="${{ secrets.NEXT_PUBLIC_GROWTHBOOK_CLIENT_KEY }}" \
+            --build-arg NEXT_PUBLIC_GROWTHBOOK_CLIENT_KEY="${{ secrets.NEXT_PUBLIC_GROWTHBOOK_CLIENT_KEY_STAGING }}" \
+            --build-arg NEXT_PUBLIC_GRAPHQL_URL="https://destaquesgovbr-graphql-api-klvx64dufq-rj.a.run.app/graphql" \
             -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:staging-${{ github.sha }} \
             -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/portal:staging-latest \
             --load \

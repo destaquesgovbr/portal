@@ -1,30 +1,37 @@
 'use client'
 
 import { Check, Loader2, Sparkles } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSubscription } from 'urql'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { useFeatureFlag } from '@/lib/feature-flags'
+import {
+  type AgentEventGraphQL,
+  GENERATE_RECORTES_SUBSCRIPTION,
+  type GenerateRecortesSubscriptionData,
+  type GenerateRecortesSubscriptionVariables,
+} from '@/lib/graphql/queries/agent'
 import type { Recorte } from '@/types/clipping'
+
+// ---------- Tipos locais (formato unificado da UI) ----------
 
 type AgentEvent =
   | { type: 'thinking'; message: string }
   | {
       type: 'tool_call'
-      iteration: number
       recorte: string
       filters: { themes: string[]; agencies: string[]; keywords: string[] }
     }
   | {
       type: 'tool_result'
-      iteration: number
       count: number
       top_themes: { code: string; label: string; count: number }[]
       top_agencies: { key: string; name: string; count: number }[]
     }
   | {
       type: 'sample_result'
-      iteration: number
       count: number
       articles: { title: string; summary: string; agency_name: string }[]
     }
@@ -49,7 +56,106 @@ type Props = {
   ) => void
 }
 
+// ---------- Mapeamento GraphQL -> formato unificado ----------
+
+/**
+ * Converte um `AgentEvent` GraphQL para o formato unificado da UI.
+ * O payload das variantes `ToolCall` / `ToolResult` / `SampleResult` vem
+ * como JSON string (decisão A6); aqui parseamos e validamos defensivamente.
+ */
+function mapGraphQLEventToLocal(ev: AgentEventGraphQL): AgentEvent | null {
+  switch (ev.__typename) {
+    case 'AgentEventThinking':
+      return { type: 'thinking', message: ev.message }
+    case 'AgentEventAdjusting':
+      return { type: 'adjusting', message: ev.message }
+    case 'AgentEventError':
+      return { type: 'error', message: ev.message }
+    case 'AgentEventToolCall': {
+      try {
+        const args = JSON.parse(ev.argsJson) as {
+          recorte?: string
+          filters?: {
+            themes?: string[]
+            agencies?: string[]
+            keywords?: string[]
+          }
+        }
+        return {
+          type: 'tool_call',
+          recorte: args.recorte ?? '',
+          filters: {
+            themes: args.filters?.themes ?? [],
+            agencies: args.filters?.agencies ?? [],
+            keywords: args.filters?.keywords ?? [],
+          },
+        }
+      } catch {
+        return null
+      }
+    }
+    case 'AgentEventToolResult': {
+      try {
+        const result = JSON.parse(ev.resultJson) as {
+          count?: number
+          top_themes?: { code: string; label: string; count: number }[]
+          top_agencies?: { key: string; name: string; count: number }[]
+        }
+        return {
+          type: 'tool_result',
+          count: result.count ?? 0,
+          top_themes: result.top_themes ?? [],
+          top_agencies: result.top_agencies ?? [],
+        }
+      } catch {
+        return null
+      }
+    }
+    case 'AgentEventSampleResult': {
+      try {
+        const payload = JSON.parse(ev.payloadJson) as {
+          count?: number
+          articles?: { title: string; summary: string; agency_name: string }[]
+        }
+        return {
+          type: 'sample_result',
+          count: payload.count ?? 0,
+          articles: payload.articles ?? [],
+        }
+      } catch {
+        return null
+      }
+    }
+    case 'AgentEventDone':
+      return {
+        type: 'done',
+        result: {
+          recortes: ev.recortes,
+          explanation: ev.explanation,
+          description: ev.description,
+          suggested_name: ev.suggestedName,
+          iterations: ev.iterations,
+          converged: ev.converged ?? undefined,
+        },
+      }
+    default:
+      return null
+  }
+}
+
 export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
+  const useGraphQL = useFeatureFlag('graphql.agent', false)
+
+  return useGraphQL ? (
+    <AgentRecorteGeneratorGraphQL onRecortesGenerated={onRecortesGenerated} />
+  ) : (
+    <AgentRecorteGeneratorREST onRecortesGenerated={onRecortesGenerated} />
+  )
+}
+
+// ---------- Implementação REST (mantida intacta, fallback) ----------
+
+function AgentRecorteGeneratorREST({ onRecortesGenerated }: Props) {
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -140,6 +246,169 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
   }, [result, onRecortesGenerated])
 
   return (
+    <AgentRecorteGeneratorView
+      prompt={prompt}
+      setPrompt={setPrompt}
+      loading={loading}
+      error={error}
+      events={events}
+      result={result}
+      onGenerate={handleGenerate}
+      onAccept={handleAccept}
+    />
+  )
+}
+
+// ---------- Implementação GraphQL Subscription (graphql.agent flag) ----------
+
+interface GraphQLSubscriptionState {
+  active: boolean
+  prompt: string
+  unsubscribeCount: number
+}
+
+function AgentRecorteGeneratorGraphQL({ onRecortesGenerated }: Props) {
+  const [prompt, setPrompt] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [events, setEvents] = useState<AgentEvent[]>([])
+  const [result, setResult] = useState<AgentResult | null>(null)
+  const [subState, setSubState] = useState<GraphQLSubscriptionState>({
+    active: false,
+    prompt: '',
+    unsubscribeCount: 0,
+  })
+
+  // Pausa a subscription enquanto não foi iniciada (active=false) e quando o
+  // evento "done" / "error" chegou. Pause=true ⇒ urql não abre conexão.
+  const [subResult] = useSubscription<
+    GenerateRecortesSubscriptionData,
+    GenerateRecortesSubscriptionData,
+    GenerateRecortesSubscriptionVariables
+  >({
+    query: GENERATE_RECORTES_SUBSCRIPTION,
+    variables: { prompt: subState.prompt },
+    pause: !subState.active || !subState.prompt,
+  })
+
+  // Mapeia novos eventos do GraphQL para o formato local; consome `subResult.data`
+  // sempre que muda. urql entrega 1 evento por update.
+  const lastDataRef = useRef<GenerateRecortesSubscriptionData | null>(null)
+  useEffect(() => {
+    if (!subResult.data) return
+    if (subResult.data === lastDataRef.current) return
+    lastDataRef.current = subResult.data
+
+    const ev = subResult.data.generateRecortes
+    const mapped = mapGraphQLEventToLocal(ev)
+    if (!mapped) return
+
+    setEvents((prev) => [...prev, mapped])
+
+    if (mapped.type === 'done') {
+      const recortesWithIds = mapped.result.recortes.map((r) => ({
+        ...r,
+        id:
+          typeof crypto !== 'undefined' &&
+          typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `recorte-${Date.now()}-${Math.random()}`,
+      }))
+      setResult({ ...mapped.result, recortes: recortesWithIds })
+      setSubState((s) => ({ ...s, active: false }))
+    }
+
+    if (mapped.type === 'error') {
+      setError(mapped.message)
+      setSubState((s) => ({ ...s, active: false }))
+    }
+  }, [subResult.data])
+
+  // Propaga erros de transporte (ex.: rede caiu) para o UI.
+  useEffect(() => {
+    if (subResult.error) {
+      setError(subResult.error.message)
+      setSubState((s) => ({ ...s, active: false }))
+    }
+  }, [subResult.error])
+
+  // Cancela a subscription quando o componente desmonta.
+  useEffect(() => {
+    return () => {
+      setSubState((s) => ({
+        active: false,
+        prompt: '',
+        unsubscribeCount: s.unsubscribeCount + 1,
+      }))
+    }
+  }, [])
+
+  const handleGenerate = useCallback(() => {
+    const trimmed = prompt.trim()
+    if (!trimmed) {
+      setError('Descreva os assuntos que deseja acompanhar.')
+      return
+    }
+    setError(null)
+    setEvents([])
+    setResult(null)
+    lastDataRef.current = null
+    setSubState((s) => ({
+      active: true,
+      prompt: trimmed,
+      unsubscribeCount: s.unsubscribeCount,
+    }))
+  }, [prompt])
+
+  const handleAccept = useCallback(() => {
+    if (result) {
+      onRecortesGenerated(
+        result.recortes,
+        result.suggested_name,
+        result.description || result.explanation,
+      )
+    }
+  }, [result, onRecortesGenerated])
+
+  const loading = subState.active && !result && !error
+
+  return (
+    <AgentRecorteGeneratorView
+      prompt={prompt}
+      setPrompt={setPrompt}
+      loading={loading}
+      error={error}
+      events={events}
+      result={result}
+      onGenerate={handleGenerate}
+      onAccept={handleAccept}
+    />
+  )
+}
+
+// ---------- View compartilhada (REST + GraphQL renderizam o mesmo UI) ----------
+
+interface ViewProps {
+  prompt: string
+  setPrompt: (v: string) => void
+  loading: boolean
+  error: string | null
+  events: AgentEvent[]
+  result: AgentResult | null
+  onGenerate: () => void
+  onAccept: () => void
+}
+
+function AgentRecorteGeneratorView({
+  prompt,
+  setPrompt,
+  loading,
+  error,
+  events,
+  result,
+  onGenerate,
+  onAccept,
+}: ViewProps) {
+  return (
     <div className="space-y-4">
       <div className="space-y-1.5">
         <label className="text-sm font-medium" htmlFor="agent-prompt">
@@ -157,7 +426,7 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
 
       <Button
         type="button"
-        onClick={handleGenerate}
+        onClick={onGenerate}
         disabled={loading || !prompt.trim()}
         className="cursor-pointer"
       >
@@ -180,7 +449,7 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
       {events.length > 0 && (
         <div className="space-y-2 text-sm">
           {events.map((event, idx) => {
-            const eventKey = `${event.type}-${'iteration' in event ? event.iteration : idx}`
+            const eventKey = `${event.type}-${idx}`
             const isLast = idx === events.length - 1
             return (
               <div
@@ -323,17 +592,13 @@ export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
           </p>
 
           <div className="flex gap-2">
-            <Button
-              type="button"
-              onClick={handleAccept}
-              className="cursor-pointer"
-            >
+            <Button type="button" onClick={onAccept} className="cursor-pointer">
               Usar estes recortes
             </Button>
             <Button
               type="button"
               variant="outline"
-              onClick={handleGenerate}
+              onClick={onGenerate}
               disabled={loading}
               className="cursor-pointer"
             >

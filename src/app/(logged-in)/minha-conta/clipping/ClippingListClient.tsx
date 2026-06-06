@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { ClippingCard } from '@/components/clipping/ClippingCard'
+import { useClippingService } from '@/services/clipping'
 import type { Clipping } from '@/types/clipping'
 
 type Props = {
@@ -16,11 +17,12 @@ export function ClippingListClient({
   themeMap = {},
   agencyMap = {},
 }: Props) {
+  const clippingService = useClippingService()
   const [clippings, setClippings] = useState<Clipping[]>(initialClippings)
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/clipping/${id}`, { method: 'DELETE' })
+      await clippingService.deleteClipping(id)
       setClippings((prev) => prev.filter((c) => c.id !== id))
     } catch (err) {
       console.error('Failed to delete clipping:', err)
@@ -28,36 +30,26 @@ export function ClippingListClient({
   }
 
   const handleToggleActive = async (id: string, active: boolean) => {
+    // Roteado pelo facade: usa a mutation `setClippingActive` quando a flag
+    // `graphql.clippings` está ON, ou o PATCH REST legado caso contrário.
     try {
-      const res = await fetch(`/api/clipping/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active }),
-      })
-      if (res.ok) {
-        setClippings((prev) =>
-          prev.map((c) => (c.id === id ? { ...c, active } : c)),
-        )
-      }
+      await clippingService.setClippingActive(id, active)
+      setClippings((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, active } : c)),
+      )
     } catch (err) {
       console.error('Failed to toggle clipping:', err)
     }
   }
 
   const handleSend = async (id: string) => {
-    const res = await fetch(`/api/clipping/${id}/send`, { method: 'POST' })
-    if (!res.ok) {
-      throw new Error(`Send failed: ${res.status}`)
-    }
+    await clippingService.sendNow(id)
   }
 
   const refreshClippings = async () => {
     try {
-      const res = await fetch('/api/clipping')
-      if (res.ok) {
-        const data = await res.json()
-        setClippings(data)
-      }
+      const data = await clippingService.listClippings()
+      setClippings(data)
     } catch (err) {
       console.error('Failed to refresh clippings:', err)
     }

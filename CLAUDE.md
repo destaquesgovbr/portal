@@ -352,7 +352,191 @@ pnpm start        # Inicia servidor de produção
 # Linting e Formatação
 pnpm lint         # Verifica código com Biome
 pnpm format       # Formata código com Biome
+
+# Testes
+pnpm test         # Vitest (unitários)
+pnpm e2e          # Playwright local (sobe pnpm dev em :3000)
+pnpm e2e:staging  # Playwright contra Cloud Run staging real
+pnpm e2e:smoke    # Subset @smoke contra staging
 ```
+
+## Testes E2E (Playwright)
+
+A suíte tem **dois modos**, controlados por `PLAYWRIGHT_BASE_URL`:
+
+| Modo | Quando | Auth | Storage state | Webserver |
+|------|--------|------|---------------|-----------|
+| **Local** | sem `PLAYWRIGHT_BASE_URL` | `e2e/auth-setup.ts` faz dev-login | `e2e/.auth/user.json` | `pnpm dev` sobe automaticamente |
+| **Staging** | `PLAYWRIGHT_BASE_URL=https://destaquesgovbr-portal-staging-*.run.app` | `e2e/auth.setup.ts` forja cookie NextAuth via Direct Access Grant no Keycloak | `e2e/.auth/staging.json` | nenhum — testa o Cloud Run real |
+
+### Por que existe o modo staging
+
+Validar o portal de staging **end-to-end real**: Cloud Run + Firestore + Typesense + Keycloak + GraphQL API + feature flags do GrowthBook. Pega regressões que mocks não pegam (CSP, CORS, ordem de hidratação, race conditions de feature flags). Usado pela equipe durante validação de flags da migração GraphQL (R1) — não roda em CI; é sob demanda.
+
+### Como autentica em staging
+
+Bypassa o browser-based OIDC flow inteiramente. O realm Keycloak tem o IdP Google configurado em `auto-redirect`, então toda navegação para `/protocol/openid-connect/auth` é redirecionada para Google — o bot não é federado via Google, então o flow browser não funciona. Solução:
+
+1. `scripts/e2e/get-test-jwt.sh` faz Direct Access Grant no client `portal-e2e` com o bot `e2e-bot@destaquesgovbr.gov.br`
+2. `e2e/auth.setup.ts` decodifica o access_token, forja um JWE NextAuth v5 com `@auth/core/jwt encode()` (mesmo `AUTH_SECRET` do portal staging, salt = nome do cookie)
+3. Injeta o cookie `__Secure-authjs.session-token` no Playwright context e valida com `GET /api/auth/session`
+4. Salva storageState em `e2e/.auth/staging.json` (gitignored) — reutilizado pelos projects `chromium-authed` e `mobile-authed`
+
+### Como rodar contra staging
+
+```bash
+# 1. Carrega E2E_BOT_PASSWORD e AUTH_SECRET do GCP Secret Manager
+source ./scripts/e2e/load-creds.sh
+
+# 2. Roda toda a suíte
+pnpm e2e:staging
+
+# Ou um spec específico (em headed pra debugar)
+PLAYWRIGHT_BASE_URL=https://destaquesgovbr-portal-staging-klvx64dufq-rj.a.run.app \
+  pnpm exec playwright test e2e/clipping-manual.authed.spec.ts --headed --project=chromium-authed
+
+# Ou só smoke tests
+pnpm e2e:smoke
+```
+
+Pré-requisitos: `gcloud auth login` (precisa de `roles/secretmanager.secretAccessor` nos secrets `keycloak-e2e-bot-password` e `auth-secret` em `inspire-7-finep`).
+
+### Projects do Playwright
+
+`playwright.config.ts` define 4 projects: `chromium`, `chromium-authed`, `mobile`, `mobile-authed`. Os `-authed` só rodam specs `*.authed.spec.ts` (via `testMatch`), e os `chromium`/`mobile` os ignoram (via `testIgnore`). Crie specs:
+
+- `e2e/foo.spec.ts` → roda em `chromium` + `mobile` (público)
+- `e2e/foo.authed.spec.ts` → roda em `chromium-authed` + `mobile-authed` (logado)
+
+**Não use** `test.use({ storageState: '...' })` dentro de specs — deixe o config controlar. Hardcoding quebra o switch local/staging.
+
+### Bot e infra de staging
+
+- **Usuário Keycloak:** `e2e-bot@destaquesgovbr.gov.br` no realm `destaquesgovbr` (provisionado fora do Terraform — ver `destaquesgovbr/infra#180`)
+- **Client OIDC:** `portal-e2e` (public, Direct Access Grants habilitado)
+- **Secrets GCP:** `keycloak-e2e-bot-password`, `auth-secret` (projeto `inspire-7-finep`)
+- **Detalhes:** `scripts/e2e/README.md`
+
+### Suíte E2E GraphQL local (`e2e/graphql/`)
+
+Suíte nova (R1) que valida as 5 features migradas (`clippings`, `marketplace`,
+`agent`, `push`, `widgets`) contra **portal + graphql-api rodando localmente**.
+É o gate confiável que substituiu o `curl` headless — pega o drift de schema
+portal↔graphql-api que o curl mascarava. Catálogo de bugs encontrados:
+`graphql-api/_plan/R1-DRIFT-CATALOG.md`.
+
+**Estrutura:**
+
+- `e2e/fixtures/` — factory de dados via GraphQL direto (não pela UI):
+  - `keycloak.ts` — Direct Access Grant do bot → `access_token`.
+  - `graphql-client.ts` — POST autenticado no graphql-api (`E2E_GRAPHQL_URL`,
+    default `http://localhost:8000/graphql`). Erros viram exceção verbosa.
+  - `clipping.fixture.ts` / `listing.fixture.ts` — `makeClipping`,
+    `publishListing`, etc. Todo dado leva prefixo `E2E_TEST_` e é limpo no
+    `afterAll` (+ `cleanupTestClippings` defensivo).
+  - `seed.ts` — pré-flight de dados (themes/articles). Sem `test.skip` mudo.
+- `e2e/graphql/*.authed.spec.ts` — jornadas logadas; `widgets.spec.ts` é público.
+
+**Regras (proibido):** `.catch(() => {})` silencioso, `test.skip` data-dependent,
+asserções vazias (`toBeGreaterThanOrEqual(0)`). As fixtures garantem o estado;
+as asserções conferem o backend, não só a UI.
+
+**Como rodar (portal + graphql-api locais):**
+
+```bash
+# Terminal A: graphql-api em :8000 (cd ../graphql-api && make dev)
+# Terminal B:
+source scripts/e2e/load-creds.sh          # E2E_BOT_PASSWORD + AUTH_SECRET
+pnpm dev                                   # portal :3000 (ou deixe o config subir)
+PLAYWRIGHT_BASE_URL=http://localhost:3000 \
+KC_URL=https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app \
+  pnpm exec playwright test e2e/graphql --project=chromium-authed --project=chromium
+```
+
+Pré-requisito de auth: `AUTH_SECRET` do `.env.local` precisa ser **idêntico** ao
+secret `auth-secret` do GCP (o `load-creds.sh` exporta esse mesmo valor para o
+Playwright forjar o cookie). Se divergir, a sessão forjada não decodifica.
+
+### Reprodutibilidade — limitações atuais
+
+Os testes **assumem dados pré-existentes no Firestore staging** (clippings, listings do bot). Não há fase de seed/fixture. Se Firestore staging for resetado ou alguém mexer nos dados do bot, alguns testes vão falhar por estado ausente — isso é esperado, não é regressão. Triagem caso a caso.
+
+## Modo dev local com graphql-api real
+
+Modo de desenvolvimento usado durante a migração R1 (GraphQL): portal Next.js + graphql-api Python rodando ambos na máquina local, conversando com Keycloak/Firestore/Typesense/Postgres reais no GCP. Substitui a tentativa anterior de validar via suíte Playwright contra staging, que se mostrou frágil.
+
+### Topologia
+
+```
+Mac local                              GCP (inspire-7-finep)
+─────────                              ───────────────────────
+portal :3000  ──HTTP──>  graphql-api :8000 ──> Firestore + Typesense + Postgres
+     │                       │
+     └──── OIDC browser ─────┴──── JWT validation ──> Keycloak Cloud Run
+                                                       (client `portal-local`)
+```
+
+### Diferença dos outros modos de auth
+
+| Modo | `AUTH_DEV_LOGIN` | `AUTH_GOVBR_*` | Quando |
+|------|------------------|----------------|--------|
+| Dev-login (mock) | `true` | desligado | iteração rápida sem OIDC; sem Keycloak |
+| **Dev local + Keycloak real** (este) | desligado | `portal-local` apontando para Keycloak Cloud Run | validar fluxos auth + GraphQL ponta-a-ponta antes do staging |
+| Staging/prod | desligado | `portal-staging` / `portal` | gerenciado pelo Terraform |
+
+### Pré-requisitos (one-time)
+
+```bash
+# 1. ADC do gcloud (Firebase Admin SDK + Secret Manager leem daqui)
+gcloud auth application-default login
+
+# 2. Cliente Keycloak `portal-local` (criado uma vez, secret vai pra `.env.local`)
+../infra/scripts/create-keycloak-client.sh portal-local http://localhost:3000/api/auth/callback/govbr
+# Copia o client secret impresso → atualiza `AUTH_GOVBR_SECRET` em `.env.local`.
+# Para rotacionar depois: mesmo comando + flag `--rotate-secret`.
+
+# 3. graphql-api: gera .env.local com secrets do GCP
+cd ../graphql-api && make bootstrap-env
+```
+
+### Subir o ambiente
+
+Dois terminais:
+
+```bash
+# Terminal A — graphql-api em :8000
+cd graphql-api
+source scripts/dev/load-local-creds.sh  # valida ADC, exporta GOOGLE_CLOUD_PROJECT
+make dev                                  # uvicorn --reload em :8000
+
+# Terminal B — portal em :3000
+cd portal
+source scripts/dev/load-local-creds.sh    # valida ADC, exporta GOOGLE_CLOUD_PROJECT
+pnpm dev                                  # next dev em :3000
+```
+
+### Validar end-to-end
+
+1. `curl http://localhost:8000/health` → `{"status":"ok"}`
+2. Browser em `http://localhost:3000` → "Entrar" → redireciona Keycloak Cloud Run → Google → volta autenticado
+3. DevTools Network: queries GraphQL vão para `http://localhost:8000/graphql` com `Authorization: Bearer <JWT Keycloak>`
+4. Criar um clipping pelo wizard → listar em `/minha-conta/clipping`
+
+### Smoke direto na API (sem browser)
+
+```bash
+# Query pública (sem auth) — exercita Postgres + Typesense
+curl -sf -X POST http://localhost:8000/graphql -H "Content-Type: application/json" \
+  -d '{"query":"{ themes { code label } }"}'
+curl -sf -X POST http://localhost:8000/graphql -H "Content-Type: application/json" \
+  -d '{"query":"{ articles(page: 1, limit: 2) { articles { uniqueId title } found } }"}'
+```
+
+### Limitações conhecidas
+
+- O cliente `portal-local` é confidential com `kc_idp_hint=google`: para autenticar, sua conta Google precisa estar federada no realm (mesmo critério dos clientes prod). Adicione usuários novos pelo Keycloak admin (ou peça pra alguém com acesso).
+- Algumas flags de R1 (`marketplace`, `agent`) requerem 8 métodos faltantes em `FirestoreDatasource` do graphql-api (issue graphql-api#3) — ativá-las localmente vai bater nesse limite até serem implementadas.
+- ADC tem TTL — se um request começar a retornar 401 do GCP, rode `gcloud auth application-default login` de novo.
 
 ## Variáveis de Ambiente
 

@@ -26,8 +26,11 @@ test.describe('Galeria de Clippings — Filtros e Ordenação', () => {
 
   test('search updates URL params', async ({ page }) => {
     await page.getByPlaceholder(/buscar por nome/i).fill('cultura')
-    await page.waitForTimeout(1000)
-    expect(page.url()).toContain('busca=cultura')
+    // Em vez de timeout fixo (que falha em cold start de Cloud Run),
+    // espera explicitamente a URL refletir o parâmetro.
+    await expect
+      .poll(() => page.url(), { timeout: 5_000 })
+      .toContain('busca=cultura')
   })
 
   test('frequency chip filters daily clippings', async ({ page }) => {
@@ -70,9 +73,11 @@ test.describe('Galeria de Clippings — Filtros e Ordenação', () => {
   test('sort by popular changes order', async ({ page }) => {
     const sortSelect = page.locator('select')
     await sortSelect.selectOption('popular')
-    await page.waitForTimeout(300)
 
-    expect(page.url()).toContain('sort=popular')
+    // Espera explícita pela atualização da URL (mais robusto que sleep fixo).
+    await expect
+      .poll(() => page.url(), { timeout: 5_000 })
+      .toContain('sort=popular')
   })
 
   test('transparency link is visible and navigates', async ({ page }) => {

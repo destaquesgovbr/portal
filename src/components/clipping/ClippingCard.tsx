@@ -51,6 +51,7 @@ type Props = {
   onUnpublished?: () => void
   themeMap?: Record<string, string>
   agencyMap?: Record<string, string>
+  isAuthor?: boolean
 }
 
 export function ClippingCard({
@@ -61,6 +62,7 @@ export function ClippingCard({
   onUnpublished,
   themeMap = {},
   agencyMap = {},
+  isAuthor = true,
 }: Props) {
   const [sendStatus, setSendStatus] = useState<SendStatus>('idle')
   const [sendError, setSendError] = useState<string | null>(null)
@@ -224,12 +226,16 @@ export function ClippingCard({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
-                    <Link href={`/minha-conta/clipping/${clipping.id}/editar`}>
-                      <Pencil className="h-4 w-4" />
-                      Editar
-                    </Link>
-                  </DropdownMenuItem>
+                  {isAuthor && (
+                    <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                      <Link
+                        href={`/minha-conta/clipping/${clipping.id}/editar`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Editar
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
 
                   <DropdownMenuItem
                     onClick={handleSend}
@@ -240,22 +246,26 @@ export function ClippingCard({
                     Gerar e Enviar Agora
                   </DropdownMenuItem>
 
-                  <DropdownMenuSeparator />
+                  {isAuthor && (
+                    <>
+                      <DropdownMenuSeparator />
 
-                  <DropdownMenuItem
-                    onClick={() =>
-                      onToggleActive(clipping.id, !clipping.active)
-                    }
-                    className="cursor-pointer gap-2"
-                  >
-                    <Power className="h-4 w-4" />
-                    {clipping.active ? 'Desativar' : 'Ativar'}
-                  </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          onToggleActive(clipping.id, !clipping.active)
+                        }
+                        className="cursor-pointer gap-2"
+                      >
+                        <Power className="h-4 w-4" />
+                        {clipping.active ? 'Desativar' : 'Ativar'}
+                      </DropdownMenuItem>
 
-                  <DropdownMenuSeparator />
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
 
                   {/* Marketplace actions */}
-                  {!isPublished && (
+                  {isAuthor && !isPublished && (
                     <DropdownMenuItem
                       onSelect={() => setPublishDialogOpen(true)}
                       className="cursor-pointer gap-2"
@@ -265,7 +275,7 @@ export function ClippingCard({
                     </DropdownMenuItem>
                   )}
 
-                  {isPublished && (
+                  {isAuthor && isPublished && (
                     <>
                       <DropdownMenuItem
                         asChild
@@ -320,43 +330,43 @@ export function ClippingCard({
                     </>
                   )}
 
-                  {!isPublished && <DropdownMenuSeparator />}
-                  {isPublished && <DropdownMenuSeparator />}
+                  {isAuthor && <DropdownMenuSeparator />}
 
-                  {confirmDelete ? (
-                    <>
+                  {isAuthor &&
+                    (confirmDelete ? (
+                      <>
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            onDelete(clipping.id)
+                            setConfirmDelete(false)
+                          }}
+                          className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Confirmar exclusão
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault()
+                            setConfirmDelete(false)
+                          }}
+                          className="cursor-pointer gap-2"
+                        >
+                          Cancelar
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
                       <DropdownMenuItem
-                        onSelect={() => {
-                          onDelete(clipping.id)
-                          setConfirmDelete(false)
+                        onSelect={(e) => {
+                          e.preventDefault()
+                          setConfirmDelete(true)
                         }}
                         className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
                       >
                         <Trash2 className="h-4 w-4" />
-                        Confirmar exclusão
+                        Excluir
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault()
-                          setConfirmDelete(false)
-                        }}
-                        className="cursor-pointer gap-2"
-                      >
-                        Cancelar
-                      </DropdownMenuItem>
-                    </>
-                  ) : (
-                    <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault()
-                        setConfirmDelete(true)
-                      }}
-                      className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Excluir
-                    </DropdownMenuItem>
-                  )}
+                    ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

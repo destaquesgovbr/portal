@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { useMarketplaceService } from '@/services/marketplace'
 import type { MarketplaceListing } from '@/types/clipping'
 import { FollowDialog } from './FollowDialog'
 
@@ -24,6 +25,7 @@ export function ListingActions({
 }: Props) {
   const { data: session } = useSession()
   const router = useRouter()
+  const marketplaceService = useMarketplaceService()
 
   const [liked, setLiked] = useState(initialHasLiked)
   const [likeCount, setLikeCount] = useState(listing.likeCount)
@@ -49,18 +51,14 @@ export function ListingActions({
     setLiking(true)
 
     try {
-      const res = await fetch(`/api/clippings/public/${listing.id}/like`, {
-        method: 'POST',
-      })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        throw new Error(data?.error ?? 'Erro ao curtir')
-      }
-
-      const body = await res.json()
-      setLiked(body.liked)
-      setLikeCount(body.likeCount)
+      const result = await marketplaceService.toggleLike(listing.id)
+      setLiked(result.liked)
+      // GraphQL não devolve likeCount: derivamos do estado anterior.
+      setLikeCount((prev) =>
+        result.likeCount > 0
+          ? result.likeCount
+          : Math.max(0, result.liked ? prev + 1 : prev - 1),
+      )
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao curtir')
     } finally {
@@ -82,15 +80,7 @@ export function ListingActions({
     setUnfollowing(true)
 
     try {
-      const res = await fetch(`/api/clippings/public/${listing.id}/follow`, {
-        method: 'DELETE',
-      })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        throw new Error(data?.error ?? 'Erro ao deixar de seguir')
-      }
-
+      await marketplaceService.unsubscribe(listing.id)
       setFollows(false)
       setFollowerCount((prev) => Math.max(0, prev - 1))
       toast.success('Você deixou de seguir este clipping')
@@ -114,17 +104,13 @@ export function ListingActions({
     setCloning(true)
 
     try {
-      const res = await fetch(`/api/clippings/public/${listing.id}/clone`, {
-        method: 'POST',
-      })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        throw new Error(data?.error ?? 'Erro ao clonar')
+      const result = await marketplaceService.clone(listing.id)
+      if (result.id) {
+        router.push(`/minha-conta/clipping/${result.id}/editar`)
+      } else {
+        // GraphQL atual devolve sucesso booleano — caímos no listing do user.
+        router.push('/minha-conta/clipping')
       }
-
-      const body = await res.json()
-      router.push(`/minha-conta/clipping/${body.id}/editar`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao clonar')
     } finally {
