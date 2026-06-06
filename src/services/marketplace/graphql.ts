@@ -63,6 +63,7 @@ function mapListing(node: MarketplaceListingGraphQL): MarketplaceListing {
       keywords: r.keywords ?? [],
     })),
     prompt: node.prompt ?? '',
+    schedule: node.schedule ?? undefined,
     likeCount: node.likeCount,
     followerCount: node.followerCount,
     cloneCount: node.cloneCount,

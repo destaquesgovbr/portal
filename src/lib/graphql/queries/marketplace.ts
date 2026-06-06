@@ -40,6 +40,7 @@ const LISTING_FIELDS = gql`
       keywords
     }
     prompt
+    schedule
     likeCount
     followerCount
     cloneCount
@@ -165,6 +166,7 @@ export interface MarketplaceListingGraphQL {
   description: string | null
   recortes: MarketplaceRecorteGraphQL[]
   prompt: string | null
+  schedule: string | null
   likeCount: number
   followerCount: number
   cloneCount: number

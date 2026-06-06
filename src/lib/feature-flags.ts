@@ -21,19 +21,13 @@ import { isGrowthBookConfigured } from '@/ab-testing/growthbook'
 
 /**
  * Flags planejadas para a migração GraphQL (PLANO-ATUALIZACAO-v2, §3 D4).
+ * Definição PURA em `@/lib/graphql/flags` (sem `'use client'`) para ser
+ * compartilhada com Server Components; re-exportada aqui por compatibilidade.
  *
  * Default = `false` em todas: portal continua usando REST até a flag ser
  * explicitamente ligada via GrowthBook.
  */
-export const GRAPHQL_FLAGS = {
-  CLIPPINGS: 'graphql.clippings',
-  MARKETPLACE: 'graphql.marketplace',
-  AGENT: 'graphql.agent',
-  PUSH: 'graphql.push',
-  WIDGETS: 'graphql.widgets',
-} as const
-
-export type GraphQLFlagKey = (typeof GRAPHQL_FLAGS)[keyof typeof GRAPHQL_FLAGS]
+export { GRAPHQL_FLAGS, type GraphQLFlagKey } from '@/lib/graphql/flags'
 
 /**
  * Hook client-side para ler uma feature flag com default explícito.

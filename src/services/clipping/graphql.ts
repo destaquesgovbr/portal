@@ -26,7 +26,9 @@ import {
   MY_CLIPPINGS_QUERY,
   type MyClippingsQueryData,
   SEND_CLIPPING_NOW_MUTATION,
+  SET_CLIPPING_ACTIVE_MUTATION,
   type SendClippingNowMutationData,
+  type SetClippingActiveMutationData,
   UPDATE_CLIPPING_MUTATION,
   UPDATE_MY_SUBSCRIPTION_MUTATION,
   type UpdateClippingMutationData,
@@ -267,6 +269,18 @@ export function createGraphQLClippingService(
       }
     },
 
+    async setClippingActive(id: string, active: boolean): Promise<void> {
+      const result = await client
+        .mutation<SetClippingActiveMutationData>(SET_CLIPPING_ACTIVE_MUTATION, {
+          id,
+          active,
+        })
+        .toPromise()
+      if (result.error) {
+        throw unwrapError(result.error, 'Falha ao alterar status do clipping')
+      }
+    },
+
     async estimate(recortes: Recorte[]): Promise<EstimateResult> {
       // O schema expõe `clippingEstimate(themes, agencies, keywords)` (estimativa
       // única). Montamos a estimativa por-recorte chamando uma vez por recorte
@@ -328,7 +342,7 @@ export function createGraphQLClippingService(
         digest: '',
         digestHtml: r.digestHtml,
         articlesCount: 0,
-        createdAt: r.publishedAt,
+        createdAt: r.createdAt,
         releaseUrl: r.releaseUrl ?? `/clipping/release/${r.id}`,
         refTime: r.refTime,
         sinceHours: r.sinceHours,

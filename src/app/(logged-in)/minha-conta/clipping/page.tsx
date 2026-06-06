@@ -6,13 +6,38 @@ import {
 } from '@/components/marketplace/FollowCard'
 import { getAgenciesList } from '@/data/agencies-utils'
 import { getThemesWithHierarchy } from '@/data/themes-utils'
+import {
+  GRAPHQL_FLAGS,
+  resolveGraphQLFlagServer,
+} from '@/lib/feature-flags-server'
 import { getFirestoreDb } from '@/lib/firebase-admin'
+import { createSSRClient } from '@/lib/graphql/client'
+import { createGraphQLClippingService } from '@/services/clipping/graphql'
 import type { Clipping, MarketplaceListing } from '@/types/clipping'
 import { ClippingListClient } from './ClippingListClient'
 
 export async function getClippings(): Promise<Clipping[]> {
   const session = await auth()
   if (!session?.user?.id) return []
+
+  // Quando `graphql.clippings` está ON, hidrata via a fachada GraphQL (mesmo
+  // caminho do cliente) — assim o canário exercita os resolvers de leitura.
+  // Falha → fallback para o Firestore abaixo (comportamento legado).
+  const useGraphQL = await resolveGraphQLFlagServer(
+    GRAPHQL_FLAGS.CLIPPINGS,
+    session.user.id,
+  )
+  if (useGraphQL) {
+    try {
+      const client = createSSRClient(async () => session.accessToken ?? null)
+      return await createGraphQLClippingService(client).listClippings()
+    } catch (err) {
+      console.error(
+        'getClippings via GraphQL falhou; fallback Firestore:',
+        (err as Error).message,
+      )
+    }
+  }
 
   try {
     const db = getFirestoreDb()

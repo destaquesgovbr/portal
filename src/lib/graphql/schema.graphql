@@ -1,0 +1,756 @@
+type Agency {
+  code: String!
+  label: String!
+}
+
+"""
+Agency statistics with article count
+"""
+type AgencyStats {
+  name: String!
+  count: Int!
+}
+
+union AgentEvent =
+  | AgentEventThinking
+  | AgentEventToolCall
+  | AgentEventToolResult
+  | AgentEventSampleResult
+  | AgentEventAdjusting
+  | AgentEventDone
+  | AgentEventError
+
+type AgentEventAdjusting {
+  message: String!
+}
+
+type AgentEventDone {
+  recortes: [Recorte!]!
+  explanation: String!
+  description: String!
+  suggestedName: String!
+  iterations: Int!
+  converged: Boolean!
+}
+
+type AgentEventError {
+  message: String!
+}
+
+type AgentEventSampleResult {
+  payloadJson: String!
+}
+
+type AgentEventThinking {
+  message: String!
+}
+
+type AgentEventToolCall {
+  tool: String!
+  argsJson: String!
+}
+
+type AgentEventToolResult {
+  tool: String!
+  resultJson: String!
+}
+
+"""
+Key performance indicators for article analytics
+"""
+type AnalyticsKpis {
+  total: Int!
+  activeThemes: Int!
+  activeAgencies: Int!
+  dailyAverage: Float!
+}
+
+type Article {
+  uniqueId: String!
+  title: String!
+  url: String!
+  image: String
+  videoUrl: String
+  content: String
+  summary: String
+  subtitle: String
+  editorialLead: String
+  category: String
+  tags: [String!]!
+  agency: String
+  agencyName: String
+  publishedAt: DateTime
+  extractedAt: DateTime
+}
+
+input ArticleFilter {
+  agencies: [String!] = null
+  themes: [String!] = null
+  tags: [String!] = null
+  startDate: String = null
+  endDate: String = null
+}
+
+type ArticlesResult {
+  articles: [Article!]!
+  page: Int!
+  found: Int!
+}
+
+type BatchResult {
+  processed: Int!
+  failed: Int!
+}
+
+type BigQueryRecordType {
+  uniqueId: String!
+  title: String!
+  url: String!
+  imageUrl: String
+  videoUrl: String
+  content: String
+  summary: String
+  subtitle: String
+  editorialLead: String
+  category: String
+  tags: [String!]!
+  agencyKey: String
+  agencyName: String
+  publishedAt: DateTime
+  extractedAt: DateTime
+  themeL1Code: String
+  themeL1Label: String
+  themeL2Code: String
+  themeL2Label: String
+  themeL3Code: String
+  themeL3Label: String
+  mostSpecificThemeCode: String
+  mostSpecificThemeLabel: String
+  features: JSON
+  sentimentLabel: String
+  sentimentScore: Float
+  trendingScore: Float
+  wordCount: Int
+  hasImage: Boolean
+  hasVideo: Boolean
+  imageBroken: Boolean
+  readabilityFlesch: Float
+}
+
+type Clipping {
+  id: String!
+  name: String!
+  description: String
+  recortes: [Recorte!]!
+  prompt: String
+  schedule: String!
+  scheduleTime: String
+  nextRunAt: DateTime
+  startDate: DateTime
+  endDate: DateTime
+  extraEmails: [String!]!
+  includeHistory: Boolean!
+  deliveryChannels: DeliveryChannels
+  active: Boolean!
+  createdAt: DateTime
+  updatedAt: DateTime
+  authorUserId: String
+  publishedToMarketplace: Boolean!
+  marketplaceListingId: String
+
+  """
+  True se o usuário autenticado é o autor deste clipping.
+  """
+  isAuthor: Boolean!
+
+  """
+  Subscription do usuário autenticado para este clipping (None se não inscrito).
+  """
+  mySubscription: UserSubscription
+
+  """
+  Entregas historicas (releases) deste clipping. Ordenadas por createdAt desc. Apenas autor ou subscriber podem ver.
+  """
+  releases(limit: Int! = 20, before: DateTime = null): [Release!]!
+}
+
+input ClippingInput {
+  name: String!
+  schedule: String!
+  description: String = null
+  recortes: [RecorteInput!]! = []
+  prompt: String = null
+  scheduleTime: String = null
+  startDate: DateTime = null
+  endDate: DateTime = null
+  extraEmails: [String!] = null
+  includeHistory: Boolean = null
+  deliveryChannels: DeliveryChannelsInput = null
+}
+
+"""
+Daily article count
+"""
+type DailyCount {
+  date: String!
+  count: Int!
+}
+
+"""
+Date range filter specified as number of days from today
+"""
+input DateRange {
+  days: Int!
+}
+
+"""
+Date with time (isoformat)
+"""
+scalar DateTime
+
+type DeliveryChannels {
+  email: Boolean!
+  telegram: Boolean!
+  push: Boolean!
+  webhook: Boolean!
+}
+
+input DeliveryChannelsInput {
+  email: Boolean! = false
+  telegram: Boolean! = false
+  push: Boolean! = false
+  webhook: Boolean! = false
+}
+
+type EstimateResult {
+  totalEstimate: Int!
+}
+
+input FeatureUpsertInput {
+  uniqueId: String!
+  features: JSON!
+}
+
+type IntegrityCandidateType {
+  uniqueId: String!
+  url: String!
+  imageUrl: String
+  publishedAt: DateTime
+  integrity: JSON
+}
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+"""
+scalar JSON
+  @specifiedBy(
+    url: "https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf"
+  )
+
+type MarketplaceListing {
+  id: String!
+  authorUserId: String!
+  authorDisplayName: String!
+  sourceClippingId: String!
+  name: String!
+  description: String
+  recortes: [MarketplaceRecorte!]!
+  prompt: String
+  schedule: String
+  likeCount: Int!
+  followerCount: Int!
+  cloneCount: Int!
+  publishedAt: DateTime
+  updatedAt: DateTime
+  active: Boolean!
+  hasLiked: Boolean
+  hasFollowed: Boolean
+}
+
+type MarketplaceListingsResult {
+  listings: [MarketplaceListing!]!
+  total: Int!
+}
+
+type MarketplaceRecorte {
+  id: String!
+  title: String!
+  themes: [String!]!
+  agencies: [String!]!
+  keywords: [String!]!
+}
+
+type Mutation {
+  """
+  Cria um novo clipping
+  """
+  createClipping(input: ClippingInput!): Clipping!
+
+  """
+  Atualiza um clipping existente
+  """
+  updateClipping(id: String!, input: ClippingInput!): Clipping!
+
+  """
+  Liga/desliga um clipping (campo `active`; somente o autor)
+  """
+  setClippingActive(id: String!, active: Boolean!): Clipping!
+
+  """
+  Deleta um clipping
+  """
+  deleteClipping(id: String!): Boolean!
+
+  """
+  Envia um clipping manualmente
+  """
+  sendClipping(id: String!): Boolean!
+
+  """
+  Inscreve o usuário autenticado em um clipping (role=subscriber)
+  """
+  subscribeToClipping(input: SubscribeInput!): UserSubscription!
+
+  """
+  Remove a inscrição do usuário em um clipping
+  """
+  unsubscribeFromClipping(clippingId: String!): Boolean!
+
+  """
+  Atualiza canais de entrega da inscrição do usuário
+  """
+  updateMySubscription(
+    clippingId: String!
+    channels: DeliveryChannelsInput!
+    extraEmails: [String!] = null
+    webhookUrl: String = null
+  ): UserSubscription
+
+  """
+  Publica um clipping no marketplace
+  """
+  publishToMarketplace(
+    clippingId: String!
+    input: PublishInput!
+  ): MarketplaceListing!
+
+  """
+  Remove um listing do marketplace (somente o dono)
+  """
+  unpublishFromMarketplace(listingId: String!): Boolean!
+
+  """
+  Curte/descurte um listing do marketplace
+  """
+  likeMarketplaceListing(listingId: String!): Boolean!
+
+  """
+  Segue/deixa de seguir um listing do marketplace
+  """
+  followMarketplaceListing(listingId: String!): Boolean!
+    @deprecated(
+      reason: "Use `subscribeToClipping(input)` passando `sourceClippingId` do listing. Esta mutation continua funcional para retro-compat e será removida em R1."
+    )
+
+  """
+  Clona um listing do marketplace para os clippings do usuario. Retorna o Clipping recem-criado (gap-fix pre-rollout: era Boolean! antes; portal B3 precisa do `id` para redirecionar para /minha-conta/clipping/[id]).
+  """
+  cloneMarketplaceListing(listingId: String!): Clipping!
+
+  """
+  Sync a push notification subscription
+  """
+  syncPushSubscription(subscription: PushSubscriptionInput!): Boolean!
+
+  """
+  Update push notification preferences
+  """
+  updatePushPreferences(preferences: PushPreferencesInput!): Boolean!
+
+  """
+  Upsert features for a news item (merges JSONB)
+  """
+  upsertFeatures(uniqueId: String!, features: JSON!): Boolean!
+
+  """
+  Batch upsert features for multiple news items
+  """
+  batchUpsertFeatures(items: [FeatureUpsertInput!]!): BatchResult!
+
+  """
+  Update a single field in a Typesense document
+  """
+  updateTypesenseField(
+    uniqueId: String!
+    field: String!
+    value: JSON!
+  ): Boolean!
+}
+
+type NewsRecordType {
+  uniqueId: String!
+  title: String!
+  url: String!
+  imageUrl: String
+  videoUrl: String
+  content: String
+  summary: String
+  subtitle: String
+  editorialLead: String
+  category: String
+  tags: [String!]!
+  agencyKey: String
+  agencyName: String
+  publishedAt: DateTime
+  extractedAt: DateTime
+  themeL1Code: String
+  themeL1Label: String
+  themeL2Code: String
+  themeL2Label: String
+  themeL3Code: String
+  themeL3Label: String
+  mostSpecificThemeCode: String
+  mostSpecificThemeLabel: String
+  features: JSON
+}
+
+input PublishInput {
+  name: String!
+  description: String = null
+}
+
+type PushFiltersData {
+  themes: [Theme!]!
+  agencies: [Agency!]!
+}
+
+type PushPreferences {
+  agencies: [String!]!
+}
+
+input PushPreferencesInput {
+  agencies: [String!]! = []
+  themes: [String!]! = []
+  enabled: Boolean! = true
+}
+
+input PushSubscriptionInput {
+  endpoint: String!
+  keysP256dh: String!
+  keysAuth: String!
+}
+
+type Query {
+  """
+  Verifica se a API está funcionando
+  """
+  ping: String!
+
+  """
+  Lista artigos com filtros e paginação
+  """
+  articles(
+    page: Int! = 1
+    limit: Int! = 10
+    filter: ArticleFilter = null
+  ): ArticlesResult!
+
+  """
+  Busca artigo por ID
+  """
+  article(uniqueId: String!): Article
+
+  """
+  Search articles with keyword or semantic search
+  """
+  search(
+    query: String!
+    filter: ArticleFilter = null
+    page: Int! = 1
+    semantic: Boolean! = false
+  ): ArticlesResult!
+
+  """
+  Get search suggestions for autocomplete
+  """
+  searchSuggestions(query: String!): [SearchSuggestion!]!
+
+  """
+  Lista de temas distintos extraidos das noticias
+  """
+  themes: [Theme!]!
+
+  """
+  Lista de orgaos distintos
+  """
+  agencies: [Agency!]!
+
+  """
+  Tags mais populares
+  """
+  popularTags(limit: Int = 20): [Tag!]!
+
+  """
+  Key performance indicators for the given date range
+  """
+  analyticsKpis(range: DateRange!): AnalyticsKpis!
+
+  """
+  Top themes by article count
+  """
+  topThemes(range: DateRange!, limit: Int! = 8): [ThemeStats!]!
+
+  """
+  Top agencies by article count
+  """
+  topAgencies(range: DateRange!, limit: Int! = 8): [AgencyStats!]!
+
+  """
+  Daily article counts for the given date range
+  """
+  articlesTimeline(range: DateRange!): [DailyCount!]!
+
+  """
+  Lista todos os clippings do usuario autenticado (autorados + inscritos)
+  """
+  clippings: [Clipping!]!
+
+  """
+  Busca um clipping por ID
+  """
+  clipping(id: String!): Clipping
+
+  """
+  Estima o numero de artigos para um clipping
+  """
+  clippingEstimate(
+    themes: [String!]! = []
+    agencies: [String!]! = []
+    keywords: [String!]! = []
+  ): EstimateResult!
+
+  """
+  Lista listings do marketplace com paginacao
+  """
+  marketplaceListings(page: Int! = 1): MarketplaceListingsResult!
+
+  """
+  Busca um listing do marketplace por ID
+  """
+  marketplaceListing(id: String!): MarketplaceListing
+
+  """
+  Preferencias de push notification do usuario autenticado
+  """
+  pushPreferences: PushPreferences!
+
+  """
+  Filtros disponiveis (temas e agencias) para o usuario escolher na UI de preferencias de push.
+  """
+  pushFiltersData: PushFiltersData!
+
+  """
+  Get available widget configuration options
+  """
+  widgetConfig: WidgetConfig!
+
+  """
+  Get articles for a widget
+  """
+  widgetArticles(
+    config: WidgetConfigInput!
+    page: Int! = 1
+  ): WidgetArticlesResult!
+
+  """
+  Fetch a single news record by unique_id
+  """
+  newsById(uniqueId: String!): NewsRecordType
+
+  """
+  Fetch a batch of news records by unique_ids
+  """
+  newsBatch(uniqueIds: [String!]!): [NewsRecordType!]!
+
+  """
+  Fetch a news record formatted for Typesense indexing
+  """
+  newsForTypesense(uniqueId: String!): TypesenseDocRecordType
+
+  """
+  Fetch a batch of news records for BigQuery export
+  """
+  newsBatchForBigquery(
+    startDate: String!
+    endDate: String!
+    batchSize: Int! = 100
+    cursor: String = null
+  ): [BigQueryRecordType!]!
+
+  """
+  Find articles similar to a given article using embeddings
+  """
+  similarArticles(
+    uniqueId: String!
+    threshold: Float! = 0.8
+    limit: Int! = 5
+  ): [SimilarArticleRecordType!]!
+
+  """
+  Fetch a batch of articles needing integrity checks
+  """
+  integrityBatch(batchSize: Int! = 50): [IntegrityCandidateType!]!
+}
+
+type Recorte {
+  id: String!
+  title: String!
+  themes: [String!]!
+  agencies: [String!]!
+  keywords: [String!]!
+}
+
+input RecorteInput {
+  title: String!
+  themes: [String!]! = []
+  agencies: [String!]! = []
+  keywords: [String!]! = []
+}
+
+type Release {
+  id: String!
+  clippingId: String!
+  clippingName: String!
+  digestHtml: String!
+  articlesCount: Int!
+  createdAt: DateTime
+  releaseUrl: String
+  refTime: DateTime
+  sinceHours: Int
+}
+
+type SearchSuggestion {
+  uniqueId: String!
+  title: String!
+}
+
+type SimilarArticleRecordType {
+  uniqueId: String!
+  similarity: Float!
+}
+
+input SubscribeInput {
+  clippingId: String!
+  deliveryChannels: DeliveryChannelsInput!
+  extraEmails: [String!] = null
+  webhookUrl: String = null
+}
+
+type Subscription {
+  """
+  Gera recortes em tempo real via agente LLM. Passthrough do SSE do worker clipping. Requer autenticacao.
+  """
+  generateRecortes(prompt: String!): AgentEvent!
+}
+
+enum SubscriptionRole {
+  AUTHOR
+  SUBSCRIBER
+}
+
+type Tag {
+  label: String!
+  count: Int!
+}
+
+type Theme {
+  code: String!
+  label: String!
+}
+
+"""
+Theme statistics with article count
+"""
+type ThemeStats {
+  label: String!
+  count: Int!
+}
+
+type TypesenseDocRecordType {
+  uniqueId: String!
+  title: String!
+  url: String!
+  imageUrl: String
+  videoUrl: String
+  content: String
+  summary: String
+  subtitle: String
+  editorialLead: String
+  category: String
+  tags: [String!]!
+  agencyKey: String
+  agencyName: String
+  publishedAt: DateTime
+  extractedAt: DateTime
+  themeL1Code: String
+  themeL1Label: String
+  themeL2Code: String
+  themeL2Label: String
+  themeL3Code: String
+  themeL3Label: String
+  mostSpecificThemeCode: String
+  mostSpecificThemeLabel: String
+  features: JSON
+  contentEmbedding: [Float!]
+  sentimentLabel: String
+  sentimentScore: Float
+  trendingScore: Float
+  wordCount: Int
+  hasImage: Boolean
+  hasVideo: Boolean
+  imageBroken: Boolean
+  readabilityFlesch: Float
+}
+
+type UserSubscription {
+  id: String!
+  clippingId: String!
+  userId: String!
+  role: SubscriptionRole!
+  deliveryChannels: DeliveryChannels!
+  extraEmails: [String!]!
+  webhookUrl: String
+  active: Boolean!
+  subscribedAt: DateTime
+}
+
+type WidgetArticlesResult {
+  articles: [Article!]!
+  pagination: WidgetPagination!
+}
+
+type WidgetConfig {
+  agencies: [String!]!
+  themes: [String!]!
+}
+
+input WidgetConfigInput {
+  agencies: [String!]! = []
+  themes: [String!]! = []
+  layout: WidgetLayout! = LIST
+  articlesPerPage: Int! = 10
+}
+
+enum WidgetLayout {
+  LIST
+  GRID_2
+  GRID_3
+  CAROUSEL
+}
+
+type WidgetPagination {
+  page: Int!
+  limit: Int!
+  total: Int!
+  hasMore: Boolean!
+}
