@@ -1,10 +1,9 @@
 /**
- * Testes do wrapper de feature flags (PLANO-ATUALIZACAO-v2, Fase B1).
+ * Testes do wrapper de feature flags.
  *
  * Cobre:
  *   - `useFeatureFlag(key, defaultValue)`: leitura client-side com fail-safe.
  *   - `getFeatureFlag(key, defaultValue, gb)`: leitura server-side.
- *   - Constante `GRAPHQL_FLAGS`: chaves planejadas para B2-B5.
  */
 
 import {
@@ -21,7 +20,7 @@ vi.mock('@/ab-testing/growthbook', () => ({
   isGrowthBookConfigured: () => mockIsGrowthBookConfigured(),
 }))
 
-import { GRAPHQL_FLAGS, getFeatureFlag, useFeatureFlag } from '../feature-flags'
+import { getFeatureFlag, useFeatureFlag } from '../feature-flags'
 
 /**
  * Wrapper que injeta um `growthbook` no `GrowthBookContext` sem precisar
@@ -51,10 +50,9 @@ describe('useFeatureFlag', () => {
     const wrapper = withGrowthBook({
       getFeatureValue: vi.fn().mockReturnValue(true),
     })
-    const { result } = renderHook(
-      () => useFeatureFlag('graphql.clippings', false),
-      { wrapper },
-    )
+    const { result } = renderHook(() => useFeatureFlag('test.flag', false), {
+      wrapper,
+    })
     expect(result.current).toBe(true)
   })
 
@@ -62,10 +60,9 @@ describe('useFeatureFlag', () => {
     const wrapper = withGrowthBook({
       getFeatureValue: vi.fn().mockReturnValue(false),
     })
-    const { result } = renderHook(
-      () => useFeatureFlag('graphql.clippings', true),
-      { wrapper },
-    )
+    const { result } = renderHook(() => useFeatureFlag('test.flag', true), {
+      wrapper,
+    })
     expect(result.current).toBe(false)
   })
 
@@ -74,10 +71,9 @@ describe('useFeatureFlag', () => {
     const wrapper = withGrowthBook({
       getFeatureValue: vi.fn().mockReturnValue(true),
     })
-    const { result } = renderHook(
-      () => useFeatureFlag('graphql.clippings', false),
-      { wrapper },
-    )
+    const { result } = renderHook(() => useFeatureFlag('test.flag', false), {
+      wrapper,
+    })
     // GrowthBook não está configurado: deve retornar o default explícito (false)
     expect(result.current).toBe(false)
   })
@@ -86,14 +82,13 @@ describe('useFeatureFlag', () => {
     const wrapper = withGrowthBook({
       getFeatureValue: vi.fn().mockReturnValue(undefined),
     })
-    const { result } = renderHook(
-      () => useFeatureFlag('graphql.unknown', false),
-      { wrapper },
-    )
+    const { result } = renderHook(() => useFeatureFlag('test.unknown', false), {
+      wrapper,
+    })
     expect(result.current).toBe(false)
   })
 
-  it('test_useFeatureFlag_falls_back_to_false_for_graphql_flags_by_default', () => {
+  it('test_useFeatureFlag_falls_back_to_default_for_unknown_key', () => {
     // Simula chave não definida no GrowthBook (retorna o defaultValue passado).
     const wrapper = withGrowthBook({
       getFeatureValue: vi
@@ -103,12 +98,10 @@ describe('useFeatureFlag', () => {
         ),
     })
 
-    for (const flag of Object.values(GRAPHQL_FLAGS)) {
-      const { result } = renderHook(() => useFeatureFlag(flag, false), {
-        wrapper,
-      })
-      expect(result.current).toBe(false)
-    }
+    const { result } = renderHook(() => useFeatureFlag('test.flag', false), {
+      wrapper,
+    })
+    expect(result.current).toBe(false)
   })
 
   // --- Regressão: race condition do provider durante init ---
@@ -125,21 +118,17 @@ describe('useFeatureFlag', () => {
     // estado em que o portal estava renderizando children sem `<GBProvider>`
     // antes da instância carregar.
     expect(() => {
-      renderHook(() => useFeatureFlag('graphql.clippings', false))
+      renderHook(() => useFeatureFlag('test.flag', false))
     }).not.toThrow()
 
-    const { result } = renderHook(() =>
-      useFeatureFlag('graphql.clippings', false),
-    )
+    const { result } = renderHook(() => useFeatureFlag('test.flag', false))
     expect(result.current).toBe(false)
   })
 
   it('test_useFeatureFlag_no_provider_returns_default_true', () => {
     // Mesma coisa que acima, mas com defaultValue=true — garante que o
     // fallback respeita o default passado, não retorna sempre `false`.
-    const { result } = renderHook(() =>
-      useFeatureFlag('graphql.clippings', true),
-    )
+    const { result } = renderHook(() => useFeatureFlag('test.flag', true))
     expect(result.current).toBe(true)
   })
 
@@ -156,10 +145,9 @@ describe('useFeatureFlag', () => {
         children,
       )
     }
-    const { result } = renderHook(
-      () => useFeatureFlag('graphql.clippings', false),
-      { wrapper: NotReadyProvider },
-    )
+    const { result } = renderHook(() => useFeatureFlag('test.flag', false), {
+      wrapper: NotReadyProvider,
+    })
     expect(result.current).toBe(false)
   })
 })
@@ -171,12 +159,12 @@ describe('getFeatureFlag (server-side)', () => {
   })
 
   it('test_getFeatureFlag_returns_default_when_gb_instance_is_null', () => {
-    const result = getFeatureFlag('graphql.clippings', false, null)
+    const result = getFeatureFlag('test.flag', false, null)
     expect(result).toBe(false)
   })
 
   it('test_getFeatureFlag_returns_default_when_gb_instance_is_undefined', () => {
-    const result = getFeatureFlag('graphql.clippings', false)
+    const result = getFeatureFlag('test.flag', false)
     expect(result).toBe(false)
   })
 
@@ -184,7 +172,7 @@ describe('getFeatureFlag (server-side)', () => {
     const fakeGB = {
       getFeatureValue: vi.fn().mockReturnValue(true),
     } as unknown as Parameters<typeof getFeatureFlag>[2]
-    const result = getFeatureFlag('graphql.clippings', false, fakeGB)
+    const result = getFeatureFlag('test.flag', false, fakeGB)
     expect(result).toBe(true)
   })
 
@@ -193,7 +181,7 @@ describe('getFeatureFlag (server-side)', () => {
     const fakeGB = {
       getFeatureValue: vi.fn().mockReturnValue(true),
     } as unknown as Parameters<typeof getFeatureFlag>[2]
-    const result = getFeatureFlag('graphql.clippings', false, fakeGB)
+    const result = getFeatureFlag('test.flag', false, fakeGB)
     expect(result).toBe(false)
   })
 
@@ -203,23 +191,7 @@ describe('getFeatureFlag (server-side)', () => {
         throw new Error('boom')
       }),
     } as unknown as Parameters<typeof getFeatureFlag>[2]
-    const result = getFeatureFlag('graphql.clippings', false, fakeGB)
+    const result = getFeatureFlag('test.flag', false, fakeGB)
     expect(result).toBe(false)
-  })
-})
-
-describe('GRAPHQL_FLAGS constants', () => {
-  it('test_graphql_flags_contains_expected_keys', () => {
-    expect(GRAPHQL_FLAGS.CLIPPINGS).toBe('graphql.clippings')
-    expect(GRAPHQL_FLAGS.MARKETPLACE).toBe('graphql.marketplace')
-    expect(GRAPHQL_FLAGS.AGENT).toBe('graphql.agent')
-    expect(GRAPHQL_FLAGS.PUSH).toBe('graphql.push')
-    expect(GRAPHQL_FLAGS.WIDGETS).toBe('graphql.widgets')
-  })
-
-  it('test_graphql_flags_are_namespaced', () => {
-    for (const flag of Object.values(GRAPHQL_FLAGS)) {
-      expect(flag.startsWith('graphql.')).toBe(true)
-    }
   })
 })

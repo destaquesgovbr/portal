@@ -21,6 +21,30 @@ vi.mock('sonner', () => ({
   },
 }))
 
+// Facade GraphQL-only do push: mockamos as funções com retornos resolvidos.
+// As agências ficam num hoisted para serem reaplicadas no beforeEach (o
+// `restoreAllMocks` do afterEach apaga os mockResolvedValue entre os testes).
+const { PUSH_AGENCIES } = vi.hoisted(() => ({
+  PUSH_AGENCIES: [
+    { key: 'mec', name: 'Ministério da Educação', type: 'Ministério' },
+    { key: 'anvisa', name: 'ANVISA', type: 'Agência' },
+  ],
+}))
+
+vi.mock('@/services/push', () => ({
+  getPushPreferences: vi.fn().mockResolvedValue({ agencies: [] }),
+  getPushFiltersData: vi.fn().mockResolvedValue({ agencies: PUSH_AGENCIES }),
+  updatePushPreferences: vi.fn().mockResolvedValue(undefined),
+  syncPushSubscription: vi.fn().mockResolvedValue(undefined),
+}))
+
+import {
+  getPushFiltersData,
+  getPushPreferences,
+  syncPushSubscription,
+  updatePushPreferences,
+} from '@/services/push'
+
 function createMockSubscription(endpoint = 'https://fcm.example.com/send/abc') {
   return {
     endpoint,
@@ -93,28 +117,19 @@ describe('PushSubscriber', () => {
       delete store[key]
     })
 
-    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
-      if (typeof url === 'string' && url.includes('/api/push/filters-data')) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              agencies: [
-                {
-                  key: 'mec',
-                  name: 'Ministério da Educação',
-                  type: 'Ministério',
-                },
-                { key: 'anvisa', name: 'ANVISA', type: 'Agência' },
-              ],
-            }),
-            { status: 200 },
-          ),
-        )
-      }
-      return Promise.resolve(
+    // Os dados de filtros vêm do facade mockado; o `fetch` global cobre apenas
+    // as chamadas ao push-worker (subscribe/unsubscribe).
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+      Promise.resolve(
         new Response(JSON.stringify({ ok: true }), { status: 200 }),
-      )
-    })
+      ),
+    )
+
+    // Reaplica os retornos do facade (o restoreAllMocks do afterEach os zera).
+    vi.mocked(getPushPreferences).mockResolvedValue({ agencies: [] })
+    vi.mocked(getPushFiltersData).mockResolvedValue({ agencies: PUSH_AGENCIES })
+    vi.mocked(updatePushPreferences).mockResolvedValue(undefined)
+    vi.mocked(syncPushSubscription).mockResolvedValue(undefined)
   })
 
   afterEach(() => {

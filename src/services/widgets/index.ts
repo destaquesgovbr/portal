@@ -1,15 +1,18 @@
 /**
  * Facade do serviço de widgets.
  *
- * Roteia entre GraphQL (flag `graphql.widgets` ON) e REST (default OFF).
- * Default = REST (fail-safe). Cache de 5min (ISR) do REST permanece
- * intacto — facade não invalida nem altera headers da rota Next.js.
+ * GraphQL é o ÚNICO caminho (REST removido na R1). As queries de widgets
+ * são públicas — o `graphql-api` tem CORS aberto (allow_origins *,
+ * GET/POST/OPTIONS), então chamadas do browser (configurador) e
+ * server→server (Server Action do embed) funcionam sem autenticação.
+ *
+ * NÃO usar `'use client'` aqui: a Server Action do embed importa este
+ * módulo no servidor.
  */
 
 import type { Client } from '@urql/core'
 import { getClient } from '@/lib/graphql/client'
 import * as graphql from './graphql'
-import * as rest from './rest'
 import type {
   WidgetArticlesData,
   WidgetArticlesFilter,
@@ -25,34 +28,19 @@ export type {
   WidgetThemeOption,
 } from './types'
 
-export interface WidgetsFacadeOptions {
-  useGraphQL: boolean
-  client?: Client
-  fetchImpl?: typeof fetch
-}
-
 function resolveClient(client?: Client): Client {
   return client ?? getClient()
 }
 
 export async function getWidgetConfig(
-  opts: WidgetsFacadeOptions,
+  client?: Client,
 ): Promise<WidgetConfigData> {
-  if (opts.useGraphQL) {
-    return graphql.getWidgetConfigViaGraphQL(resolveClient(opts.client))
-  }
-  return rest.getWidgetConfigViaRest(opts.fetchImpl)
+  return graphql.getWidgetConfigViaGraphQL(resolveClient(client))
 }
 
 export async function getWidgetArticles(
   filter: WidgetArticlesFilter,
-  opts: WidgetsFacadeOptions,
+  client?: Client,
 ): Promise<WidgetArticlesData> {
-  if (opts.useGraphQL) {
-    return graphql.getWidgetArticlesViaGraphQL(
-      filter,
-      resolveClient(opts.client),
-    )
-  }
-  return rest.getWidgetArticlesViaRest(filter, opts.fetchImpl)
+  return graphql.getWidgetArticlesViaGraphQL(filter, resolveClient(client))
 }

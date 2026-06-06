@@ -1,33 +1,30 @@
 /**
- * Testes do componente `ListingActions` (Fase B3).
+ * Testes do componente `ListingActions`.
  *
  * Verifica que o componente delega like/clone/unfollow ao
- * `useMarketplaceService()` em vez de chamar `fetch` diretamente. Com a flag
- * `graphql.marketplace=false` (default), o hook devolve a implementação REST
- * — então conseguimos espionar `fetch` para garantir que o caminho REST
- * permanece igual ao comportamento anterior.
+ * `useMarketplaceService()` (caminho GraphQL único). Mockamos o serviço do
+ * marketplace e asseguramos que cada ação chama o método correspondente com
+ * o `listingId` certo.
  */
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('next-auth/react', () => ({
   useSession: () => ({ data: { user: { id: 'u-1', name: 'User' } } }),
 }))
 
-// Default: flag OFF → facade resolve para REST. Suficiente para os testes
-// abaixo que querem garantir o transport REST tradicional permanece.
-vi.mock('@/lib/feature-flags', () => ({
-  GRAPHQL_FLAGS: {
-    CLIPPINGS: 'graphql.clippings',
-    MARKETPLACE: 'graphql.marketplace',
-    AGENT: 'graphql.agent',
-    PUSH: 'graphql.push',
-    WIDGETS: 'graphql.widgets',
-  },
-  useFeatureFlag: (_key: string, defaultValue: boolean) => defaultValue,
-  getFeatureFlag: (_key: string, defaultValue: boolean) => defaultValue,
+// Facade GraphQL-only: o componente delega ao serviço do marketplace.
+const toggleLike = vi.fn()
+const unsubscribe = vi.fn()
+const clone = vi.fn()
+vi.mock('@/services/marketplace', () => ({
+  useMarketplaceService: () => ({ toggleLike, unsubscribe, clone }),
+}))
+
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
 }))
 
 const pushMock = vi.fn()
@@ -67,14 +64,13 @@ const baseListing: MarketplaceListing = {
   active: true,
 }
 
-describe('ListingActions — usa facade do marketplace', () => {
-  it('test_listingActions_like_uses_facade_rest_when_flag_off: POST em /like', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ liked: true, likeCount: 4 }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    )
+describe('ListingActions — delega ao facade GraphQL do marketplace', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('curtir → chama toggleLike(listingId) no serviço', async () => {
+    toggleLike.mockResolvedValue({ liked: true, likeCount: 4 })
 
     render(
       <ListingActions
@@ -88,23 +84,12 @@ describe('ListingActions — usa facade do marketplace', () => {
     await userEvent.click(screen.getByRole('button', { name: /Curtir/i }))
 
     await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalled()
+      expect(toggleLike).toHaveBeenCalledWith('l-1')
     })
-    const urls = fetchSpy.mock.calls.map((c) =>
-      typeof c[0] === 'string' ? c[0] : (c[0] as URL).toString(),
-    )
-    expect(urls.some((u) => u.endsWith('/api/clippings/public/l-1/like'))).toBe(
-      true,
-    )
-    fetchSpy.mockRestore()
   })
 
-  it('test_listingActions_unfollow_uses_facade: DELETE em /follow (REST default)', async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response(JSON.stringify({ ok: true }), { status: 200 }),
-      )
+  it('deixar de seguir → chama unsubscribe(listingId) no serviço', async () => {
+    unsubscribe.mockResolvedValue(undefined)
 
     render(
       <ListingActions
@@ -118,29 +103,12 @@ describe('ListingActions — usa facade do marketplace', () => {
     await userEvent.click(screen.getByRole('button', { name: /Seguindo/i }))
 
     await waitFor(() => {
-      const urls = fetchSpy.mock.calls.map((c) =>
-        typeof c[0] === 'string' ? c[0] : (c[0] as URL).toString(),
-      )
-      const followCall = fetchSpy.mock.calls.find((c) => {
-        const url = typeof c[0] === 'string' ? c[0] : (c[0] as URL).toString()
-        return url.endsWith('/api/clippings/public/l-1/follow')
-      })
-      expect(followCall).toBeDefined()
-      expect(
-        urls.some((u) => u.endsWith('/api/clippings/public/l-1/follow')),
-      ).toBe(true)
-      expect((followCall?.[1] as RequestInit)?.method).toBe('DELETE')
+      expect(unsubscribe).toHaveBeenCalledWith('l-1')
     })
-    fetchSpy.mockRestore()
   })
 
-  it('test_listingActions_clone_navigates_to_editor_on_success', async () => {
-    pushMock.mockClear()
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response(JSON.stringify({ id: 'c-cloned' }), { status: 200 }),
-      )
+  it('clonar → chama clone(listingId) e navega para o editor', async () => {
+    clone.mockResolvedValue({ id: 'c-cloned' })
 
     render(
       <ListingActions
@@ -154,10 +122,10 @@ describe('ListingActions — usa facade do marketplace', () => {
     await userEvent.click(screen.getByRole('button', { name: /Clonar/i }))
 
     await waitFor(() => {
+      expect(clone).toHaveBeenCalledWith('l-1')
       expect(pushMock).toHaveBeenCalledWith(
         '/minha-conta/clipping/c-cloned/editar',
       )
     })
-    fetchSpy.mockRestore()
   })
 })

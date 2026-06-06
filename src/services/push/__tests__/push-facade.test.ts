@@ -1,39 +1,20 @@
 /**
- * Testes do facade de push (PLANO-ATUALIZACAO-v2, Fase B5).
+ * Testes do facade de push (GraphQL-only).
  *
- * Verifica o roteamento entre GraphQL (flag ON) e REST (flag OFF),
+ * Verifica que cada operação delega para a implementação GraphQL,
  * cobrindo as 4 operações: pushPreferences, syncPushSubscription,
  * pushFiltersData (queries) e updatePushPreferences (mutation).
+ * As funções recebem um `client` opcional (default = singleton).
  */
 
 import type { Client } from '@urql/core'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   getPushFiltersData,
   getPushPreferences,
   syncPushSubscription,
   updatePushPreferences,
 } from '../index'
-
-interface FetchCall {
-  url: string
-  init: RequestInit
-}
-
-function makeFetchMock(response: unknown, status = 200) {
-  const calls: FetchCall[] = []
-  const fn = vi.fn(
-    async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      const url = typeof input === 'string' ? input : input.toString()
-      calls.push({ url, init: init ?? {} })
-      return new Response(JSON.stringify(response), {
-        status,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    },
-  )
-  return { fn: fn as unknown as typeof fetch, calls }
-}
 
 /** Cria um stub do urql Client que captura queries/mutations e retorna shaped data. */
 function makeClientStub(handlers: {
@@ -72,13 +53,13 @@ function makeClientStub(handlers: {
   return { client, queries, mutations }
 }
 
-describe('push facade — GraphQL routing (flag ON)', () => {
-  it('test_pushPreferences_via_graphql_when_flag_on: usa GraphQL e retorna agências', async () => {
+describe('push facade — GraphQL-only', () => {
+  it('test_pushPreferences_via_graphql: usa GraphQL e retorna agências', async () => {
     const { client, queries } = makeClientStub({
       onQuery: () => ({ pushPreferences: { agencies: ['mfin', 'mec'] } }),
     })
 
-    const result = await getPushPreferences({ useGraphQL: true, client })
+    const result = await getPushPreferences(client)
 
     expect(result.agencies).toEqual(['mfin', 'mec'])
     expect(queries).toHaveLength(1)
@@ -95,7 +76,7 @@ describe('push facade — GraphQL routing (flag ON)', () => {
         endpoint: 'https://push.example/abc',
         keys: { p256dh: 'p256-key', auth: 'auth-key' },
       },
-      { useGraphQL: true, client },
+      client,
     )
 
     expect(mutations).toHaveLength(1)
@@ -120,7 +101,7 @@ describe('push facade — GraphQL routing (flag ON)', () => {
       onQuery: () => ({ pushFiltersData: { agencies: schemaAgencies } }),
     })
 
-    const result = await getPushFiltersData({ useGraphQL: true, client })
+    const result = await getPushFiltersData(client)
 
     expect(result.agencies).toEqual([
       { key: 'mfin', name: 'Ministério da Fazenda', type: 'agency' },
@@ -134,10 +115,7 @@ describe('push facade — GraphQL routing (flag ON)', () => {
       onMutation: () => ({ updatePushPreferences: true }),
     })
 
-    await updatePushPreferences(
-      { agencies: ['mfin'] },
-      { useGraphQL: true, client },
-    )
+    await updatePushPreferences({ agencies: ['mfin'] }, client)
 
     expect(mutations).toHaveLength(1)
     expect(mutations[0].query).toContain('UpdatePushPreferences')
@@ -153,82 +131,6 @@ describe('push facade — GraphQL routing (flag ON)', () => {
       }),
     } as unknown as Client
 
-    await expect(
-      getPushPreferences({ useGraphQL: true, client }),
-    ).rejects.toThrow('GraphQL error')
-  })
-})
-
-describe('push facade — REST fallback (flag OFF)', () => {
-  it('test_facade_falls_back_to_rest_when_flag_off_push: getPushPreferences usa /api/push/preferences', async () => {
-    const { fn, calls } = makeFetchMock({ agencies: ['mfin'] })
-
-    const result = await getPushPreferences({
-      useGraphQL: false,
-      fetchImpl: fn,
-    })
-
-    expect(result.agencies).toEqual(['mfin'])
-    expect(calls).toHaveLength(1)
-    expect(calls[0].url).toBe('/api/push/preferences')
-  })
-
-  it('test_updatePushPreferences_rest_uses_put_to_preferences_route', async () => {
-    const { fn, calls } = makeFetchMock({ ok: true })
-
-    await updatePushPreferences(
-      { agencies: ['mfin'] },
-      { useGraphQL: false, fetchImpl: fn },
-    )
-
-    expect(calls[0].init.method).toBe('PUT')
-    expect(calls[0].url).toBe('/api/push/preferences')
-    expect(JSON.parse(calls[0].init.body as string)).toEqual({
-      agencies: ['mfin'],
-    })
-  })
-
-  it('test_syncPushSubscription_rest_uses_post_to_sync_route', async () => {
-    const { fn, calls } = makeFetchMock({ ok: true })
-
-    await syncPushSubscription(
-      {
-        endpoint: 'https://push.example/abc',
-        keys: { p256dh: 'p256', auth: 'a' },
-      },
-      { useGraphQL: false, fetchImpl: fn },
-    )
-
-    expect(calls[0].url).toBe('/api/push/sync')
-    expect(calls[0].init.method).toBe('POST')
-    expect(JSON.parse(calls[0].init.body as string)).toEqual({
-      endpoint: 'https://push.example/abc',
-      keys: { p256dh: 'p256', auth: 'a' },
-    })
-  })
-
-  it('test_getPushFiltersData_rest_uses_filters_data_route', async () => {
-    const agencies = [{ key: 'mfin', name: 'Fazenda', type: 'agency' }]
-    const { fn, calls } = makeFetchMock({ agencies })
-
-    const result = await getPushFiltersData({
-      useGraphQL: false,
-      fetchImpl: fn,
-    })
-
-    expect(result.agencies).toEqual(agencies)
-    expect(calls[0].url).toBe('/api/push/filters-data')
-  })
-
-  it('test_getPushPreferences_rest_handles_401_gracefully', async () => {
-    const { fn } = makeFetchMock({ error: 'auth' }, 401)
-
-    const result = await getPushPreferences({
-      useGraphQL: false,
-      fetchImpl: fn,
-    })
-
-    // 401 no REST atual retorna estado vazio (sem sessão = sem prefs)
-    expect(result.agencies).toEqual([])
+    await expect(getPushPreferences(client)).rejects.toThrow('GraphQL error')
   })
 })
