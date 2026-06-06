@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { AgencyMultiSelect } from '@/components/filters/AgencyMultiSelect'
 import { ThemeMultiSelect } from '@/components/filters/ThemeMultiSelect'
 import { Label } from '@/components/ui/label'
+import { getWidgetConfig } from '@/services/widgets'
 
 interface WidgetFiltersProps {
   selectedAgencies: string[]
@@ -39,18 +40,19 @@ export function WidgetFilters({
   const [themes, setThemes] = useState<Theme[]>([])
   const [themeHierarchy, _setThemeHierarchy] = useState<ThemeNode[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Fetch agencies and themes from API
+    // Busca agências e temas via GraphQL (query pública; getClient não envia Authorization).
     async function fetchData() {
       try {
-        const response = await fetch('/api/widgets/config')
-        const data = await response.json()
+        const data = await getWidgetConfig()
         setAgencies(data.agencies)
         setThemes(data.themes)
-        // TODO: Fetch theme hierarchy if needed
-      } catch (error) {
-        console.error('Error fetching filter data:', error)
+        // TODO: buscar hierarquia de temas se necessário
+      } catch (err) {
+        console.error('Erro ao buscar dados de filtro do widget:', err)
+        setError('Não foi possível carregar órgãos e temas.')
       } finally {
         setLoading(false)
       }
@@ -66,6 +68,10 @@ export function WidgetFilters({
         <div className="h-10 bg-muted rounded" />
       </div>
     )
+  }
+
+  if (error) {
+    return <p className="text-sm text-destructive">{error}</p>
   }
 
   return (

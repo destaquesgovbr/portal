@@ -6,7 +6,6 @@ import { useSubscription } from 'urql'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { useFeatureFlag } from '@/lib/feature-flags'
 import {
   type AgentEventGraphQL,
   GENERATE_RECORTES_SUBSCRIPTION,
@@ -144,122 +143,12 @@ function mapGraphQLEventToLocal(ev: AgentEventGraphQL): AgentEvent | null {
 }
 
 export function AgentRecorteGenerator({ onRecortesGenerated }: Props) {
-  const useGraphQL = useFeatureFlag('graphql.agent', false)
-
-  return useGraphQL ? (
-    <AgentRecorteGeneratorGraphQL onRecortesGenerated={onRecortesGenerated} />
-  ) : (
-    <AgentRecorteGeneratorREST onRecortesGenerated={onRecortesGenerated} />
-  )
-}
-
-// ---------- Implementação REST (mantida intacta, fallback) ----------
-
-function AgentRecorteGeneratorREST({ onRecortesGenerated }: Props) {
-  const [prompt, setPrompt] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [events, setEvents] = useState<AgentEvent[]>([])
-  const [result, setResult] = useState<AgentResult | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
-
-  const handleGenerate = useCallback(async () => {
-    if (!prompt.trim()) {
-      setError('Descreva os assuntos que deseja acompanhar.')
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-    setEvents([])
-    setResult(null)
-
-    abortRef.current = new AbortController()
-
-    try {
-      const response = await fetch('/api/clipping/generate-recortes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim() }),
-        signal: abortRef.current.signal,
-      })
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => null)
-        throw new Error(data?.error ?? 'Erro ao gerar recortes')
-      }
-
-      const reader = response.body?.getReader()
-      if (!reader) throw new Error('Stream não disponível')
-
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const event: AgentEvent = JSON.parse(line.slice(6))
-            setEvents((prev) => [...prev, event])
-
-            if (event.type === 'done') {
-              const recortesWithIds = event.result.recortes.map((r) => ({
-                ...r,
-                id:
-                  crypto.randomUUID?.() ??
-                  `recorte-${Date.now()}-${Math.random()}`,
-              }))
-              setResult({ ...event.result, recortes: recortesWithIds })
-            }
-
-            if (event.type === 'error') {
-              setError(event.message)
-            }
-          } catch {
-            // skip malformed events
-          }
-        }
-      }
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return
-      setError(err instanceof Error ? err.message : 'Erro inesperado')
-    } finally {
-      setLoading(false)
-    }
-  }, [prompt])
-
-  const handleAccept = useCallback(() => {
-    if (result) {
-      onRecortesGenerated(
-        result.recortes,
-        result.suggested_name,
-        result.description || result.explanation,
-      )
-    }
-  }, [result, onRecortesGenerated])
-
   return (
-    <AgentRecorteGeneratorView
-      prompt={prompt}
-      setPrompt={setPrompt}
-      loading={loading}
-      error={error}
-      events={events}
-      result={result}
-      onGenerate={handleGenerate}
-      onAccept={handleAccept}
-    />
+    <AgentRecorteGeneratorGraphQL onRecortesGenerated={onRecortesGenerated} />
   )
 }
 
-// ---------- Implementação GraphQL Subscription (graphql.agent flag) ----------
+// ---------- Implementação GraphQL Subscription ----------
 
 interface GraphQLSubscriptionState {
   active: boolean

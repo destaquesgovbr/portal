@@ -1,12 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Clipping } from '@/types/clipping'
 
-const mockGet = vi.fn()
-const mockCollection = vi.fn()
+const mockListClippings = vi.fn()
 
-vi.mock('@/lib/firebase-admin', () => ({
-  getFirestoreDb: vi.fn(() => ({
-    collection: mockCollection,
+// Não mockamos `@/lib/graphql/client`: `createSSRClient`/`getClient` reais são
+// inócuos (criam um client urql lazy, sem rede) e o serviço de clipping abaixo
+// já é mockado — evita quebrar o singleton eager do marketplace importado via
+// FollowCard.
+vi.mock('@/services/clipping/graphql', () => ({
+  createGraphQLClippingService: vi.fn(() => ({
+    listClippings: mockListClippings,
   })),
+}))
+
+// page.tsx ainda importa getFirestoreDb (usado por getFollows, não por
+// getClippings). Mockado para o módulo importar sem efeitos colaterais.
+vi.mock('@/lib/firebase-admin', () => ({
+  getFirestoreDb: vi.fn(),
 }))
 
 vi.mock('@/auth', () => ({
@@ -18,25 +28,7 @@ import { getClippings } from '../page'
 
 const mockAuth = vi.mocked(auth)
 
-function setupFirestoreDocs(
-  docs: { id: string; data: Record<string, unknown> }[],
-) {
-  const chain = {
-    where: vi.fn().mockReturnThis(),
-    orderBy: vi.fn().mockReturnThis(),
-    get: mockGet,
-  }
-  mockCollection.mockReturnValue(chain)
-
-  mockGet.mockResolvedValue({
-    docs: docs.map((d) => ({
-      id: d.id,
-      data: () => d.data,
-    })),
-  })
-}
-
-describe('getClippings', () => {
+describe('getClippings (GraphQL — caminho único)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -46,6 +38,7 @@ describe('getClippings', () => {
 
     const result = await getClippings()
     expect(result).toEqual([])
+    expect(mockListClippings).not.toHaveBeenCalled()
   })
 
   it('returns empty array when session has no user id', async () => {
@@ -53,132 +46,30 @@ describe('getClippings', () => {
 
     const result = await getClippings()
     expect(result).toEqual([])
+    expect(mockListClippings).not.toHaveBeenCalled()
   })
 
-  it('returns clippings for authenticated user', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    setupFirestoreDocs([
-      {
-        id: 'clip-1',
-        data: {
-          name: 'Meu Clipping',
-          recortes: [],
-          prompt: '',
-          schedule: '0 8 * * *',
-          authorUserId: 'user-1',
-          active: true,
-          createdAt: { toDate: () => new Date('2026-03-12T10:00:00Z') },
-          updatedAt: { toDate: () => new Date('2026-03-12T10:00:00Z') },
-        },
-      },
-    ])
+  it('returns clippings from the GraphQL service for an authenticated user', async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: 'user-1' },
+      accessToken: 'tok',
+    } as never)
+    const clippings = [
+      { id: 'clip-1', name: 'Meu Clipping' },
+      { id: 'clip-2', name: 'Outro' },
+    ] as Clipping[]
+    mockListClippings.mockResolvedValue(clippings)
 
     const result = await getClippings()
-    expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('clip-1')
-    expect(result[0].name).toBe('Meu Clipping')
+    expect(result).toEqual(clippings)
+    expect(mockListClippings).toHaveBeenCalledTimes(1)
   })
 
-  it('serializes Firestore Timestamps to ISO strings', async () => {
+  it('returns empty array when the GraphQL read fails (degradação graciosa)', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    setupFirestoreDocs([
-      {
-        id: 'clip-1',
-        data: {
-          name: 'Test',
-          createdAt: { toDate: () => new Date('2026-01-15T08:30:00Z') },
-          updatedAt: { toDate: () => new Date('2026-02-20T14:00:00Z') },
-        },
-      },
-    ])
-
-    const result = await getClippings()
-    expect(result[0].createdAt).toBe('2026-01-15T08:30:00.000Z')
-    expect(result[0].updatedAt).toBe('2026-02-20T14:00:00.000Z')
-  })
-
-  it('handles missing Timestamps gracefully (returns empty string)', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    setupFirestoreDocs([
-      {
-        id: 'clip-1',
-        data: {
-          name: 'No timestamps',
-        },
-      },
-    ])
-
-    const result = await getClippings()
-    expect(result[0].createdAt).toBe('')
-    expect(result[0].updatedAt).toBe('')
-  })
-
-  it('handles Timestamps without toDate method (returns empty string)', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    setupFirestoreDocs([
-      {
-        id: 'clip-1',
-        data: {
-          name: 'Raw timestamps',
-          createdAt: { _seconds: 1710000000, _nanoseconds: 0 },
-          updatedAt: { _seconds: 1710000000, _nanoseconds: 0 },
-        },
-      },
-    ])
-
-    const result = await getClippings()
-    expect(result[0].createdAt).toBe('')
-    expect(result[0].updatedAt).toBe('')
-  })
-
-  it('returns empty array on Firestore error', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    const chain = {
-      where: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockReturnThis(),
-      get: vi.fn().mockRejectedValue(new Error('Firestore down')),
-    }
-    mockCollection.mockReturnValue(chain)
+    mockListClippings.mockRejectedValue(new Error('GraphQL down'))
 
     const result = await getClippings()
     expect(result).toEqual([])
-  })
-
-  it('queries the top-level clippings collection with authorUserId filter', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-42' } } as never)
-    setupFirestoreDocs([])
-
-    await getClippings()
-
-    expect(mockCollection).toHaveBeenCalledWith('clippings')
-    const chain = mockCollection.mock.results[0].value
-    expect(chain.where).toHaveBeenCalledWith('authorUserId', '==', 'user-42')
-  })
-
-  it('returns multiple clippings preserving order', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as never)
-    setupFirestoreDocs([
-      {
-        id: 'clip-2',
-        data: {
-          name: 'Segundo',
-          createdAt: { toDate: () => new Date('2026-03-12T10:00:00Z') },
-          updatedAt: { toDate: () => new Date('2026-03-12T10:00:00Z') },
-        },
-      },
-      {
-        id: 'clip-1',
-        data: {
-          name: 'Primeiro',
-          createdAt: { toDate: () => new Date('2026-03-11T10:00:00Z') },
-          updatedAt: { toDate: () => new Date('2026-03-11T10:00:00Z') },
-        },
-      },
-    ])
-
-    const result = await getClippings()
-    expect(result).toHaveLength(2)
-    expect(result[0].id).toBe('clip-2')
-    expect(result[1].id).toBe('clip-1')
   })
 })

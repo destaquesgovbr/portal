@@ -15,6 +15,12 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { urlBase64ToUint8Array } from '@/lib/push-utils'
+import {
+  getPushFiltersData,
+  getPushPreferences,
+  syncPushSubscription,
+  updatePushPreferences,
+} from '@/services/push'
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
 const PUSH_WORKER_URL = process.env.NEXT_PUBLIC_PUSH_WORKER_URL || ''
@@ -84,13 +90,9 @@ export default function PushSubscriber() {
       .then((sub) => {
         if (!sub) return
         const subJson = sub.toJSON()
-        fetch('/api/push/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            endpoint: subJson.endpoint,
-            keys: subJson.keys,
-          }),
+        syncPushSubscription({
+          endpoint: subJson.endpoint as string,
+          keys: subJson.keys as { p256dh: string; auth: string },
         }).catch((err) => console.error('Push sync error:', err))
       })
   }, [session?.user?.id, subscribed])
@@ -99,10 +101,8 @@ export default function PushSubscriber() {
   useEffect(() => {
     if (!session?.user?.id) return
 
-    fetch('/api/push/preferences')
-      .then((res) => (res.ok ? res.json() : null))
+    getPushPreferences()
       .then((prefs) => {
-        if (!prefs) return
         setSelectedAgencies(prefs.agencies ?? [])
       })
       .catch((err) => console.error('Failed to load preferences:', err))
@@ -112,11 +112,7 @@ export default function PushSubscriber() {
   useEffect(() => {
     if (!open || dataLoaded.current) return
 
-    fetch('/api/push/filters-data')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
+    getPushFiltersData()
       .then((data) => {
         if (data.agencies) setAgencies(data.agencies)
         dataLoaded.current = true
@@ -173,11 +169,9 @@ export default function PushSubscriber() {
       toast.success('Notificações ativadas!')
 
       if (userId) {
-        fetch('/api/push/preferences', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agencies: selectedAgencies }),
-        }).catch((err) => console.error('Failed to save preferences:', err))
+        updatePushPreferences({ agencies: selectedAgencies }).catch((err) =>
+          console.error('Failed to save preferences:', err),
+        )
       }
     } catch (err) {
       console.error('Push subscribe error:', err)

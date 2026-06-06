@@ -2,8 +2,8 @@
  * Feature flags wrapper.
  *
  * Camada fina sobre o GrowthBook configurado em `src/ab-testing/`.
- * Padroniza a leitura de flags com **default explícito** (fail-safe) e
- * concentra a lista de flags previstas para a migração GraphQL.
+ * Padroniza a leitura de flags com **default explícito** (fail-safe) para
+ * experimentos A/B genéricos.
  *
  * Para uso server-side, `getFeatureFlag` aceita um GrowthBook instance
  * já avaliado (criado via `createGrowthBookInstance()` + `loadFeatures()`).
@@ -20,22 +20,11 @@ import { useContext } from 'react'
 import { isGrowthBookConfigured } from '@/ab-testing/growthbook'
 
 /**
- * Flags planejadas para a migração GraphQL (PLANO-ATUALIZACAO-v2, §3 D4).
- * Definição PURA em `@/lib/graphql/flags` (sem `'use client'`) para ser
- * compartilhada com Server Components; re-exportada aqui por compatibilidade.
- *
- * Default = `false` em todas: portal continua usando REST até a flag ser
- * explicitamente ligada via GrowthBook.
- */
-export { GRAPHQL_FLAGS, type GraphQLFlagKey } from '@/lib/graphql/flags'
-
-/**
  * Hook client-side para ler uma feature flag com default explícito.
  *
  * Diferenças vs `useFeatureFlag(key)` do `src/ab-testing/`:
  *   - Aceita `defaultValue` (em vez de assumir `false`).
  *   - Se GrowthBook não estiver configurado **ou** falhar, retorna `defaultValue`.
- *   - Wrapper estável para uso na migração GraphQL (B2-B5).
  *
  * Implementação: lê o `growthbook` directamente do `GrowthBookContext`
  * via `useContext` (em vez de `useFeatureValue`, que THROWA "Missing or
@@ -49,13 +38,13 @@ export { GRAPHQL_FLAGS, type GraphQLFlagKey } from '@/lib/graphql/flags'
  *
  * Trade-off conhecido: a leitura via `gb.getFeatureValue()` directa não
  * subscreve a re-renders quando o GrowthBook recebe novas features via
- * streaming. Para `GRAPHQL_FLAGS` (toggles operados manualmente, com
- * reload aceitável) isso é aceitável; para experimentos A/B "ao vivo",
- * usar os hooks específicos do `src/ab-testing/`.
+ * streaming. Para toggles operados manualmente (com reload aceitável) isso
+ * é aceitável; para experimentos A/B "ao vivo", usar os hooks específicos
+ * do `src/ab-testing/`.
  *
  * @example
- *   const useGraphQL = useFeatureFlag('graphql.clippings', false)
- *   if (useGraphQL) { ... } else { ... fallback REST ... }
+ *   const enabled = useFeatureFlag('test.flag', false)
+ *   if (enabled) { ... }
  */
 export function useFeatureFlag(key: string, defaultValue: boolean): boolean {
   // Lê o GrowthBook do contexto sem throwar quando o provider está ausente
@@ -88,7 +77,7 @@ export function useFeatureFlag(key: string, defaultValue: boolean): boolean {
  *   const gb = createGrowthBookInstance()
  *   await gb.loadFeatures()
  *   gb.setAttributes({ id: userId })
- *   const useGraphQL = getFeatureFlag(GRAPHQL_FLAGS.CLIPPINGS, false, gb)
+ *   const enabled = getFeatureFlag('test.flag', false, gb)
  *
  * @param key Chave da flag no GrowthBook.
  * @param defaultValue Valor de fallback.

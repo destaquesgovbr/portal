@@ -1,34 +1,15 @@
 /**
- * Testes do facade de widgets (PLANO-ATUALIZACAO-v2, Fase B5).
+ * Testes do facade de widgets (R1 — GraphQL como único caminho).
  *
- * Verifica o roteamento entre GraphQL (flag ON) e REST (flag OFF) para
- * `widgetConfig` e `widgetArticles`, incluindo passagem correta de
- * filtros (agencies, themes, limit, page).
+ * Verifica `widgetConfig` e `widgetArticles` via GraphQL, incluindo
+ * passagem correta de filtros (agencies, themes, limit, page). O facade
+ * aceita um `client` opcional (default `getClient()`); aqui injetamos um
+ * stub.
  */
 
 import type { Client } from '@urql/core'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { getWidgetArticles, getWidgetConfig } from '../index'
-
-interface FetchCall {
-  url: string
-  init: RequestInit
-}
-
-function makeFetchMock(response: unknown, status = 200) {
-  const calls: FetchCall[] = []
-  const fn = vi.fn(
-    async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      const url = typeof input === 'string' ? input : input.toString()
-      calls.push({ url, init: init ?? {} })
-      return new Response(JSON.stringify(response), {
-        status,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    },
-  )
-  return { fn: fn as unknown as typeof fetch, calls }
-}
 
 function makeClientStub(onQuery: (query: string, vars: unknown) => unknown): {
   client: Client
@@ -48,7 +29,7 @@ function makeClientStub(onQuery: (query: string, vars: unknown) => unknown): {
   return { client, queries }
 }
 
-describe('widgets facade — GraphQL routing (flag ON)', () => {
+describe('widgets facade — GraphQL (único caminho)', () => {
   it('test_widgetConfig_via_graphql: retorna agencies/themes hidratados a partir das chaves', async () => {
     const { client, queries } = makeClientStub(() => ({
       widgetConfig: {
@@ -57,7 +38,7 @@ describe('widgets facade — GraphQL routing (flag ON)', () => {
       },
     }))
 
-    const result = await getWidgetConfig({ useGraphQL: true, client })
+    const result = await getWidgetConfig(client)
 
     expect(result.agencies).toEqual([
       { key: 'mfin', name: 'mfin', type: 'agency' },
@@ -85,7 +66,7 @@ describe('widgets facade — GraphQL routing (flag ON)', () => {
         limit: 5,
         page: 2,
       },
-      { useGraphQL: true, client },
+      client,
     )
 
     expect(queries).toHaveLength(1)
@@ -112,7 +93,7 @@ describe('widgets facade — GraphQL routing (flag ON)', () => {
       },
     }))
 
-    await getWidgetArticles({}, { useGraphQL: true, client })
+    await getWidgetArticles({}, client)
 
     const vars = queries[0].vars as {
       config: { articlesPerPage: number; agencies: string[] }
@@ -131,7 +112,7 @@ describe('widgets facade — GraphQL routing (flag ON)', () => {
       },
     }))
 
-    const result = await getWidgetArticles({}, { useGraphQL: true, client })
+    const result = await getWidgetArticles({}, client)
 
     expect(result.articles).toHaveLength(2)
     expect(result.pagination).toEqual({
@@ -140,56 +121,5 @@ describe('widgets facade — GraphQL routing (flag ON)', () => {
       total: 42,
       hasMore: true,
     })
-  })
-})
-
-describe('widgets facade — REST fallback (flag OFF)', () => {
-  it('test_facade_falls_back_to_rest_when_flag_off_widgets: getWidgetConfig usa /api/widgets/config', async () => {
-    const data = {
-      agencies: [{ key: 'mfin', name: 'Fazenda', type: 'agency' }],
-      themes: [{ key: 'economia', name: 'Economia' }],
-    }
-    const { fn, calls } = makeFetchMock(data)
-
-    const result = await getWidgetConfig({
-      useGraphQL: false,
-      fetchImpl: fn,
-    })
-
-    expect(result).toEqual(data)
-    expect(calls[0].url).toBe('/api/widgets/config')
-  })
-
-  it('test_widgetArticles_rest_uses_query_string', async () => {
-    const data = {
-      articles: [],
-      pagination: { page: 1, limit: 10, total: 0, hasMore: false },
-      filters: { agencies: [], themes: [] },
-    }
-    const { fn, calls } = makeFetchMock(data)
-
-    await getWidgetArticles(
-      { agencies: ['mfin', 'mec'], limit: 5, page: 2 },
-      { useGraphQL: false, fetchImpl: fn },
-    )
-
-    expect(calls).toHaveLength(1)
-    expect(calls[0].url).toMatch(/^\/api\/widgets\/articles\?/)
-    expect(calls[0].url).toContain('agencies=mfin%2Cmec')
-    expect(calls[0].url).toContain('limit=5')
-    expect(calls[0].url).toContain('page=2')
-  })
-
-  it('test_widgetArticles_rest_no_query_string_when_empty', async () => {
-    const data = {
-      articles: [],
-      pagination: { page: 1, limit: 10, total: 0, hasMore: false },
-      filters: { agencies: [], themes: [] },
-    }
-    const { fn, calls } = makeFetchMock(data)
-
-    await getWidgetArticles({}, { useGraphQL: false, fetchImpl: fn })
-
-    expect(calls[0].url).toBe('/api/widgets/articles')
   })
 })
