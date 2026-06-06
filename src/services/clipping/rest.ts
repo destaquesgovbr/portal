@@ -90,6 +90,21 @@ export async function updateMySubscription(
   }
 }
 
+export async function setClippingActive(
+  id: string,
+  active: boolean,
+  fetchImpl: typeof fetch = fetch,
+): Promise<void> {
+  const res = await fetchImpl(`/api/clipping/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ active }),
+  })
+  if (!res.ok) {
+    throw new Error(await readError(res, 'Falha ao alterar status do clipping'))
+  }
+}
+
 export async function deleteClipping(
   id: string,
   fetchImpl: typeof fetch = fetch,
@@ -153,6 +168,7 @@ export function createRestClippingService(
     listClippings: () => listClippings(fetchImpl),
     createClipping: (payload) => createClipping(payload, fetchImpl),
     updateClipping: (id, payload) => updateClipping(id, payload, fetchImpl),
+    setClippingActive: (id, active) => setClippingActive(id, active, fetchImpl),
     updateMySubscription: (clippingId, update) =>
       updateMySubscription(clippingId, update, fetchImpl),
     deleteClipping: (id) => deleteClipping(id, fetchImpl),

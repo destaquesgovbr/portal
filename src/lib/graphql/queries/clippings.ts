@@ -101,7 +101,7 @@ export const CLIPPING_RELEASES_QUERY = gql`
         releaseUrl
         refTime
         sinceHours
-        publishedAt
+        createdAt
       }
     }
   }
@@ -148,6 +148,16 @@ export const UPDATE_CLIPPING_MUTATION = gql`
 export const DELETE_CLIPPING_MUTATION = gql`
   mutation DeleteClipping($id: String!) {
     deleteClipping(id: $id)
+  }
+`
+
+/** Liga/desliga um clipping (campo `active`; somente o autor). */
+export const SET_CLIPPING_ACTIVE_MUTATION = gql`
+  mutation SetClippingActive($id: String!, $active: Boolean!) {
+    setClippingActive(id: $id, active: $active) {
+      id
+      active
+    }
   }
 `
 
@@ -250,7 +260,7 @@ export interface ReleaseGraphQL {
   releaseUrl: string | null
   refTime: string | null
   sinceHours: number | null
-  publishedAt: string
+  createdAt: string
 }
 
 /** RecorteInput do schema NÃO tem `id` (diferente do `Recorte` de saída). */
@@ -287,6 +297,10 @@ export interface UpdateClippingMutationData {
 
 export interface DeleteClippingMutationData {
   deleteClipping: boolean
+}
+
+export interface SetClippingActiveMutationData {
+  setClippingActive: { id: string; active: boolean }
 }
 
 export interface UpdateMySubscriptionMutationData {

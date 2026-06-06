@@ -1,34 +1,43 @@
 /**
  * Configuração do GraphQL Code Generator.
  *
- * Gera types TypeScript a partir do schema GraphQL exposto pelo `graphql-api`
- * (Strawberry/Python). Os types ficam em `src/lib/graphql/__generated__/`
- * e são importados pelas queries em `src/lib/graphql/queries/` (B2-B5).
+ * Função dupla:
+ *   1. **Gate anti-drift (principal):** valida TODAS as operações `gql\`...\``
+ *      do portal contra o schema do `graphql-api`. Se uma operação selecionar
+ *      um campo/argumento que o schema não expõe, o codegen FALHA — foi
+ *      exatamente o drift (`iteration`) que passou despercebido por este gate
+ *      estar quebrado: o glob antigo apontava para `*.graphql`, que não casa
+ *      nenhum arquivo (as ops vivem em `*.ts`), então o codegen rodava vazio.
+ *   2. Gera types em `src/lib/graphql/__generated__/` (gitignored; artefato de
+ *      validação, não commitado nem importado por ora).
  *
- * O schema pode vir de:
- *   - URL remota (default — `NEXT_PUBLIC_GRAPHQL_URL`); ou
- *   - Arquivo local (`src/lib/graphql/schema.graphql`) para CI/dev offline.
+ * Schema: snapshot commitado `src/lib/graphql/schema.graphql` (determinístico,
+ * offline em CI). Mantê-lo em sincronia com o `graphql-api`: rodar
+ * `make docs-schema` lá e copiar `docs/reference/schema.graphql` para cá.
+ * Override opcional via `GRAPHQL_SCHEMA_URL` (introspecção de um serviço vivo).
  *
- * Uso: `pnpm graphql:codegen` (ou `pnpm graphql:codegen --watch`).
+ * Uso: `pnpm graphql:codegen`.
  */
 
 import type { CodegenConfig } from '@graphql-codegen/cli'
 
-const schemaUrl = process.env.NEXT_PUBLIC_GRAPHQL_URL
-const localSchemaPath = './src/lib/graphql/schema.graphql'
+const schemaSource =
+  process.env.GRAPHQL_SCHEMA_URL ?? './src/lib/graphql/schema.graphql'
 
 const config: CodegenConfig = {
-  // Prefere schema remoto (introspection); cai para o arquivo local quando
-  // a URL não está definida (CI build sem graphql-api rodando).
-  schema: schemaUrl ?? localSchemaPath,
-  documents: ['src/lib/graphql/queries/**/*.graphql'],
+  schema: schemaSource,
+  // As operações são `gql\`...\`` em arquivos .ts (queries + services).
+  documents: ['src/**/*.{ts,tsx}'],
   ignoreNoDocuments: true,
   generates: {
+    // Apenas `typescript` + `typescript-operations`: bastam para validar as
+    // operações contra o schema (falham em campo/argumento inexistente). Não
+    // usamos `typed-document-node` — os tipos não são adotados (gate-only), e
+    // ele exigiria o peer-dep `@graphql-typed-document-node/core`.
     'src/lib/graphql/__generated__/types.ts': {
-      plugins: ['typescript', 'typescript-operations', 'typed-document-node'],
+      plugins: ['typescript', 'typescript-operations'],
       config: {
         useTypeImports: true,
-        // Mantém naming idiomático em TypeScript
         avoidOptionals: false,
         skipTypename: false,
       },

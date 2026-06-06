@@ -7,11 +7,9 @@
  *   POST /api/push/sync          → mutation syncPushSubscription
  *   GET  /api/push/filters-data  → query pushFiltersData
  *
- * Nota: `pushPreferences` e `pushFiltersData` não existem ainda como queries
- * no schema do `graphql-api` (apenas mutations). Caso a flag seja ativada
- * antes da Fase A correspondente, o facade cairá no fallback REST por
- * erro do client. Quando o schema for estendido, basta atualizar as
- * operations aqui — o facade já está pronto.
+ * As queries `pushPreferences` e `pushFiltersData` já existem no schema do
+ * `graphql-api` (validado pelo gate de codegen contra o SDL). O facade usa
+ * GraphQL quando a flag `graphql.push` está ON; senão, fallback REST.
  */
 
 import { gql } from '@urql/core'

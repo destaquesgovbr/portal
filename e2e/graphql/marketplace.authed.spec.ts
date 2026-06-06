@@ -17,6 +17,7 @@ import {
   type E2EGraphQLClient,
   makeClipping,
   publishListing,
+  removeClipping,
   unpublishListing,
 } from '../fixtures'
 
@@ -152,5 +153,36 @@ test.describe('Marketplace via GraphQL', () => {
 
     // O clone cria um novo clipping autorado → contagem sobe em 1.
     await expect.poll(countAuthored, { timeout: 10_000 }).toBe(before + 1)
+  })
+
+  test('unpublish desativa o listing no backend', async () => {
+    // Sanidade: o listing do beforeEach está ativo (a query o retorna).
+    const before = await client.execute<{
+      marketplaceListing: { id: string } | null
+    }>(LISTING_QUERY, { id: listing.id })
+    expect(before.marketplaceListing?.id).toBe(listing.id)
+
+    await unpublishListing(client, listing.id)
+
+    // `get_marketplace_listing` filtra `active=false` → retorna null.
+    const after = await client.execute<{
+      marketplaceListing: { id: string } | null
+    }>(LISTING_QUERY, { id: listing.id })
+    expect(after.marketplaceListing).toBeNull()
+  })
+
+  test('unpublish funciona mesmo com o clipping-fonte já excluído', async () => {
+    // Regressão (bug pego em staging): publicar → excluir o clipping → unpublish.
+    // Antes, o unpublish fazia `update` no clipping inexistente e o batch
+    // inteiro falhava ("No document to update"), deixando o listing ativo.
+    await removeClipping(client, clipping.id)
+
+    // Não deve lançar; o soft-delete do listing precisa commitar mesmo assim.
+    await unpublishListing(client, listing.id)
+
+    const after = await client.execute<{
+      marketplaceListing: { id: string } | null
+    }>(LISTING_QUERY, { id: listing.id })
+    expect(after.marketplaceListing).toBeNull()
   })
 })

@@ -30,23 +30,13 @@ export function ClippingListClient({
   }
 
   const handleToggleActive = async (id: string, active: boolean) => {
-    // O facade GraphQL persiste 'active' via updateClipping; o REST atual
-    // usa um PATCH simples. Para manter compatibilidade durante a migração
-    // continuamos com fetch direto aqui (PATCH no REST). Quando o GraphQL
-    // expor uma mutation de toggle dedicada, atualizamos para usar o
-    // facade. Por enquanto, atualizamos o estado otimisticamente e o
-    // backend processa via PATCH (REST) ou via updateClipping (GraphQL).
+    // Roteado pelo facade: usa a mutation `setClippingActive` quando a flag
+    // `graphql.clippings` está ON, ou o PATCH REST legado caso contrário.
     try {
-      const res = await fetch(`/api/clipping/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active }),
-      })
-      if (res.ok) {
-        setClippings((prev) =>
-          prev.map((c) => (c.id === id ? { ...c, active } : c)),
-        )
-      }
+      await clippingService.setClippingActive(id, active)
+      setClippings((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, active } : c)),
+      )
     } catch (err) {
       console.error('Failed to toggle clipping:', err)
     }

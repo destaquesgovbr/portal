@@ -26,7 +26,7 @@ describe('codegen.ts', () => {
     expect(targets.length).toBeGreaterThan(0)
   })
 
-  it('test_codegen_config_uses_expected_plugins: target principal inclui typescript + typescript-operations + typed-document-node', async () => {
+  it('test_codegen_config_uses_expected_plugins: target principal inclui typescript + typescript-operations', async () => {
     const configPath = path.resolve(__dirname, '../../../../codegen.ts')
     const mod = await import(/* @vite-ignore */ configPath)
     const config = mod.default
@@ -35,6 +35,22 @@ describe('codegen.ts', () => {
     }
     expect(target.plugins).toContain('typescript')
     expect(target.plugins).toContain('typescript-operations')
-    expect(target.plugins).toContain('typed-document-node')
+  })
+
+  it('test_codegen_documents_match_ts_files: o glob de documents aponta para .ts (as ops são gql`...` em .ts, não .graphql)', async () => {
+    // Regressão: o glob antigo apontava para `**/*.graphql` (zero arquivos),
+    // então o codegen rodava vazio e nenhum drift ops↔schema era detectado
+    // (foi assim que o campo `iteration` inexistente passou). Garante que o
+    // gate de fato varre os arquivos onde as operações vivem.
+    const configPath = path.resolve(__dirname, '../../../../codegen.ts')
+    const mod = await import(/* @vite-ignore */ configPath)
+    const config = mod.default
+    const documents = (
+      Array.isArray(config.documents) ? config.documents : [config.documents]
+    ).join(',')
+    // Casa arquivos .ts/.tsx (onde vivem os `gql\`...\``), não o glob morto
+    // `**/*.graphql` que não casava nada.
+    expect(documents).toMatch(/ts/)
+    expect(documents).not.toContain('.graphql')
   })
 })

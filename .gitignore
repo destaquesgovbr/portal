@@ -45,3 +45,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# GraphQL codegen (artefato de validação — não commitado)
+/src/lib/graphql/__generated__/

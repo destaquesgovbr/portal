@@ -44,6 +44,9 @@ export interface ClippingService {
   /** Atualiza um clipping existente (apenas conteúdo — autoria). */
   updateClipping(id: string, payload: ClippingPayload): Promise<Clipping>
 
+  /** Liga/desliga um clipping (campo `active`; somente o autor). */
+  setClippingActive(id: string, active: boolean): Promise<void>
+
   /** Atualiza somente os canais de entrega do usuário atual no clipping. */
   updateMySubscription(
     clippingId: string,
