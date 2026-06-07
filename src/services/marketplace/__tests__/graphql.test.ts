@@ -157,6 +157,62 @@ describe('createGraphQLMarketplaceService', () => {
     expect(detail).toBeNull()
   })
 
+  it('listListingReleases: dispara MarketplaceListingReleases(id) e mapeia releases públicas', async () => {
+    const release = (id: string) => ({
+      id,
+      clippingId: 'src-1',
+      clippingName: 'Top Economia',
+      digestHtml: `<p>${id}</p>`,
+      articlesCount: 8,
+      releaseUrl: `/clipping/release/${id}`,
+      refTime: '2026-05-26T08:00:00Z',
+      sinceHours: 24,
+      createdAt: '2026-05-26T08:01:00Z',
+    })
+    const { client, queries } = makeClientStub({
+      onQuery: () => ({
+        marketplaceListing: {
+          id: 'l-1',
+          releases: [release('rel-1'), release('rel-2'), release('rel-3')],
+        },
+      }),
+    })
+
+    const service = createGraphQLMarketplaceService(client)
+    const result = await service.listListingReleases('l-1', { limit: 2 })
+
+    expect(queries[0].query).toContain('MarketplaceListingReleases')
+    expect(queries[0].query).toContain('articlesCount')
+    // pede limit+1 para detectar hasMore.
+    expect(queries[0].vars).toMatchObject({ id: 'l-1', limit: 3, before: null })
+    expect(result.releases).toHaveLength(2)
+    expect(result.hasMore).toBe(true)
+    expect(result.releases[0].articlesCount).toBe(8)
+    expect(result.releases[0].digestHtml).toBe('<p>rel-1</p>')
+  })
+
+  it('listListingReleases: listing inativo/inexistente (null) → sem releases', async () => {
+    const { client } = makeClientStub({
+      onQuery: () => ({ marketplaceListing: null }),
+    })
+    const service = createGraphQLMarketplaceService(client)
+    const result = await service.listListingReleases('inativo')
+    expect(result.releases).toEqual([])
+    expect(result.hasMore).toBe(false)
+  })
+
+  it('listListingReleases: encaminha o cursor before', async () => {
+    const { client, queries } = makeClientStub({
+      onQuery: () => ({ marketplaceListing: { id: 'l-1', releases: [] } }),
+    })
+    const service = createGraphQLMarketplaceService(client)
+    await service.listListingReleases('l-1', { before: '2026-05-26T08:00:00Z' })
+    expect(queries[0].vars).toMatchObject({
+      id: 'l-1',
+      before: '2026-05-26T08:00:00Z',
+    })
+  })
+
   it('test_publishToMarketplace_via_graphql: chama PublishToMarketplace', async () => {
     const { client, mutations } = makeClientStub({
       onMutation: () => ({

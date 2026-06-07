@@ -11,11 +11,20 @@
  * transport é GraphQL.
  */
 
-import type { DeliveryChannels, MarketplaceListing } from '@/types/clipping'
+import type {
+  DeliveryChannels,
+  MarketplaceListing,
+  Release,
+} from '@/types/clipping'
 
 export interface ListingsPage {
   listings: MarketplaceListing[]
   total: number
+}
+
+export interface ReleasesPage {
+  releases: Release[]
+  hasMore: boolean
 }
 
 export interface ListingsQuery {
@@ -71,6 +80,19 @@ export interface MarketplaceService {
 
   /** Carrega um único listing. */
   getListing(listingId: string): Promise<ListingDetail | null>
+
+  /**
+   * Lista as releases (edições) PÚBLICAS de um listing ativo.
+   *
+   * Caminho público sem auth — usa o campo `MarketplaceListing.releases` do
+   * graphql-api (só expõe releases de listing `active`). Paginação por cursor
+   * `before` (DateTime ISO): para a próxima página, passe o `refTime`/
+   * `createdAt` da release mais antiga já recebida.
+   */
+  listListingReleases(
+    listingId: string,
+    opts?: { limit?: number; before?: string },
+  ): Promise<ReleasesPage>
 
   /** Publica um clipping no marketplace. */
   publish(payload: PublishPayload): Promise<PublishResult>

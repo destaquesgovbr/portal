@@ -265,6 +265,11 @@ type MarketplaceListing {
   active: Boolean!
   hasLiked: Boolean
   hasFollowed: Boolean
+
+  """
+  Entregas historicas (releases) deste listing publico. Ordenadas por createdAt desc. Conteudo PUBLICO: nao exige autenticacao, pois um listing ativo ja e publico. Listing inativo/despublicado nunca expoe releases (retorna lista vazia).
+  """
+  releases(limit: Int! = 10, before: DateTime = null): [Release!]!
 }
 
 type MarketplaceListingsResult {

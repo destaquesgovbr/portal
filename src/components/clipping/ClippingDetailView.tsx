@@ -21,12 +21,14 @@ type Props = {
   releases: ReleaseItem[]
   hasMoreReleases: boolean
   releasesPagePath?: string
-  releasesApiPath?: string
   /**
    * ID do clipping para carregar mais edições via facade GraphQL (contexto do
-   * autor). Tem prioridade sobre `releasesApiPath`.
+   * autor). Quando ausente, o `ReleaseList` usa o caminho público por
+   * `releasesListingId` (`marketplaceListing.releases`).
    */
   releasesClippingId?: string
+  /** ID do listing para o caminho público de "Ver mais" (contexto marketplace). */
+  releasesListingId?: string
 
   actions?: React.ReactNode
   feedLinks?: { rss: string; json: string }
@@ -45,8 +47,8 @@ export function ClippingDetailView({
   releases,
   hasMoreReleases,
   releasesPagePath,
-  releasesApiPath,
   releasesClippingId,
+  releasesListingId,
   actions,
   feedLinks,
 }: Props) {
@@ -90,12 +92,11 @@ export function ClippingDetailView({
       {/* Releases */}
       <section className="mt-8">
         <ReleaseList
-          listingId=""
+          listingId={releasesListingId ?? ''}
           initialReleases={releases}
           hasMore={hasMoreReleases}
           clippingId={releasesClippingId}
           releasesPagePath={releasesPagePath}
-          releasesApiPath={releasesApiPath}
         />
       </section>
 

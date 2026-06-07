@@ -83,6 +83,30 @@ test.describe('Marketplace via GraphQL', () => {
     ).toBeVisible()
   })
 
+  test('página pública de edições do listing renderiza (releases via facade GraphQL)', async ({
+    page,
+  }) => {
+    // Migração R1: o loadMore das edições PÚBLICAS do `ReleaseList` passou da
+    // rota REST `/api/clippings/public/[listingId]/releases` para o campo
+    // GraphQL `marketplaceListing(id) { releases }` (conteúdo público de um
+    // listing ativo, exposto pelo graphql-api). Aqui dirigimos a página pública
+    // de edições no browser — caminho real browser → portal → graphql-api.
+    // O listing do beforeEach é recém-publicado (clipping sem releases geradas
+    // pelo worker), então validamos o empty-state, que prova que a query
+    // pública (com `articlesCount`) é aceita pelo schema real e a página monta.
+    await page.goto(`/clippings/${listing.id}/releases`)
+
+    // Título da página de edições (a página carregou — listing ativo).
+    await expect(page.getByRole('heading', { name: /edições —/i })).toBeVisible(
+      { timeout: 15_000 },
+    )
+
+    // Sem releases, o ReleaseList mostra o empty-state.
+    await expect(page.getByText('Nenhuma edição publicada ainda')).toBeVisible({
+      timeout: 10_000,
+    })
+  })
+
   test('like incrementa o contador no backend', async ({ page }) => {
     // Listing fresco: hasLiked começa false; clicar "Curtir" deve levá-lo a true.
     await page.goto(`/clippings/${listing.id}`)

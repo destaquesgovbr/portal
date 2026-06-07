@@ -77,6 +77,38 @@ export const MARKETPLACE_LISTING_QUERY = gql`
   }
 `
 
+/**
+ * Lista as releases (edições) PÚBLICAS de um listing ativo do marketplace.
+ *
+ * Caminho público (sem auth): o campo `releases` vive em `MarketplaceListing`
+ * no graphql-api e só expõe edições de um listing `active`. Substitui a rota
+ * REST `GET /api/clippings/public/[listingId]/releases` no loadMore do
+ * `ReleaseList` (contexto público). Paginação por cursor `before: DateTime`,
+ * espelhando `clipping.releases`.
+ */
+export const MARKETPLACE_LISTING_RELEASES_QUERY = gql`
+  query MarketplaceListingReleases(
+    $id: String!
+    $limit: Int
+    $before: DateTime
+  ) {
+    marketplaceListing(id: $id) {
+      id
+      releases(limit: $limit, before: $before) {
+        id
+        clippingId
+        clippingName
+        digestHtml
+        articlesCount
+        releaseUrl
+        refTime
+        sinceHours
+        createdAt
+      }
+    }
+  }
+`
+
 // ---------- Mutations ----------
 
 /** Publica clipping no marketplace. */
@@ -186,6 +218,26 @@ export interface MarketplaceListingsQueryData {
 
 export interface MarketplaceListingQueryData {
   marketplaceListing: MarketplaceListingGraphQL | null
+}
+
+/** Shape de uma release retornada pelo campo `MarketplaceListing.releases`. */
+export interface MarketplaceReleaseGraphQL {
+  id: string
+  clippingId: string
+  clippingName: string
+  digestHtml: string
+  articlesCount: number
+  releaseUrl: string | null
+  refTime: string | null
+  sinceHours: number | null
+  createdAt: string
+}
+
+export interface MarketplaceListingReleasesQueryData {
+  marketplaceListing: {
+    id: string
+    releases: MarketplaceReleaseGraphQL[]
+  } | null
 }
 
 export interface PublishInputGraphQL {
