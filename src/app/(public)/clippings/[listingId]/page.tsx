@@ -107,6 +107,7 @@ export default async function ListingDetailPage({ params }: Props) {
       perRecorteEstimates={estimation.perRecorte}
       releases={releases}
       hasMoreReleases={hasMore}
+      releasesListingId={listing.id}
       releasesPagePath={`/clippings/${listing.id}/releases`}
       actions={
         <ListingActions
