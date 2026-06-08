@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import path from 'node:path'
 import { encode } from '@auth/core/jwt'
 import { expect, test as setup } from '@playwright/test'
-import { writeTokenCache } from './fixtures/keycloak'
+import { getCachedBotTokens } from './fixtures/keycloak'
 
 /**
  * Setup project para autenticação contra portal staging — bypassa o browser
@@ -38,9 +38,6 @@ import { writeTokenCache } from './fixtures/keycloak'
 
 const STAGING_PORTAL_URL =
   'https://destaquesgovbr-portal-staging-klvx64dufq-rj.a.run.app'
-const STAGING_KC_URL = 'https://destaquesgovbr-keycloak-klvx64dufq-rj.a.run.app'
-const KC_REALM = 'destaquesgovbr'
-const KC_CLIENT_ID = 'portal-e2e'
 const DEFAULT_BOT_USERNAME = 'e2e-bot@destaquesgovbr.gov.br'
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60 // 30 dias
 
@@ -49,14 +46,6 @@ const authFile = path.join(
   '.auth',
   process.env.E2E_AUTH_STATE_FILENAME ?? 'staging.json',
 )
-
-interface KeycloakTokenResponse {
-  access_token: string
-  refresh_token: string
-  id_token?: string
-  expires_in: number
-  token_type: string
-}
 
 interface AccessTokenClaims {
   sub: string
@@ -77,33 +66,6 @@ function decodeJwtPayload<T = Record<string, unknown>>(token: string): T {
   return JSON.parse(payload) as T
 }
 
-async function fetchKeycloakToken(opts: {
-  kcUrl: string
-  username: string
-  password: string
-}): Promise<KeycloakTokenResponse> {
-  const tokenEndpoint = `${opts.kcUrl}/realms/${KC_REALM}/protocol/openid-connect/token`
-  const body = new URLSearchParams({
-    grant_type: 'password',
-    client_id: KC_CLIENT_ID,
-    username: opts.username,
-    password: opts.password,
-    scope: 'openid email profile',
-  })
-  const res = await fetch(tokenEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  })
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(
-      `Keycloak token endpoint retornou ${res.status}: ${text.slice(0, 500)}`,
-    )
-  }
-  return (await res.json()) as KeycloakTokenResponse
-}
-
 setup(
   'forge NextAuth session via Keycloak Direct Access Grant',
   async ({ context, request }) => {
@@ -121,24 +83,19 @@ setup(
     }
 
     const portalUrl = process.env.PLAYWRIGHT_BASE_URL ?? STAGING_PORTAL_URL
-    const kcUrl = process.env.KC_URL ?? STAGING_KC_URL
     const botUsername = process.env.E2E_BOT_USERNAME ?? DEFAULT_BOT_USERNAME
     const isHttps = portalUrl.startsWith('https://')
     const cookieName = isHttps
       ? '__Secure-authjs.session-token'
       : 'authjs.session-token'
 
-    // 1. Fetch JWT via Direct Access Grant.
-    const tokens = await fetchKeycloakToken({
-      kcUrl,
-      username: botUsername,
-      password: botPassword,
-    })
-
-    // 1b. Pré-popula o cache de token compartilhado para que as fixtures
-    //     reusem este grant (evita rajada de Direct Access Grants em paralelo,
-    //     que dispara o brute-force/quick-login lockout do Keycloak).
-    writeTokenCache(tokens)
+    // 1. Obtém o JWT do bot reusando o cache compartilhado (memória → arquivo →
+    //    refresh_token → password grant). Assim um rerun com cache válido NÃO
+    //    faz password grant — evita a rajada de Direct Access Grants que dispara
+    //    o brute-force/quick-login lockout do Keycloak. `getCachedBotTokens` já
+    //    persiste o cache (memória + arquivo) ao renovar ou fazer grant, então
+    //    não há `writeTokenCache` redundante aqui. (KC_URL é lido internamente.)
+    const tokens = await getCachedBotTokens()
 
     // 2. Decode access_token claims (sem validar — só para extrair metadados).
     const claims = decodeJwtPayload<AccessTokenClaims>(tokens.access_token)
