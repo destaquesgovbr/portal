@@ -1,13 +1,11 @@
 /**
- * Testes do AgentRecorteGenerator (Fase B4).
+ * Testes do AgentRecorteGenerator.
  *
- * Cobre branching por feature flag `graphql.agent`:
- *   - flag OFF ⇒ usa `POST /api/clipping/generate-recortes` (REST) e parseia SSE.
- *   - flag ON ⇒ usa `subscription generateRecortes` (urql/graphql-ws) e mapeia eventos.
+ * GraphQL é o único caminho: o componente usa sempre `subscription
+ * generateRecortes` (urql/graphql-ws) e mapeia os eventos para o UI.
  *
- * Os mocks de urql e do feature-flags são parametrizados via `vi.hoisted` para
- * que cada teste possa configurar (a) o valor da flag e (b) os eventos
- * emitidos pela subscription.
+ * O mock de urql é parametrizado via `vi.hoisted` para que cada teste possa
+ * configurar os eventos emitidos pela subscription.
  */
 
 import { screen, waitFor } from '@testing-library/react'
@@ -20,7 +18,6 @@ import type { Recorte } from '@/types/clipping'
 // --- mocks hoisted (precisam existir antes do import do componente) ---
 
 const mocks = vi.hoisted(() => ({
-  flagValue: false,
   subscriptionResult: {
     data: undefined as { generateRecortes: AgentEventGraphQL } | undefined,
     error: undefined as { message: string } | undefined,
@@ -33,14 +30,6 @@ const mocks = vi.hoisted(() => ({
   }>,
   unsubscribeSpy: vi.fn(),
 }))
-
-vi.mock('@/lib/feature-flags', async (orig) => {
-  const actual = await orig<typeof import('@/lib/feature-flags')>()
-  return {
-    ...actual,
-    useFeatureFlag: vi.fn(() => mocks.flagValue),
-  }
-})
 
 vi.mock('urql', async () => {
   // useSubscription retorna o resultado configurado **somente quando não-paused**
@@ -68,7 +57,6 @@ vi.mock('urql', async () => {
 import { AgentRecorteGenerator } from '../AgentRecorteGenerator'
 
 function resetMocks() {
-  mocks.flagValue = false
   mocks.subscriptionResult = {
     data: undefined,
     error: undefined,
@@ -98,51 +86,9 @@ const EVENT_DONE: AgentEventGraphQL = {
   converged: true,
 }
 
-describe('AgentRecorteGenerator — branching por feature flag', () => {
-  it('test_AgentRecorteGenerator_uses_rest_when_flag_off: fetch para /api/clipping/generate-recortes', async () => {
+describe('AgentRecorteGenerator — usa subscription GraphQL', () => {
+  it('test_AgentRecorteGenerator_uses_subscription: chama urql useSubscription, não fetch', async () => {
     resetMocks()
-    mocks.flagValue = false
-
-    const fetchSpy = vi.fn(async () => {
-      // Resposta mínima que o componente consegue parsear (sem corpo SSE).
-      return new Response(null, {
-        status: 200,
-        headers: { 'Content-Type': 'text/event-stream' },
-      })
-    })
-    const original = globalThis.fetch
-    globalThis.fetch = fetchSpy as unknown as typeof fetch
-
-    try {
-      const onRecortes = vi.fn()
-      render(<AgentRecorteGenerator onRecortesGenerated={onRecortes} />)
-
-      const textarea = screen.getByLabelText(
-        /Descreva os assuntos que deseja acompanhar/i,
-      )
-      await userEvent.type(textarea, 'IA no governo')
-
-      const button = screen.getByRole('button', {
-        name: /Gerar Recortes com IA/i,
-      })
-      await userEvent.click(button)
-
-      await waitFor(() => {
-        expect(fetchSpy).toHaveBeenCalled()
-      })
-
-      const call = fetchSpy.mock.calls[0]
-      expect(call?.[0]).toBe('/api/clipping/generate-recortes')
-      // subscriptionCalls deve ficar vazio (flag off ⇒ não usa GraphQL)
-      expect(mocks.subscriptionCalls).toEqual([])
-    } finally {
-      globalThis.fetch = original
-    }
-  })
-
-  it('test_AgentRecorteGenerator_uses_subscription_when_flag_on: chama urql useSubscription, não fetch', async () => {
-    resetMocks()
-    mocks.flagValue = true
 
     const fetchSpy = vi.fn()
     const original = globalThis.fetch
@@ -181,7 +127,6 @@ describe('AgentRecorteGenerator — branching por feature flag', () => {
 describe('AgentRecorteGenerator — renderização de eventos GraphQL', () => {
   it('test_subscription_event_thinking_renders_timeline: evento Thinking aparece no UI', async () => {
     resetMocks()
-    mocks.flagValue = true
     mocks.subscriptionResult = {
       data: {
         generateRecortes: {
@@ -214,7 +159,6 @@ describe('AgentRecorteGenerator — renderização de eventos GraphQL', () => {
 
   it('test_subscription_event_tool_call_renders_step: ToolCall é renderizado com nome do recorte', async () => {
     resetMocks()
-    mocks.flagValue = true
     mocks.subscriptionResult = {
       data: {
         generateRecortes: {
@@ -249,7 +193,6 @@ describe('AgentRecorteGenerator — renderização de eventos GraphQL', () => {
 
   it('test_subscription_event_done_populates_recortes: callback onRecortesGenerated chamado no Accept', async () => {
     resetMocks()
-    mocks.flagValue = true
     mocks.subscriptionResult = {
       data: { generateRecortes: EVENT_DONE },
       error: undefined,
@@ -288,7 +231,6 @@ describe('AgentRecorteGenerator — renderização de eventos GraphQL', () => {
 
   it('test_subscription_error_shows_error_state: AgentEventError exibe a mensagem', async () => {
     resetMocks()
-    mocks.flagValue = true
     mocks.subscriptionResult = {
       data: {
         generateRecortes: {
@@ -318,7 +260,6 @@ describe('AgentRecorteGenerator — renderização de eventos GraphQL', () => {
 
   it('test_subscription_transport_error_shows_error: erro de transporte vira mensagem de erro no UI', async () => {
     resetMocks()
-    mocks.flagValue = true
     mocks.subscriptionResult = {
       data: undefined,
       error: { message: 'Conexão WebSocket perdida' },
@@ -345,7 +286,6 @@ describe('AgentRecorteGenerator — renderização de eventos GraphQL', () => {
 describe('AgentRecorteGenerator — controle de subscription', () => {
   it('test_subscription_starts_paused_before_generate: pause=true até o usuário clicar', async () => {
     resetMocks()
-    mocks.flagValue = true
     mocks.subscriptionResult = {
       data: undefined,
       error: undefined,
@@ -364,7 +304,6 @@ describe('AgentRecorteGenerator — controle de subscription', () => {
 
   it('test_subscription_unmount_pauses_subscription: unmount marca a subscription como pausada', async () => {
     resetMocks()
-    mocks.flagValue = true
     mocks.subscriptionResult = {
       data: undefined,
       error: undefined,

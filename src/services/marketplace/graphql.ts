@@ -15,13 +15,18 @@ import { getClient } from '@/lib/graphql/client'
 import {
   CLONE_FROM_LISTING_MUTATION,
   type CloneFromListingMutationData,
+  type FollowedListingGraphQL,
   LIKE_MARKETPLACE_LISTING_MUTATION,
   type LikeMarketplaceListingMutationData,
   MARKETPLACE_LISTING_QUERY,
+  MARKETPLACE_LISTING_RELEASES_QUERY,
   MARKETPLACE_LISTINGS_QUERY,
   type MarketplaceListingGraphQL,
   type MarketplaceListingQueryData,
+  type MarketplaceListingReleasesQueryData,
   type MarketplaceListingsQueryData,
+  MY_FOLLOWED_LISTINGS_QUERY,
+  type MyFollowedListingsQueryData,
   PUBLISH_TO_MARKETPLACE_MUTATION,
   type PublishToMarketplaceMutationData,
   SUBSCRIBE_TO_CLIPPING_MUTATION,
@@ -31,9 +36,10 @@ import {
   type UnpublishFromMarketplaceMutationData,
   type UnsubscribeFromClippingMutationData,
 } from '@/lib/graphql/queries/marketplace'
-import type { MarketplaceListing } from '@/types/clipping'
+import type { MarketplaceListing, Release } from '@/types/clipping'
 import type {
   CloneResult,
+  FollowedListing,
   LikeResult,
   ListingDetail,
   ListingsPage,
@@ -41,6 +47,7 @@ import type {
   MarketplaceService,
   PublishPayload,
   PublishResult,
+  ReleasesPage,
   SubscribeListingPayload,
   SubscribeListingResult,
 } from './types'
@@ -78,6 +85,30 @@ function mapListingDetail(node: MarketplaceListingGraphQL): ListingDetail {
     ...mapListing(node),
     userHasLiked: node.hasLiked ?? undefined,
     userFollows: node.hasFollowed ?? undefined,
+  }
+}
+
+/**
+ * Mapeia um `FollowedListing` (GraphQL) → shape consumido pelo `FollowCard`.
+ * Os campos escalares do listing reusam o mapeamento de `mapListing`; os campos
+ * da subscription (`deliveryChannels`/`extraEmails`/`webhookUrl`/`followedAt`)
+ * recebem defaults quando nulos, espelhando o antigo `getFollows`.
+ */
+function mapFollowedListing(node: FollowedListingGraphQL): FollowedListing {
+  return {
+    listingId: node.id,
+    // `FollowedListing` tem os mesmos campos escalares de `MarketplaceListing`,
+    // então reaproveitamos `mapListing` (ignora os campos extras da subscription).
+    listing: mapListing(node as unknown as MarketplaceListingGraphQL),
+    deliveryChannels: node.deliveryChannels ?? {
+      email: false,
+      telegram: false,
+      push: false,
+      webhook: false,
+    },
+    extraEmails: node.extraEmails ?? [],
+    webhookUrl: node.webhookUrl ?? '',
+    followedAt: node.followedAt ?? '',
   }
 }
 
@@ -140,6 +171,21 @@ export function createGraphQLMarketplaceService(
       return { listings, total: data?.total ?? 0 }
     },
 
+    async listFollowedListings(): Promise<FollowedListing[]> {
+      const result = await client
+        .query<MyFollowedListingsQueryData>(MY_FOLLOWED_LISTINGS_QUERY, {})
+        .toPromise()
+      if (result.error) {
+        throw unwrapError(result.error, 'Erro ao listar clippings seguidos')
+      }
+      const nodes = result.data?.myFollowedListings ?? []
+      // Aquece o cache listing → sourceClippingId p/ unsubscribe sem roundtrip.
+      for (const node of nodes) {
+        sourceClippingByListing.set(node.id, node.sourceClippingId)
+      }
+      return nodes.map(mapFollowedListing)
+    },
+
     async getListing(listingId: string): Promise<ListingDetail | null> {
       const result = await client
         .query<MarketplaceListingQueryData>(MARKETPLACE_LISTING_QUERY, {
@@ -153,6 +199,44 @@ export function createGraphQLMarketplaceService(
       if (!node) return null
       sourceClippingByListing.set(node.id, node.sourceClippingId)
       return mapListingDetail(node)
+    },
+
+    async listListingReleases(
+      listingId: string,
+      opts: { limit?: number; before?: string } = {},
+    ): Promise<ReleasesPage> {
+      const limit = opts.limit ?? 10
+      const result = await client
+        .query<MarketplaceListingReleasesQueryData>(
+          MARKETPLACE_LISTING_RELEASES_QUERY,
+          { id: listingId, limit: limit + 1, before: opts.before ?? null },
+        )
+        .toPromise()
+      if (result.error) {
+        throw unwrapError(result.error, 'Erro ao buscar edições')
+      }
+      // Listing inativo/inexistente → `marketplaceListing` é null → sem releases.
+      const nodes = result.data?.marketplaceListing?.releases ?? []
+      const hasMore = nodes.length > limit
+      const visible = hasMore ? nodes.slice(0, limit) : nodes
+      const releases: Release[] = visible.map((r) => ({
+        id: r.id,
+        clippingId: r.clippingId,
+        userId: '', // não exposto pelo schema GraphQL (conteúdo público)
+        clippingName: r.clippingName,
+        // `Release` (tipo do portal) não tem campo próprio para o preview; o
+        // schema só expõe `digestPreview` (computado no servidor, ≤150 chars).
+        // Carregamos o preview em `digest` para que os cards o exibam (mesma
+        // convenção do facade de clipping).
+        digest: r.digestPreview ?? '',
+        digestHtml: r.digestHtml,
+        articlesCount: r.articlesCount,
+        createdAt: r.createdAt,
+        releaseUrl: r.releaseUrl ?? `/clipping/release/${r.id}`,
+        refTime: r.refTime,
+        sinceHours: r.sinceHours,
+      }))
+      return { releases, hasMore }
     },
 
     async publish(payload: PublishPayload): Promise<PublishResult> {

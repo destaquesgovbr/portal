@@ -4,9 +4,14 @@ import { startOfMonth, subDays } from 'date-fns'
 import { cache } from 'react'
 import { getPrioritizedArticles } from '@/config/prioritization'
 import { loadConfig } from '@/config/prioritization-config'
+import { createSSRClient } from '@/lib/graphql/client'
 import { withResult } from '@/lib/result'
-import { typesense } from '@/services/typesense/client'
+import { createGraphQLContentService } from '@/services/content/graphql'
 import type { ArticleRow } from '@/types/article'
+
+// Conteúdo público não precisa de token de autenticação.
+const content = () =>
+  createGraphQLContentService(createSSRClient(async () => null))
 
 // Internal function for fetching latest articles
 const fetchLatestArticles = cache(async (): Promise<ArticleRow[]> => {
@@ -16,20 +21,11 @@ const fetchLatestArticles = cache(async (): Promise<ArticleRow[]> => {
 
     // Buscar mais artigos para ter pool maior para scoring
     // (buscamos 50 para garantir diversidade após filtros)
-    const result = await typesense
-      .collections<ArticleRow>('news')
-      .documents()
-      .search({
-        q: '*',
-        limit: 50,
-        sort_by: 'published_at:desc',
-        group_by: 'content_hash',
-        group_limit: 1,
-      })
-
-    const articles = result.grouped_hits?.flatMap((group) =>
-      group.hits.map((hit) => hit.document),
-    ) as ArticleRow[]
+    // O resolver ordena por published_at desc; dedup por content_hash.
+    const { articles } = await content().listArticles({
+      limit: 50,
+      dedup: true,
+    })
 
     // Aplicar priorização
     const prioritized = getPrioritizedArticles(articles, config, 11)
@@ -39,19 +35,11 @@ const fetchLatestArticles = cache(async (): Promise<ArticleRow[]> => {
     console.error('[getLatestArticles] Error applying prioritization:', error)
 
     // Fallback: retornar ordenação cronológica
-    const result = await typesense
-      .collections<ArticleRow>('news')
-      .documents()
-      .search({
-        q: '*',
-        limit: 11,
-        sort_by: 'published_at:desc',
-        group_by: 'content_hash',
-        group_limit: 1,
-      })
-    return result.grouped_hits?.flatMap((group) =>
-      group.hits.map((hit) => hit.document),
-    ) as ArticleRow[]
+    const { articles } = await content().listArticles({
+      limit: 11,
+      dedup: true,
+    })
+    return articles
   }
 })
 
@@ -69,20 +57,18 @@ const fetchThemes = cache(async (): Promise<GetThemesResult> => {
     // Carregar configuração de priorização
     const config = await loadConfig()
 
-    const sevenDaysAgo = subDays(new Date(), 7).getTime()
+    const sevenDaysAgo = subDays(new Date(), 7).toISOString()
 
-    // Buscar artigos dos últimos 7 dias
-    const result = await typesense
-      .collections<ArticleRow>('news')
-      .documents()
-      .search({
-        q: '*',
-        filter_by: `published_at:>${Math.floor(sevenDaysAgo / 1000)}`,
-        limit: 250, // Buscar mais artigos para melhor análise
-        sort_by: 'published_at:desc',
-      })
-
-    const articles = result.hits?.map((hit) => hit.document) as ArticleRow[]
+    // Buscar artigos dos últimos 7 dias.
+    // NOTA: usamos `listArticles` (artigos crus) em vez de
+    // `getThemeArticleCounts` porque `calculateThemeScores` precisa pontuar
+    // cada artigo individualmente (peso de órgão/tema, recência, boosts). O
+    // endpoint de contagens só devolve totais — insuficiente para os modos
+    // `weighted`/`volume` configurados. Isso preserva o output atual.
+    const { articles } = await content().listArticles({
+      filter: { startDate: sevenDaysAgo },
+      limit: 250, // Buscar mais artigos para melhor análise
+    })
 
     // Usar calculateThemeScores para selecionar temas baseado no modo configurado
     const { calculateThemeScores } = await import('@/config/prioritization')
@@ -121,34 +107,20 @@ const fetchThemes = cache(async (): Promise<GetThemesResult> => {
   } catch (error) {
     console.error('[getThemes] Error applying prioritization:', error)
 
-    // Fallback: usar método original (volume)
-    const sevenDaysAgo = subDays(new Date(), 7).getTime()
+    // Fallback: usar método original (volume) — contagem por tema dos últimos
+    // 7 dias, nível 1.
+    try {
+      const counts = await content().getThemeArticleCounts(7, 1)
 
-    const result = await typesense
-      .collections<ArticleRow>('news')
-      .documents()
-      .search({
-        q: '*',
-        group_by: 'theme_1_level_1_label',
-        filter_by: `published_at:>${Math.floor(sevenDaysAgo / 1000)}`,
-        limit: 26,
-      })
-
-    const themesCount: Record<string, number> = {}
-
-    for (const group of result.grouped_hits ?? []) {
-      themesCount[group.group_key[0]] = group.found ?? 0
+      return counts
+        .filter((t) => t.label)
+        .map((t) => ({ name: t.label as string, count: t.count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 4)
+    } catch (fallbackError) {
+      console.error('[getThemes] Fallback also failed:', fallbackError)
+      return []
     }
-
-    delete themesCount.undefined
-    delete themesCount['']
-
-    const countResult = Object.keys(themesCount)
-      .map((themeName) => ({ name: themeName, count: themesCount[themeName] }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 4)
-
-    return countResult
   }
 })
 
@@ -157,17 +129,14 @@ export const getThemes = withResult(fetchThemes)
 
 // Internal function for counting monthly news
 const fetchMonthlyNews = cache(async (): Promise<number> => {
-  const thisMonth = startOfMonth(new Date()).getTime() / 1000
+  const thisMonth = startOfMonth(new Date()).toISOString()
 
-  const result = await typesense
-    .collections<ArticleRow>('news')
-    .documents()
-    .search({
-      q: '*',
-      filter_by: `published_at:>${thisMonth}`,
-    })
+  const { found } = await content().listArticles({
+    limit: 0,
+    filter: { startDate: thisMonth },
+  })
 
-  return result.found
+  return found
 })
 
 // Public API with Result wrapper
@@ -175,15 +144,9 @@ export const countMonthlyNews = withResult(fetchMonthlyNews)
 
 // Internal function for counting total news
 const fetchTotalNews = cache(async (): Promise<number> => {
-  const result = await typesense
-    .collections<ArticleRow>('news')
-    .documents()
-    .search({
-      q: '*',
-      limit: 0,
-    })
+  const { found } = await content().listArticles({ limit: 0 })
 
-  return result.found
+  return found
 })
 
 // Public API with Result wrapper
@@ -194,17 +157,12 @@ const fetchLatestByTheme = cache(
   async (theme: string, limit: number | null): Promise<ArticleRow[]> => {
     if (!theme) return []
 
-    const result = await typesense
-      .collections<ArticleRow>('news')
-      .documents()
-      .search({
-        q: '*',
-        filter_by: `theme_1_level_1_label:=${theme}`,
-        sort_by: 'published_at:desc',
-        limit: limit ?? 2,
-      })
+    const { articles } = await content().listArticles({
+      filter: { themeLabel: theme },
+      limit: limit ?? 2,
+    })
 
-    return result.hits?.map((hit) => hit.document) as ArticleRow[]
+    return articles
   },
 )
 
@@ -214,30 +172,28 @@ export const getLatestByTheme = withResult(fetchLatestByTheme)
 // Type for batch theme articles result
 export type ThemesWithArticles = Record<string, ArticleRow[]>
 
-// Internal function for fetching articles for multiple themes in a single query
+// Internal function for fetching articles for multiple themes
 const fetchLatestByThemes = cache(
   async (themes: string[], limitPerTheme = 2): Promise<ThemesWithArticles> => {
     if (!themes.length) return {}
 
-    // Single query with group_by for all themes
-    const result = await typesense
-      .collections<ArticleRow>('news')
-      .documents()
-      .search({
-        q: '*',
-        filter_by: `theme_1_level_1_label:[${themes.join(',')}]`,
-        group_by: 'theme_1_level_1_label',
-        group_limit: limitPerTheme,
-        sort_by: 'published_at:desc',
-        limit: themes.length * limitPerTheme,
-      })
+    const svc = content()
 
-    // Transform grouped results into a record
+    // Uma query por tema. A landing é ISR-cacheada, então o loop é aceitável.
+    const entries = await Promise.all(
+      themes.map(async (theme) => {
+        const { articles } = await svc.listArticles({
+          filter: { themeLabel: theme },
+          limit: limitPerTheme,
+          dedup: true,
+        })
+        return [theme, articles] as const
+      }),
+    )
+
     const grouped: ThemesWithArticles = {}
-    for (const group of result.grouped_hits ?? []) {
-      const themeName = group.group_key[0]
-      grouped[themeName] = (group.hits?.map((h) => h.document) ??
-        []) as ArticleRow[]
+    for (const [theme, articles] of entries) {
+      grouped[theme] = articles
     }
 
     return grouped

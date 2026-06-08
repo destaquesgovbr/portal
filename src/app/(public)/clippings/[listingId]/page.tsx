@@ -3,10 +3,10 @@ import { auth } from '@/auth'
 import { ClippingDetailView } from '@/components/clipping/ClippingDetailView'
 import { ListingActions } from '@/components/marketplace/ListingActions'
 import { estimateTotalCount } from '@/lib/estimate-recorte-count'
-import { getFirestoreDb } from '@/lib/firebase-admin'
+import { createSSRClient } from '@/lib/graphql/client'
+import { getHasTelegram } from '@/lib/graphql/user'
 import { resolveRecorteLabels } from '@/lib/recorte-utils'
-import { fetchReleasesForClipping } from '@/lib/release-utils'
-import type { MarketplaceListing } from '@/types/clipping'
+import { createGraphQLMarketplaceService } from '@/services/marketplace/graphql'
 
 export const revalidate = 600
 
@@ -17,15 +17,16 @@ interface Props {
 export async function generateMetadata({ params }: Props) {
   const { listingId } = await params
   try {
-    const db = getFirestoreDb()
-    const snap = await db.collection('marketplace').doc(listingId).get()
-    if (!snap.exists || !snap.data()?.active) {
+    // Caminho público (sem token) — só precisamos dos metadados.
+    const listing = await createGraphQLMarketplaceService(
+      createSSRClient(),
+    ).getListing(listingId)
+    if (!listing || !listing.active) {
       return { title: 'Listing não encontrado — DestaquesGovBr' }
     }
-    const data = snap.data()!
     return {
-      title: `${data.name} — Marketplace — DestaquesGovBr`,
-      description: data.shortDescription ?? data.description,
+      title: `${listing.name} — Marketplace — DestaquesGovBr`,
+      description: listing.description,
     }
   } catch {
     return { title: 'Marketplace — DestaquesGovBr' }
@@ -34,65 +35,46 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function ListingDetailPage({ params }: Props) {
   const { listingId } = await params
-  const db = getFirestoreDb()
-
-  const snap = await db.collection('marketplace').doc(listingId).get()
-  if (!snap.exists || !snap.data()?.active) notFound()
-
-  const data = snap.data()!
-  const listing: MarketplaceListing = {
-    id: snap.id,
-    ...data,
-    publishedAt: data.publishedAt?.toDate?.()?.toISOString?.() ?? '',
-    updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? '',
-  } as MarketplaceListing
-
-  // User state (optional)
-  let userFollows = false
-  let userHasLiked = false
-  let hasTelegram = false
-
   const session = await auth()
-  if (session?.user?.id) {
-    const userId = session.user.id
-    const [likeSnap, followerSnap] = await Promise.all([
-      db
-        .collection('marketplace')
-        .doc(listingId)
-        .collection('likes')
-        .doc(userId)
-        .get(),
-      db
-        .collection('subscriptions')
-        .where('clippingId', '==', listing.sourceClippingId)
-        .where('userId', '==', userId)
-        .where('role', '==', 'subscriber')
-        .limit(1)
-        .get(),
-    ])
-    userHasLiked = likeSnap.exists
-    userFollows = !followerSnap.empty
-    try {
-      const tgDoc = await db
-        .collection('users')
-        .doc(userId)
-        .collection('telegramLink')
-        .doc('account')
-        .get()
-      hasTelegram = tgDoc.exists
-    } catch {}
-  }
+
+  // SSR client com token (se logado) → `hasLiked`/`hasFollowed` resolvidos pelo
+  // schema; público sem token continua funcionando (flags vêm null → false).
+  const client = createSSRClient(async () => session?.accessToken ?? null)
+  const service = createGraphQLMarketplaceService(client)
+
+  const listing = await service.getListing(listingId)
+  if (!listing || !listing.active) notFound()
+
+  const userHasLiked = listing.userHasLiked ?? false
+  const userFollows = listing.userFollows ?? false
+
+  // Flag de Telegram só faz sentido para usuário logado.
+  const hasTelegram = session?.user?.id ? await getHasTelegram(client) : false
 
   // Shared data
-  const [resolvedRecortes, { releases, hasMore }, estimation] =
-    await Promise.all([
-      resolveRecorteLabels(listing.recortes),
-      fetchReleasesForClipping(listing.sourceClippingId, listing.name),
-      estimateTotalCount(listing.recortes).catch(() => ({
-        total: 0,
-        perRecorte: [],
-      })),
-    ])
+  const [resolvedRecortes, releasesPage, estimation] = await Promise.all([
+    resolveRecorteLabels(listing.recortes),
+    // Caminho PÚBLICO: `MarketplaceListing.releases` (público para listing
+    // ativo). NÃO usamos `clipping.releases` (gated a autor/assinante →
+    // UNAUTHENTICATED para anônimo). O preview vem no campo `digest` do Release.
+    service.listListingReleases(listingId, { limit: 10 }),
+    estimateTotalCount(listing.recortes).catch(() => ({
+      total: 0,
+      perRecorte: [],
+    })),
+  ])
+
+  const releases = releasesPage.releases.map((r) => ({
+    id: r.id,
+    clippingName: r.clippingName || listing.name,
+    articlesCount: r.articlesCount,
+    createdAt: r.createdAt,
+    releaseUrl: r.releaseUrl || `/clipping/release/${r.id}`,
+    refTime: r.refTime ?? null,
+    sinceHours: r.sinceHours ?? null,
+    digestPreview: r.digest || undefined,
+  }))
+  const hasMore = releasesPage.hasMore
 
   return (
     <ClippingDetailView
@@ -107,6 +89,7 @@ export default async function ListingDetailPage({ params }: Props) {
       perRecorteEstimates={estimation.perRecorte}
       releases={releases}
       hasMoreReleases={hasMore}
+      releasesListingId={listing.id}
       releasesPagePath={`/clippings/${listing.id}/releases`}
       actions={
         <ListingActions

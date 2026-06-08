@@ -362,6 +362,8 @@ describe('graphqlClippingService — listReleases', () => {
       clippingId: 'c1',
       clippingName: 'Meu Clipping',
       digestHtml: `<p>${id}</p>`,
+      digestPreview: `Prévia ${id}`,
+      articlesCount: 9,
       releaseUrl: `/clipping/release/${id}`,
       refTime: '2026-05-26T08:00:00Z',
       sinceHours: 24,
@@ -380,8 +382,129 @@ describe('graphqlClippingService — listReleases', () => {
     const result = await service.listReleases('c1', { limit: 2 })
 
     expect(queries[0].query).toContain('ClippingReleases')
+    expect(queries[0].query).toContain('articlesCount')
+    expect(queries[0].query).toContain('digestPreview')
     expect(result.releases).toHaveLength(2)
     expect(result.hasMore).toBe(true)
     expect(result.releases[0].digestHtml).toBe('<p>rel-1</p>')
+    // articlesCount agora vem do schema (antes era hardcoded 0).
+    expect(result.releases[0].articlesCount).toBe(9)
+    // `digestPreview` é carregado no campo `digest` do Release (o tipo não tem
+    // campo próprio para o preview).
+    expect(result.releases[0].digest).toBe('Prévia rel-1')
+  })
+
+  it('passa o cursor `before` para a query quando fornecido', async () => {
+    const { client, queries } = makeClientStub({
+      onQuery: () => ({ clipping: { id: 'c1', releases: [] } }),
+    })
+
+    const service = createGraphQLClippingService(client)
+    await service.listReleases('c1', { before: '2026-05-26T08:00:00Z' })
+
+    expect(queries[0].vars).toMatchObject({
+      id: 'c1',
+      before: '2026-05-26T08:00:00Z',
+    })
+  })
+
+  it('getReleaseById: dispara ReleaseById(id) e mapeia Release → ReleaseWithContext (incl. digestPreview)', async () => {
+    const { client, queries } = makeClientStub({
+      onQuery: (q) => {
+        if (q.includes('ReleaseById')) {
+          return {
+            release: {
+              id: 'rel-1',
+              clippingId: 'c1',
+              clippingName: 'Top Economia',
+              digestHtml: '<p>conteúdo</p>',
+              digestPreview: 'Prévia do digest',
+              articlesCount: 12,
+              createdAt: '2026-05-26T08:01:00Z',
+              releaseUrl: '/clipping/release/rel-1',
+              refTime: '2026-05-26T08:00:00Z',
+              sinceHours: 24,
+              recortes: [
+                {
+                  id: 'rec-1',
+                  title: 'Economia',
+                  themes: ['economia'],
+                  agencies: ['ME'],
+                  keywords: ['pib'],
+                },
+              ],
+              marketplaceListingId: 'listing-1',
+            },
+          }
+        }
+        return {}
+      },
+    })
+
+    const service = createGraphQLClippingService(client)
+    const result = await service.getReleaseById('rel-1')
+
+    expect(queries).toHaveLength(1)
+    expect(queries[0].query).toContain('ReleaseById')
+    expect(queries[0].query).toContain('digestPreview')
+    expect(queries[0].query).toContain('recortes')
+    expect(queries[0].query).toContain('marketplaceListingId')
+    expect(queries[0].vars).toMatchObject({ id: 'rel-1' })
+    expect(result).toEqual({
+      id: 'rel-1',
+      clippingId: 'c1',
+      userId: '',
+      clippingName: 'Top Economia',
+      digest: '',
+      digestHtml: '<p>conteúdo</p>',
+      digestPreview: 'Prévia do digest',
+      articlesCount: 12,
+      createdAt: '2026-05-26T08:01:00Z',
+      releaseUrl: '/clipping/release/rel-1',
+      refTime: '2026-05-26T08:00:00Z',
+      sinceHours: 24,
+      recortes: [
+        {
+          id: 'rec-1',
+          title: 'Economia',
+          themes: ['economia'],
+          agencies: ['ME'],
+          keywords: ['pib'],
+        },
+      ],
+      marketplaceListingId: 'listing-1',
+    })
+  })
+
+  it('getReleaseById: retorna null quando o release não existe / sem acesso', async () => {
+    const { client } = makeClientStub({
+      onQuery: () => ({ release: null }),
+    })
+    const service = createGraphQLClippingService(client)
+    const result = await service.getReleaseById('inexistente')
+    expect(result).toBeNull()
+  })
+
+  it('getReleaseById: releaseUrl default quando o schema retorna null', async () => {
+    const { client } = makeClientStub({
+      onQuery: () => ({
+        release: {
+          id: 'rel-2',
+          clippingId: 'c1',
+          clippingName: 'Top',
+          digestHtml: '<p>x</p>',
+          digestPreview: null,
+          articlesCount: 0,
+          createdAt: '2026-05-26T08:01:00Z',
+          releaseUrl: null,
+          refTime: null,
+          sinceHours: null,
+        },
+      }),
+    })
+    const service = createGraphQLClippingService(client)
+    const result = await service.getReleaseById('rel-2')
+    expect(result?.releaseUrl).toBe('/clipping/release/rel-2')
+    expect(result?.digestPreview).toBeNull()
   })
 })

@@ -12,8 +12,11 @@ import {
   SYNC_PUSH_SUBSCRIPTION_MUTATION,
   UPDATE_PUSH_PREFERENCES_MUTATION,
 } from '@/lib/graphql/queries/push'
-import type { PushPreferences, PushSubscriptionPayload } from './rest'
-import type { AgencyOption } from './types'
+import type {
+  AgencyOption,
+  PushPreferences,
+  PushSubscriptionPayload,
+} from './types'
 
 interface PushPreferencesQueryResult {
   pushPreferences: { agencies: string[] } | null

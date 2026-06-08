@@ -1,179 +1,44 @@
 import Link from 'next/link'
 import { auth } from '@/auth'
-import {
-  FollowCard,
-  type FollowedListing,
-} from '@/components/marketplace/FollowCard'
+import { FollowCard } from '@/components/marketplace/FollowCard'
 import { getAgenciesList } from '@/data/agencies-utils'
 import { getThemesWithHierarchy } from '@/data/themes-utils'
-import {
-  GRAPHQL_FLAGS,
-  resolveGraphQLFlagServer,
-} from '@/lib/feature-flags-server'
-import { getFirestoreDb } from '@/lib/firebase-admin'
 import { createSSRClient } from '@/lib/graphql/client'
+import { getHasTelegram } from '@/lib/graphql/user'
 import { createGraphQLClippingService } from '@/services/clipping/graphql'
-import type { Clipping, MarketplaceListing } from '@/types/clipping'
+import { createGraphQLMarketplaceService } from '@/services/marketplace/graphql'
+import type { Clipping } from '@/types/clipping'
 import { ClippingListClient } from './ClippingListClient'
 
 export async function getClippings(): Promise<Clipping[]> {
   const session = await auth()
   if (!session?.user?.id) return []
 
-  // Quando `graphql.clippings` está ON, hidrata via a fachada GraphQL (mesmo
-  // caminho do cliente) — assim o canário exercita os resolvers de leitura.
-  // Falha → fallback para o Firestore abaixo (comportamento legado).
-  const useGraphQL = await resolveGraphQLFlagServer(
-    GRAPHQL_FLAGS.CLIPPINGS,
-    session.user.id,
-  )
-  if (useGraphQL) {
-    try {
-      const client = createSSRClient(async () => session.accessToken ?? null)
-      return await createGraphQLClippingService(client).listClippings()
-    } catch (err) {
-      console.error(
-        'getClippings via GraphQL falhou; fallback Firestore:',
-        (err as Error).message,
-      )
-    }
-  }
-
+  // GraphQL é o único caminho de leitura. Em caso de falha, retorna lista
+  // vazia (degradação graciosa — sem fallback REST/Firestore).
   try {
-    const db = getFirestoreDb()
-    const [snapshot, subscriptionsSnap] = await Promise.all([
-      db
-        .collection('clippings')
-        .where('authorUserId', '==', session.user.id)
-        .orderBy('createdAt', 'desc')
-        .get(),
-      db
-        .collection('subscriptions')
-        .where('userId', '==', session.user.id)
-        .where('role', '==', 'author')
-        .get(),
-    ])
-
-    const subsByClipping = new Map<string, FirebaseFirestore.DocumentData>()
-    for (const subDoc of subscriptionsSnap.docs) {
-      const subData = subDoc.data()
-      subsByClipping.set(subData.clippingId, {
-        subscriptionId: subDoc.id,
-        deliveryChannels: subData.deliveryChannels,
-        extraEmails: subData.extraEmails,
-        webhookUrl: subData.webhookUrl,
-      })
-    }
-
-    return snapshot.docs.map((doc) => {
-      const data = doc.data()
-      const sub = subsByClipping.get(doc.id)
-      const toISO = (v: unknown) =>
-        v && typeof v === 'object' && 'toDate' in v
-          ? (v as { toDate: () => Date }).toDate().toISOString()
-          : typeof v === 'string'
-            ? v
-            : null
-      return {
-        id: doc.id,
-        ...data,
-        ...(sub ?? {}),
-        createdAt: toISO(data.createdAt) ?? '',
-        updatedAt: toISO(data.updatedAt) ?? '',
-        nextRunAt: toISO(data.nextRunAt) ?? null,
-        startDate: toISO(data.startDate) ?? null,
-        endDate: toISO(data.endDate) ?? null,
-      }
-    }) as Clipping[]
+    const client = createSSRClient(async () => session.accessToken ?? null)
+    return await createGraphQLClippingService(client).listClippings()
   } catch (error) {
     console.error('Error reading clippings:', error)
     return []
   }
 }
 
-async function getFollows(userId: string): Promise<FollowedListing[]> {
-  try {
-    const db = getFirestoreDb()
-
-    // Query subscriptions where user is a subscriber
-    const subsSnap = await db
-      .collection('subscriptions')
-      .where('userId', '==', userId)
-      .where('role', '==', 'subscriber')
-      .where('active', '==', true)
-      .get()
-
-    if (subsSnap.empty) return []
-
-    // Get the clipping IDs and look up their marketplace listings
-    const follows = await Promise.all(
-      subsSnap.docs.map(async (subDoc) => {
-        const subData = subDoc.data()
-        const clippingId = subData.clippingId
-
-        // Find the marketplace listing for this clipping
-        const listingsSnap = await db
-          .collection('marketplace')
-          .where('sourceClippingId', '==', clippingId)
-          .where('active', '==', true)
-          .limit(1)
-          .get()
-
-        if (listingsSnap.empty) return null
-
-        const listingDoc = listingsSnap.docs[0]
-        const listingData = listingDoc.data()
-
-        return {
-          listingId: listingDoc.id,
-          listing: {
-            id: listingDoc.id,
-            ...listingData,
-            publishedAt:
-              listingData.publishedAt?.toDate?.()?.toISOString?.() ?? '',
-            updatedAt: listingData.updatedAt?.toDate?.()?.toISOString?.() ?? '',
-          } as MarketplaceListing,
-          deliveryChannels: subData.deliveryChannels,
-          extraEmails: subData.extraEmails ?? [],
-          webhookUrl: subData.webhookUrl ?? '',
-          followedAt: subData.subscribedAt?.toDate?.()?.toISOString?.() ?? '',
-        } satisfies FollowedListing
-      }),
-    )
-
-    return follows.filter(Boolean) as FollowedListing[]
-  } catch (error) {
-    console.error('Error reading follows:', error)
-    return []
-  }
-}
-
-async function getHasTelegram(userId: string): Promise<boolean> {
-  try {
-    const db = getFirestoreDb()
-    const tgDoc = await db
-      .collection('users')
-      .doc(userId)
-      .collection('telegramLink')
-      .doc('account')
-      .get()
-    return tgDoc.exists
-  } catch {
-    return false
-  }
-}
-
 export default async function ClippingPage() {
   const session = await auth()
   const userId = session?.user?.id
+  const ssrClient = createSSRClient(async () => session?.accessToken ?? null)
 
   const [clippings, themes, agencies, follows, hasTelegram] = await Promise.all(
     [
       getClippings(),
       getThemesWithHierarchy(),
       getAgenciesList(),
-      userId ? getFollows(userId) : Promise.resolve([]),
-      userId ? getHasTelegram(userId) : Promise.resolve(false),
+      userId
+        ? createGraphQLMarketplaceService(ssrClient).listFollowedListings()
+        : Promise.resolve([]),
+      userId ? getHasTelegram(ssrClient) : Promise.resolve(false),
     ],
   )
   const themeMap = Object.fromEntries(themes.map((t) => [t.key, t.name]))

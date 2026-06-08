@@ -129,26 +129,12 @@ Plataforma do Governo Federal brasileiro ("Web Difusora") desenvolvida com Next.
 │   │       ├── auth/
 │   │       │   ├── [...nextauth]/route.ts
 │   │       │   └── telegram/      # Vinculação Telegram
-│   │       ├── clipping/          # CRUD de clippings
-│   │       │   ├── route.ts       # GET + POST
-│   │       │   ├── estimate/      # Estimativa de recorte
-│   │       │   ├── generate-recortes/ # Geração IA de recortes
-│   │       │   └── [id]/
-│   │       │       ├── route.ts   # PUT + DELETE
-│   │       │       ├── releases/  # Releases do clipping
-│   │       │       └── send/      # Envio manual
-│   │       ├── clippings/         # APIs do marketplace
-│   │       │   ├── publish/       # Publicação
-│   │       │   └── public/        # Listagem/detalhe público
-│   │       │       └── [listingId]/
-│   │       │           ├── follow/ # Seguir
-│   │       │           ├── like/   # Curtir
-│   │       │           ├── clone/  # Clonar
-│   │       │           ├── releases/
-│   │       │           ├── feed.json/
-│   │       │           └── feed.xml/
-│   │       ├── push/              # Push notifications
-│   │       └── widgets/           # APIs de widgets
+│   │       └── clippings/         # Apenas feeds RSS/JSON dos clippings públicos
+│   │           └── public/[listingId]/
+│   │               ├── feed.json/ # Feed JSON da listagem (REST por design)
+│   │               └── feed.xml/  # Feed RSS da listagem (REST por design)
+│   │       # NOTA: as rotas REST de CRUD de clipping, marketplace, push e
+│   │       # widgets foram removidas — migradas para GraphQL (ver tabelas abaixo).
 │   ├── components/                # Componentes React
 │   │   ├── ui/                    # Componentes shadcn/ui
 │   │   ├── layout/                # Header, Footer, Portal, ZenMode
@@ -976,33 +962,44 @@ Route group protegido por autenticação. O layout em `src/app/(logged-in)/layou
 
 ## Clipping APIs
 
-### CRUD de Clippings
+> **Migração para GraphQL (R1):** as rotas REST de CRUD de clipping, marketplace,
+> push e widgets foram **removidas**. O cliente conversa exclusivamente com o
+> `graphql-api` via fachadas em `src/services/*` e operações em
+> `src/lib/graphql/queries/*`. As tabelas abaixo mantêm o mapeamento
+> histórico REST → operação GraphQL para referência. Apenas os feeds RSS/JSON
+> permanecem como rotas REST (REST por design).
+
+### CRUD de Clippings (REST removido → GraphQL)
+
+| ~~Path REST~~ (removido) | Operação GraphQL | Descrição |
+|--------------------------|------------------|-----------|
+| ~~GET `/api/clipping`~~ | `query myClippings` | Lista clippings do usuário |
+| ~~POST `/api/clipping`~~ | `mutation createClipping` | Cria novo clipping |
+| ~~PUT `/api/clipping/[id]`~~ | `mutation updateClipping` | Atualiza clipping |
+| ~~DELETE `/api/clipping/[id]`~~ | `mutation deleteClipping` | Remove clipping |
+| ~~GET `/api/clipping/[id]/releases`~~ | `query clipping { releases }` | Lista releases do clipping |
+| ~~POST `/api/clipping/[id]/send`~~ | `mutation sendClippingNow` | Envia clipping manualmente |
+| ~~POST `/api/clipping/estimate`~~ | `query estimateRecorteCount` | Estimativa de artigos por recorte |
+| ~~POST `/api/clipping/generate-recortes`~~ | `subscription generateRecortes` | Geração de recortes via IA |
+
+Persistência: Firestore `users/{userId}/clippings/{clippingId}` (via `graphql-api`).
+
+### Marketplace APIs (REST removido → GraphQL)
+
+| ~~Path REST~~ (removido) | Operação GraphQL | Descrição |
+|--------------------------|------------------|-----------|
+| ~~POST `/api/clippings/publish`~~ | `mutation publishToMarketplace` | Publica clipping no marketplace |
+| ~~GET `/api/clippings/public`~~ | `query marketplaceListings` | Lista clippings públicos |
+| ~~GET `/api/clippings/public/[listingId]`~~ | `query marketplaceListing` | Detalhe de listagem pública |
+| ~~POST `/api/clippings/public/[listingId]/follow`~~ | `mutation subscribeToClipping` | Seguir clipping |
+| ~~POST `/api/clippings/public/[listingId]/like`~~ | `mutation likeMarketplaceListing` | Curtir clipping |
+| ~~POST `/api/clippings/public/[listingId]/clone`~~ | `mutation cloneFromListing` | Clonar clipping |
+| ~~GET `/api/clippings/public/[listingId]/releases`~~ | `query marketplaceListing { releases }` | Releases da listagem |
+
+**Feeds (mantidos — REST por design):**
 
 | Method | Path | Auth | Descrição |
 |--------|------|------|-----------|
-| GET | `/api/clipping` | Required | Lista clippings do usuário |
-| POST | `/api/clipping` | Required | Cria novo clipping |
-| PUT | `/api/clipping/[id]` | Required | Atualiza clipping |
-| DELETE | `/api/clipping/[id]` | Required | Remove clipping |
-| GET | `/api/clipping/[id]/releases` | Required | Lista releases do clipping |
-| POST | `/api/clipping/[id]/send` | Required | Envia clipping manualmente |
-| POST | `/api/clipping/estimate` | Required | Estimativa de artigos por recorte |
-| POST | `/api/clipping/generate-recortes` | Required | Geração de recortes via IA |
-
-Validação: `ClippingPayloadSchema` em `src/lib/clipping-validation.ts`
-Persistência: Firestore `users/{userId}/clippings/{clippingId}`
-
-### Marketplace APIs
-
-| Method | Path | Auth | Descrição |
-|--------|------|------|-----------|
-| POST | `/api/clippings/publish` | Required | Publica clipping no marketplace |
-| GET | `/api/clippings/public` | — | Lista clippings públicos |
-| GET | `/api/clippings/public/[listingId]` | — | Detalhe de listagem pública |
-| POST | `/api/clippings/public/[listingId]/follow` | Required | Seguir clipping |
-| POST | `/api/clippings/public/[listingId]/like` | Required | Curtir clipping |
-| POST | `/api/clippings/public/[listingId]/clone` | Required | Clonar clipping |
-| GET | `/api/clippings/public/[listingId]/releases` | — | Releases da listagem |
 | GET | `/api/clippings/public/[listingId]/feed.json` | — | Feed JSON da listagem |
 | GET | `/api/clippings/public/[listingId]/feed.xml` | — | Feed RSS da listagem |
 
@@ -1015,20 +1012,21 @@ Persistência: Firestore `users/{userId}/clippings/{clippingId}`
 
 Fluxo: Bot `/login` → token Firestore → portal auth → callback → `users/{userId}/telegramLink/account`
 
-### Push Notifications
+### Push Notifications (REST removido → GraphQL)
 
-| Method | Path | Auth | Descrição |
-|--------|------|------|-----------|
-| GET | `/api/push/filters-data` | — | Dados de filtros para push |
-| GET/PUT | `/api/push/preferences` | Required | Preferências de push do usuário |
-| POST | `/api/push/sync` | — | Sincronização de subscription |
+| ~~Path REST~~ (removido) | Operação GraphQL | Descrição |
+|--------------------------|------------------|-----------|
+| ~~GET `/api/push/filters-data`~~ | `query pushFiltersData` | Dados de filtros para push |
+| ~~GET `/api/push/preferences`~~ | `query pushPreferences` | Preferências de push do usuário |
+| ~~PUT `/api/push/preferences`~~ | `mutation updatePushPreferences` | Atualiza preferências de push |
+| ~~POST `/api/push/sync`~~ | `mutation syncPushSubscription` | Sincronização de subscription |
 
-### Widgets
+### Widgets (REST removido → GraphQL)
 
-| Method | Path | Auth | Descrição |
-|--------|------|------|-----------|
-| GET | `/api/widgets/articles` | — | Artigos para widget |
-| GET | `/api/widgets/config` | — | Configuração do widget |
+| ~~Path REST~~ (removido) | Operação GraphQL | Descrição |
+|--------------------------|------------------|-----------|
+| ~~GET `/api/widgets/articles`~~ | `query widgetArticles` | Artigos para widget |
+| ~~GET `/api/widgets/config`~~ | `query widgetConfig` | Configuração do widget |
 
 ## Área Admin (`(admin)`)
 

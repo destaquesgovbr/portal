@@ -1,13 +1,13 @@
 /**
- * Testes do facade do serviço de marketplace (Fase B3).
+ * Testes do facade do serviço de marketplace.
  *
- * Verifica o roteamento entre GraphQL (flag ON) e REST (flag OFF) via
- * `getMarketplaceService({ useGraphQL })`. Componentes consomem o facade
- * via hook `useMarketplaceService()` (testado nos testes dos componentes).
+ * GraphQL é o único caminho: `getMarketplaceService(client?)` sempre devolve a
+ * implementação GraphQL. Componentes consomem o facade via hook
+ * `useMarketplaceService()` (testado nos testes dos componentes).
  *
  * Também garante que os feeds RSS/JSON do marketplace (servidos pelo portal,
- * fora da flag) continuam funcionando com o fluxo padrão de feeds — eles
- * NÃO fazem parte do facade, ficam diretamente em rotas estáticas.
+ * fora do facade) continuam funcionando — eles NÃO fazem parte do facade,
+ * ficam diretamente em rotas estáticas.
  */
 
 import type { Client } from '@urql/core'
@@ -74,145 +74,25 @@ function makeClientStub(handlers: {
   return { client, queries, mutations }
 }
 
-const CHANNELS = { email: true, telegram: false, push: false, webhook: false }
-
-describe('getMarketplaceService — roteamento por flag', () => {
-  it('flag ON: usa GraphQL para listar marketplace', async () => {
+describe('getMarketplaceService — caminho GraphQL', () => {
+  it('usa GraphQL para listar marketplace', async () => {
     const { client, queries } = makeClientStub({
       onQuery: () => ({
         marketplaceListings: { listings: [], total: 0 },
       }),
     })
-    const service = getMarketplaceService({ useGraphQL: true, client })
+    const service = getMarketplaceService(client)
     await service.listListings()
     expect(queries).toHaveLength(1)
     expect(queries[0].query).toContain('MarketplaceListings')
   })
 
-  it('test_facade_falls_back_to_rest_when_flag_off: GET /api/clippings/public', async () => {
-    const { fn, calls } = makeFetchMock({ listings: [], total: 0 })
-    const service = getMarketplaceService({ useGraphQL: false, fetchImpl: fn })
-    await service.listListings()
-    expect(calls).toHaveLength(1)
-    expect(calls[0].url).toBe('/api/clippings/public')
-  })
-
-  it('REST: getListing faz GET no endpoint correto', async () => {
-    const { fn, calls } = makeFetchMock({
-      id: 'l-1',
-      name: 'A',
-      authorUserId: 'u',
-      authorDisplayName: 'X',
-      sourceClippingId: 'c',
-      description: '',
-      recortes: [],
-      prompt: '',
-      likeCount: 0,
-      followerCount: 0,
-      cloneCount: 0,
-      publishedAt: '',
-      updatedAt: '',
-      active: true,
-    })
-    const service = getMarketplaceService({ useGraphQL: false, fetchImpl: fn })
-    await service.getListing('l-1')
-    expect(calls[0].url).toBe('/api/clippings/public/l-1')
-  })
-
-  it('REST: publish faz POST em /api/clippings/publish', async () => {
-    const { fn, calls } = makeFetchMock({ listingId: 'l-new' })
-    const service = getMarketplaceService({ useGraphQL: false, fetchImpl: fn })
-    const result = await service.publish({
-      clippingId: 'c-1',
-      description: 'algum texto',
-      backfillCount: 2,
-    })
-    expect(calls[0].url).toBe('/api/clippings/publish')
-    expect(calls[0].init.method).toBe('POST')
-    expect(JSON.parse(String(calls[0].init.body))).toEqual({
-      clippingId: 'c-1',
-      description: 'algum texto',
-      backfillCount: 2,
-    })
-    expect(result.listingId).toBe('l-new')
-  })
-
-  it('REST: unpublish faz DELETE no listing', async () => {
-    const { fn, calls } = makeFetchMock({ ok: true })
-    const service = getMarketplaceService({ useGraphQL: false, fetchImpl: fn })
-    await service.unpublish('l-3')
-    expect(calls[0].url).toBe('/api/clippings/public/l-3')
-    expect(calls[0].init.method).toBe('DELETE')
-  })
-
-  it('REST: toggleLike chama /like (POST)', async () => {
-    const { fn, calls } = makeFetchMock({ liked: true, likeCount: 5 })
-    const service = getMarketplaceService({ useGraphQL: false, fetchImpl: fn })
-    const result = await service.toggleLike('l-2')
-    expect(calls[0].url).toBe('/api/clippings/public/l-2/like')
-    expect(calls[0].init.method).toBe('POST')
-    expect(result).toEqual({ liked: true, likeCount: 5 })
-  })
-
-  it('REST: subscribe (POST) e isEditing → PUT', async () => {
-    const { fn: fnPost, calls: callsPost } = makeFetchMock({
-      ok: true,
-      subscriptionId: 'sub-1',
-    })
-    const service = getMarketplaceService({
-      useGraphQL: false,
-      fetchImpl: fnPost,
-    })
-    await service.subscribe({
-      listingId: 'l-7',
-      deliveryChannels: CHANNELS,
-      extraEmails: [],
-      webhookUrl: '',
-    })
-    expect(callsPost[0].url).toBe('/api/clippings/public/l-7/follow')
-    expect(callsPost[0].init.method).toBe('POST')
-
-    const { fn: fnPut, calls: callsPut } = makeFetchMock({ ok: true })
-    const editing = getMarketplaceService({
-      useGraphQL: false,
-      fetchImpl: fnPut,
-    })
-    await editing.subscribe({
-      listingId: 'l-7',
-      deliveryChannels: CHANNELS,
-      extraEmails: ['ex@ex.com'],
-      webhookUrl: '',
-      isEditing: true,
-    })
-    expect(callsPut[0].init.method).toBe('PUT')
-  })
-
-  it('REST: unsubscribe faz DELETE em /follow', async () => {
-    const { fn, calls } = makeFetchMock({ ok: true })
-    const service = getMarketplaceService({ useGraphQL: false, fetchImpl: fn })
-    await service.unsubscribe('l-8')
-    expect(calls[0].url).toBe('/api/clippings/public/l-8/follow')
-    expect(calls[0].init.method).toBe('DELETE')
-  })
-
-  it('REST: clone faz POST e devolve id', async () => {
-    const { fn, calls } = makeFetchMock({ id: 'c-cloned' })
-    const service = getMarketplaceService({ useGraphQL: false, fetchImpl: fn })
-    const result = await service.clone('l-4')
-    expect(calls[0].url).toBe('/api/clippings/public/l-4/clone')
-    expect(calls[0].init.method).toBe('POST')
-    expect(result.id).toBe('c-cloned')
-  })
-
   it('test_marketplace_feeds_rss_json_unaffected: feeds REST não passam pelo facade', async () => {
     // Os feeds (`feed.json`, `feed.xml`) são endpoints REST estáticos no
-    // portal e NÃO entram na flag `graphql.marketplace`. Garantimos via
-    // verificação que o facade não expõe método de feed e que as rotas REST
-    // continuam acessíveis via fetch comum (sem passar pelo serviço).
-    const service = getMarketplaceService({
-      useGraphQL: true,
-      client: makeClientStub({}).client,
-    })
+    // portal e NÃO entram no facade. Garantimos via verificação que o facade
+    // não expõe método de feed e que as rotas REST continuam acessíveis via
+    // fetch comum (sem passar pelo serviço).
+    const service = getMarketplaceService(makeClientStub({}).client)
     expect(
       Object.keys(service).every(
         (k) =>

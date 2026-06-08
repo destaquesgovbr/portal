@@ -68,8 +68,31 @@ interface CachedToken {
   expires_in: number
 }
 
+/** Conjunto completo de tokens do bot, derivado do cache ou de um grant. */
+export interface BotTokens {
+  access_token: string
+  refresh_token?: string
+  /** validade em segundos — restante real quando vindo do cache */
+  expires_in: number
+}
+
 let memoryToken: CachedToken | null = null
-let inflight: Promise<string> | null = null
+let inflight: Promise<BotTokens> | null = null
+
+/** Segundos de validade restantes de um token cacheado (nunca negativo). */
+function remainingExpiresIn(t: CachedToken): number {
+  const ageSec = (Date.now() - t.obtained_at) / 1000
+  return Math.max(0, Math.floor(t.expires_in - ageSec))
+}
+
+/** Converte um `CachedToken` para o conjunto completo, corrigindo `expires_in`. */
+function cachedToBotTokens(t: CachedToken): BotTokens {
+  return {
+    access_token: t.access_token,
+    refresh_token: t.refresh_token,
+    expires_in: remainingExpiresIn(t),
+  }
+}
 
 function tokenIsFresh(t: CachedToken | null): boolean {
   if (!t?.access_token) return false
@@ -169,26 +192,34 @@ async function refreshGrant(
 }
 
 /**
- * Obtém um `access_token` do bot E2E, reusando o cache compartilhado.
+ * Obtém o conjunto COMPLETO de tokens do bot E2E (access + refresh + expires_in),
+ * reusando o cache compartilhado. Fonte única de verdade da ordem de obtenção.
  *
  * Ordem: memória do worker → arquivo de cache → `refresh_token` → password grant.
- * Coalesce chamadas concorrentes no mesmo worker (uma única ida em voo).
+ * Coalesce chamadas concorrentes no mesmo worker (uma única ida em voo). Escreve
+ * o cache (memória + arquivo) sempre que renova ou faz password grant.
+ *
+ * Quando o token vem do cache (memória ou arquivo), `expires_in` é corrigido para
+ * os segundos de validade RESTANTES — não o valor original do grant. Assim quem
+ * usa `expires_in` para calcular `expiresAt` (ex.: `auth.setup.ts`) não
+ * super-estima a expiração de um token já parcialmente consumido.
  *
  * Requer `E2E_BOT_PASSWORD` no ambiente (via `scripts/e2e/load-creds.sh`)
  * apenas quando precisar do password grant — com cache/refresh válidos, não.
  */
-export async function fetchBotAccessToken(): Promise<string> {
-  if (memoryToken && tokenIsFresh(memoryToken)) return memoryToken.access_token
+export async function getCachedBotTokens(): Promise<BotTokens> {
+  if (memoryToken && tokenIsFresh(memoryToken))
+    return cachedToBotTokens(memoryToken)
   if (inflight) return inflight
 
   inflight = (async () => {
     if (memoryToken && tokenIsFresh(memoryToken))
-      return memoryToken.access_token
+      return cachedToBotTokens(memoryToken)
 
     const cached = readTokenCacheFile()
     if (cached && tokenIsFresh(cached)) {
       memoryToken = cached
-      return cached.access_token
+      return cachedToBotTokens(cached)
     }
 
     // Token expirado mas com refresh_token: renova (não dispara brute-force).
@@ -196,19 +227,38 @@ export async function fetchBotAccessToken(): Promise<string> {
       const refreshed = await refreshGrant(cached.refresh_token)
       if (refreshed) {
         writeTokenCache(refreshed)
-        return refreshed.access_token
+        return {
+          access_token: refreshed.access_token,
+          refresh_token: refreshed.refresh_token,
+          expires_in: refreshed.expires_in,
+        }
       }
     }
 
     // Fallback: novo password grant (raro — só sem cache/refresh válidos).
     const tokens = await passwordGrant()
     writeTokenCache(tokens)
-    return tokens.access_token
+    return {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_in: tokens.expires_in,
+    }
   })().finally(() => {
     inflight = null
   })
 
   return inflight
+}
+
+/**
+ * Obtém apenas o `access_token` do bot E2E, reusando o cache compartilhado.
+ *
+ * Delega a `getCachedBotTokens()` (mesma ordem memória → arquivo → refresh →
+ * password) e devolve só o `access_token` — assinatura preservada para as
+ * fixtures que dependem de `Promise<string>`.
+ */
+export async function fetchBotAccessToken(): Promise<string> {
+  return (await getCachedBotTokens()).access_token
 }
 
 /** Decodifica o payload de um JWT (sem validar — só para extrair claims). */

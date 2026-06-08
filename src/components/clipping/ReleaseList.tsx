@@ -13,6 +13,8 @@ import { useCallback, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useClippingService } from '@/services/clipping'
+import { useMarketplaceService } from '@/services/marketplace'
 
 type ReleaseItem = {
   id: string
@@ -29,7 +31,13 @@ type ReleaseListProps = {
   listingId: string
   initialReleases: ReleaseItem[]
   hasMore: boolean
-  releasesApiPath?: string
+  /**
+   * ID do clipping do qual carregar mais edições via facade GraphQL
+   * (`clipping(id) { releases }`). Usado no contexto do AUTOR (área logada),
+   * onde o usuário tem acesso às releases. Quando presente, tem prioridade
+   * sobre o caminho público (por `listingId`).
+   */
+  clippingId?: string
   releasesPagePath?: string
   showAllCards?: boolean
 }
@@ -80,32 +88,47 @@ export function ReleaseList({
   listingId,
   initialReleases,
   hasMore: initialHasMore,
-  releasesApiPath,
+  clippingId,
   releasesPagePath,
   showAllCards = false,
 }: ReleaseListProps) {
+  const clippingService = useClippingService()
+  const marketplaceService = useMarketplaceService()
   const [releases, setReleases] = useState<ReleaseItem[]>(initialReleases)
   const [hasMore, setHasMore] = useState(initialHasMore)
-  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
 
   const loadMore = useCallback(async () => {
     setLoading(true)
     try {
-      const nextPage = page + 1
-      const basePath =
-        releasesApiPath ?? `/api/clippings/public/${listingId}/releases`
-      const response = await fetch(`${basePath}?page=${nextPage}`)
-      if (response.ok) {
-        const data = await response.json()
-        setReleases((prev) => [...prev, ...data.releases])
-        setHasMore(data.hasMore)
-        setPage(nextPage)
-      }
+      // Cursor `before`: o `refTime`/`createdAt` da release mais antiga já
+      // carregada (ambos os contextos paginam por cursor via GraphQL).
+      const oldest = releases[releases.length - 1]
+      const before = oldest?.refTime ?? oldest?.createdAt ?? undefined
+
+      // Contexto do AUTOR: `clipping(id) { releases(before:) }` (área logada,
+      // exige acesso de autor/assinante).
+      // Contexto PÚBLICO (listing): `marketplaceListing(id) { releases(before:) }`
+      // (conteúdo público de um listing ativo, sem auth).
+      const data = clippingId
+        ? await clippingService.listReleases(clippingId, { before })
+        : await marketplaceService.listListingReleases(listingId, { before })
+
+      const incoming: ReleaseItem[] = data.releases.map((r) => ({
+        id: r.id,
+        clippingName: r.clippingName,
+        articlesCount: r.articlesCount,
+        createdAt: r.createdAt,
+        releaseUrl: r.releaseUrl,
+        refTime: r.refTime,
+        sinceHours: r.sinceHours,
+      }))
+      setReleases((prev) => [...prev, ...incoming])
+      setHasMore(data.hasMore)
     } finally {
       setLoading(false)
     }
-  }, [listingId, page, releasesApiPath])
+  }, [clippingId, clippingService, marketplaceService, listingId, releases])
 
   if (releases.length === 0) {
     return (

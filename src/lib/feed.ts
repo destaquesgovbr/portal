@@ -2,9 +2,11 @@ import { createHash } from 'node:crypto'
 import { Feed } from 'feed'
 import { getAgenciesByName } from '@/data/agencies-utils'
 import { getThemeNameByCode } from '@/data/themes-utils'
+import { createSSRClient } from '@/lib/graphql/client'
 import { markdownToHtml } from '@/lib/markdown-to-html'
 import { getExcerpt } from '@/lib/utils'
-import { typesense } from '@/services/typesense/client'
+import type { ArticleFilterInput } from '@/services/content'
+import { createGraphQLContentService } from '@/services/content/graphql'
 import type { ArticleRow } from '@/types/article'
 
 // --- Types ---
@@ -233,36 +235,33 @@ async function queryArticlesForFeed(
   params: FeedParams,
   limit: number,
 ): Promise<ArticleRow[]> {
-  const filterParts: string[] = []
+  const content = createGraphQLContentService(createSSRClient(async () => null))
 
+  const filter: ArticleFilterInput = {}
   if (params.agencias && params.agencias.length > 0) {
-    filterParts.push(`agency:[${params.agencias.join(',')}]`)
+    filter.agencies = params.agencias
   }
-
   if (params.temas && params.temas.length > 0) {
-    const themeFilters = params.temas.map(
-      (theme) =>
-        `(theme_1_level_1_code:${theme} || theme_1_level_2_code:${theme} || theme_1_level_3_code:${theme})`,
-    )
-    filterParts.push(`(${themeFilters.join(' || ')})`)
+    filter.themes = params.temas
   }
-
   if (params.tag) {
-    filterParts.push(`tags:=${params.tag}`)
+    filter.tags = [params.tag]
   }
 
-  const result = await typesense
-    .collections<ArticleRow>('news')
-    .documents()
-    .search({
-      q: params.q?.trim().replace(/\s+/g, ' ') || '*',
-      query_by: 'title,content',
-      sort_by: 'published_at:desc,unique_id:desc',
-      filter_by: filterParts.length > 0 ? filterParts.join(' && ') : undefined,
-      limit,
-    })
+  const query = params.q?.trim().replace(/\s+/g, ' ')
 
-  return (result.hits?.map((hit) => hit.document) ?? []) as ArticleRow[]
+  if (query) {
+    const { articles } = await content.searchArticles({
+      query,
+      filter,
+      page: 1,
+    })
+    // O facade pode paginar/capar os resultados; respeitamos o limite do feed.
+    return articles.slice(0, limit)
+  }
+
+  const { articles } = await content.listArticles({ filter, limit })
+  return articles
 }
 
 function buildCategories(article: ArticleRow): Array<{ name: string }> {

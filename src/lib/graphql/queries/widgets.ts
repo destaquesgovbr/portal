@@ -1,16 +1,15 @@
 /**
  * Queries GraphQL para widgets embarcáveis (Fase B5).
  *
- * Mapeamento REST → GraphQL:
- *   GET /api/widgets/config    → query widgetConfig
- *   GET /api/widgets/articles  → query widgetArticles
+ * Operações (GraphQL é o único caminho — sem fallback REST):
+ *   widgetConfig    → agências e temas do configurador
+ *   widgetArticles  → artigos filtrados (consumido pela Server Action do embed)
  *
- * **CORS:** o endpoint `/api/widgets/articles` é embarcado por iframes
- * externos (CORS aberto). O endpoint `/graphql` do `graphql-api` ainda
- * NÃO tem CORS configurado (`app.py` não inclui `CORSMiddleware`). Até
- * isso ser resolvido, a flag `graphql.widgets` permanece OFF em produção
- * e o fallback REST cobre o caso de uso externo. Caso a flag seja
- * ligada para o configurador (mesma origem), o browser não exige CORS.
+ * **CORS:** o `graphql-api` já habilita `CORSMiddleware` (`app.py`,
+ * `allow_origins` default `*`, métodos GET/POST/OPTIONS), então o
+ * configurador (browser, cross-origin) consome o schema público sem
+ * problemas. O embed busca artigos server-side (Server Action →
+ * `createSSRClient`), sem envolver CORS.
  */
 
 import { gql } from '@urql/core'

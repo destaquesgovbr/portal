@@ -11,11 +11,35 @@
  * transport é GraphQL.
  */
 
-import type { DeliveryChannels, MarketplaceListing } from '@/types/clipping'
+import type {
+  DeliveryChannels,
+  MarketplaceListing,
+  Release,
+} from '@/types/clipping'
 
 export interface ListingsPage {
   listings: MarketplaceListing[]
   total: number
+}
+
+/**
+ * Listing que o usuário autenticado segue, com os campos da subscription dele.
+ * Espelha o shape `FollowedListing` consumido pelo `FollowCard` — substitui o
+ * antigo `getFollows` (Firestore). `listing` reusa o `MarketplaceListing` do
+ * portal; os demais campos vêm da subscription.
+ */
+export interface FollowedListing {
+  listingId: string
+  listing: MarketplaceListing
+  deliveryChannels: DeliveryChannels
+  extraEmails: string[]
+  webhookUrl: string
+  followedAt: string
+}
+
+export interface ReleasesPage {
+  releases: Release[]
+  hasMore: boolean
 }
 
 export interface ListingsQuery {
@@ -69,8 +93,27 @@ export interface MarketplaceService {
   /** Lista listings públicos com paginação. */
   listListings(query?: ListingsQuery): Promise<ListingsPage>
 
+  /**
+   * Lista os listings que o usuário autenticado segue, com os campos da
+   * subscription dele. Substitui o `getFollows` do portal (Firestore).
+   */
+  listFollowedListings(): Promise<FollowedListing[]>
+
   /** Carrega um único listing. */
   getListing(listingId: string): Promise<ListingDetail | null>
+
+  /**
+   * Lista as releases (edições) PÚBLICAS de um listing ativo.
+   *
+   * Caminho público sem auth — usa o campo `MarketplaceListing.releases` do
+   * graphql-api (só expõe releases de listing `active`). Paginação por cursor
+   * `before` (DateTime ISO): para a próxima página, passe o `refTime`/
+   * `createdAt` da release mais antiga já recebida.
+   */
+  listListingReleases(
+    listingId: string,
+    opts?: { limit?: number; before?: string },
+  ): Promise<ReleasesPage>
 
   /** Publica um clipping no marketplace. */
   publish(payload: PublishPayload): Promise<PublishResult>

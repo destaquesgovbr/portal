@@ -167,4 +167,33 @@ test.describe('Clippings — CRUD via GraphQL', () => {
     }>(`{ clippings { id } }`)
     expect(data.clippings.find((c) => c.id === seeded.id)).toBeFalsy()
   })
+
+  test('página de detalhe do autor renderiza a seção de edições (releases via facade GraphQL)', async ({
+    page,
+  }) => {
+    // Migração R1: a página de detalhe do clipping (área logada) passou a
+    // carregar releases pelo facade GraphQL (`clipping(id) { releases }`) em vez
+    // da rota REST `/api/clipping/[id]/releases`. Aqui exercitamos o caminho
+    // real browser → portal → graphql-api: a página tem que renderizar sem erro
+    // e mostrar a seção "Edições". Clipping recém-criado não tem releases (não
+    // há fixture que as gere — vêm do clipping-worker), então validamos o
+    // empty-state, que prova que a query enriquecida (com `articlesCount`) é
+    // aceita pelo schema real e o componente monta corretamente.
+    const seeded = await makeClipping(client, { suffix: 'releases_detail' })
+
+    await page.goto(`/minha-conta/clipping/${seeded.id}`)
+
+    // Título do clipping (a página carregou e o usuário é o autor → 200, não 404).
+    await expect(page.getByRole('heading', { name: seeded.name })).toBeVisible({
+      timeout: 15_000,
+    })
+
+    // Seção de edições presente. Sem releases, o ReleaseList mostra o
+    // empty-state — sinal de que a query GraphQL retornou (sem erro de schema).
+    await expect(page.getByText('Nenhuma edição publicada ainda')).toBeVisible({
+      timeout: 10_000,
+    })
+
+    await removeClipping(client, seeded.id)
+  })
 })

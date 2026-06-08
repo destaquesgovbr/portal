@@ -1,68 +1,46 @@
 /**
- * Facade do serviço de clipping (Fase B2 do PLANO-ATUALIZACAO-v2).
+ * Facade do serviço de clipping.
  *
- * Cada função roteia para a implementação REST (default) ou GraphQL conforme
- * a flag `graphql.clippings`. Flag default = false: portal continua
- * funcionando exatamente como antes até a flag ser ligada via GrowthBook.
+ * GraphQL é o único caminho: todas as operações de clipping passam pelos
+ * resolvers GraphQL (não há mais fallback REST).
  *
  * Há duas formas de consumir o facade:
  *
- *   1. Hook React `useClippingService()`: lê a flag via `useFeatureFlag`
- *      e devolve uma implementação concreta. Indicado para client components.
+ *   1. Hook React `useClippingService()`: devolve a implementação GraphQL.
+ *      Indicado para client components.
  *
- *   2. `getClippingService({ useGraphQL })`: factory pura, recebe a decisão
- *      explícita. Indicado para chamadas server-side (passando a flag já
- *      resolvida) e para testes.
- *
- * As rotas REST permanecem ativas; o cleanup acontece só na Fase R1.
+ *   2. `getClippingService(client?)`: factory pura, aceita um urql Client
+ *      opcional. Indicado para chamadas server-side (SSR) e para testes.
  */
 
 'use client'
 
 import type { Client } from '@urql/core'
 import { useMemo } from 'react'
-import { GRAPHQL_FLAGS, useFeatureFlag } from '@/lib/feature-flags'
+import { getClient } from '@/lib/graphql/client'
 import { createGraphQLClippingService } from './graphql'
-import { createRestClippingService, restClippingService } from './rest'
 import type { ClippingService } from './types'
 
 export type {
   ClippingService,
   EstimateResult,
   ReleasesPage,
+  ReleaseWithContext,
   SubscriptionUpdate,
 } from './types'
 
-export interface GetClippingServiceOptions {
-  /** Se true, usa GraphQL; se false, usa REST. */
-  useGraphQL: boolean
-  /** Override opcional do urql Client (testes/SSR). */
-  client?: Client
-  /** Override opcional do `fetch` (testes do path REST). */
-  fetchImpl?: typeof fetch
-}
-
 /**
- * Factory pura — usada em testes e em código que tem a flag já resolvida.
+ * Factory pura — usada em testes e em código server-side. Aceita um urql
+ * Client opcional (override para SSR/testes).
  */
-export function getClippingService(
-  opts: GetClippingServiceOptions,
-): ClippingService {
-  if (opts.useGraphQL) {
-    return createGraphQLClippingService(opts.client)
-  }
-  if (opts.fetchImpl) {
-    return createRestClippingService(opts.fetchImpl)
-  }
-  return restClippingService
+export function getClippingService(client?: Client): ClippingService {
+  return createGraphQLClippingService(client)
 }
 
 /**
- * Hook React: lê a flag `graphql.clippings` (default false) e devolve a
- * implementação correspondente. Memoizado para evitar recriação da instância
- * a cada render.
+ * Hook React: devolve a implementação GraphQL do serviço de clipping.
+ * Memoizado para evitar recriação da instância a cada render.
  */
 export function useClippingService(): ClippingService {
-  const useGraphQL = useFeatureFlag(GRAPHQL_FLAGS.CLIPPINGS, false)
-  return useMemo(() => getClippingService({ useGraphQL }), [useGraphQL])
+  return useMemo(() => createGraphQLClippingService(getClient()), [])
 }

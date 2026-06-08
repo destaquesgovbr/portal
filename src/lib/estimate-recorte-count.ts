@@ -1,34 +1,8 @@
-import { typesense } from '@/services/typesense/client'
+import { createSSRClient } from '@/lib/graphql/client'
+import { createGraphQLContentService } from '@/services/content/graphql'
 import type { Recorte } from '@/types/clipping'
 
 export const MAX_DAILY_ARTICLES = 100
-
-export function buildFilterBy(
-  recorte: Recorte,
-  sinceTimestamp: number,
-): string {
-  const parts: string[] = [`published_at:>=${sinceTimestamp}`]
-
-  if (recorte.themes.length > 0) {
-    const themeConditions: string[] = []
-    for (const code of recorte.themes) {
-      const escaped = code.replace('.', '\\.')
-      themeConditions.push(`theme_1_level_1_code:=${escaped}`)
-      themeConditions.push(`theme_1_level_2_code:=${escaped}`)
-      themeConditions.push(`theme_1_level_3_code:=${escaped}`)
-    }
-    parts.push(`(${themeConditions.join(' || ')})`)
-  }
-
-  if (recorte.agencies.length > 0) {
-    const agencyConditions = recorte.agencies
-      .map((a) => `agency:=${a}`)
-      .join(' || ')
-    parts.push(`(${agencyConditions})`)
-  }
-
-  return parts.join(' && ')
-}
 
 export function hasFilters(recorte: Recorte): boolean {
   return (
@@ -38,29 +12,30 @@ export function hasFilters(recorte: Recorte): boolean {
   )
 }
 
+/**
+ * Estima a contagem de artigos para um recorte via facade GraphQL.
+ *
+ * O resolver `estimateRecorteCount` é público e calcula a contagem real no
+ * servidor (max entre as keywords, dentro da janela `sinceHours`). Estas
+ * funções rodam server-side (route handlers `/api/clipping/*` e Server
+ * Components), por isso usamos o cliente SSR (sem token — resolver público).
+ */
+function content() {
+  return createGraphQLContentService(createSSRClient(async () => null))
+}
+
 export async function estimateRecorteCount(
   recorte: Recorte,
   sinceHours = 24,
 ): Promise<number> {
   if (!hasFilters(recorte)) return 0
 
-  const sinceTimestamp = Math.floor(Date.now() / 1000) - sinceHours * 3600
-  const filterBy = buildFilterBy(recorte, sinceTimestamp)
-
-  const queryTerms = recorte.keywords.length > 0 ? recorte.keywords : ['*']
-  let total = 0
-
-  for (const term of queryTerms) {
-    const result = await typesense.collections('news').documents().search({
-      q: term,
-      query_by: 'title,summary',
-      filter_by: filterBy,
-      per_page: 0,
-    })
-    total = Math.max(total, result.found ?? 0)
-  }
-
-  return total
+  return content().estimateRecorteCount({
+    themes: recorte.themes,
+    agencies: recorte.agencies,
+    keywords: recorte.keywords,
+    sinceHours,
+  })
 }
 
 export async function estimateTotalCount(

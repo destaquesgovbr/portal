@@ -81,7 +81,7 @@ export default async function ClippingDetailPage({ params }: Props) {
       perRecorteEstimates={estimation.perRecorte}
       releases={releases}
       hasMoreReleases={hasMore}
-      releasesApiPath={`/api/clipping/${clippingId}/releases`}
+      releasesClippingId={clippingId}
       releasesPagePath={
         isPublished
           ? `/clippings/${clipping.marketplaceListingId}/releases`

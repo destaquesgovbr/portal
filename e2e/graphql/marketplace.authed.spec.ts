@@ -83,6 +83,30 @@ test.describe('Marketplace via GraphQL', () => {
     ).toBeVisible()
   })
 
+  test('página pública de edições do listing renderiza (releases via facade GraphQL)', async ({
+    page,
+  }) => {
+    // Migração R1: o loadMore das edições PÚBLICAS do `ReleaseList` passou da
+    // rota REST `/api/clippings/public/[listingId]/releases` para o campo
+    // GraphQL `marketplaceListing(id) { releases }` (conteúdo público de um
+    // listing ativo, exposto pelo graphql-api). Aqui dirigimos a página pública
+    // de edições no browser — caminho real browser → portal → graphql-api.
+    // O listing do beforeEach é recém-publicado (clipping sem releases geradas
+    // pelo worker), então validamos o empty-state, que prova que a query
+    // pública (com `articlesCount`) é aceita pelo schema real e a página monta.
+    await page.goto(`/clippings/${listing.id}/releases`)
+
+    // Título da página de edições (a página carregou — listing ativo).
+    await expect(page.getByRole('heading', { name: /edições —/i })).toBeVisible(
+      { timeout: 15_000 },
+    )
+
+    // Sem releases, o ReleaseList mostra o empty-state.
+    await expect(page.getByText('Nenhuma edição publicada ainda')).toBeVisible({
+      timeout: 10_000,
+    })
+  })
+
   test('like incrementa o contador no backend', async ({ page }) => {
     // Listing fresco: hasLiked começa false; clicar "Curtir" deve levá-lo a true.
     await page.goto(`/clippings/${listing.id}`)
@@ -169,6 +193,56 @@ test.describe('Marketplace via GraphQL', () => {
       marketplaceListing: { id: string } | null
     }>(LISTING_QUERY, { id: listing.id })
     expect(after.marketplaceListing).toBeNull()
+  })
+
+  test('unpublish pela UI de "Meus Clippings" desativa o listing no backend', async ({
+    page,
+  }) => {
+    // Regressão (bug R1): o botão "Despublicar" do ClippingCard ainda chamava a
+    // rota REST stale `/api/clippings/public/[listingId]` (DELETE), que escrevia
+    // na subcoleção antiga `users/{uid}/clippings/{id}` → batch falhava com
+    // "No document to update" → 500 → o listing nunca era desativado. Após a
+    // migração para o facade GraphQL (`unpublishFromMarketplace`), o fluxo
+    // browser → portal → graphql-api deve funcionar ponta-a-ponta.
+    //
+    // Diferente do teste acima (que chama o fixture direto), este dirige a UI
+    // real — é o caminho que a regressão escapou (e2e só batia no fixture).
+
+    // Sanidade: o listing do beforeEach está ativo.
+    const before = await client.execute<{
+      marketplaceListing: { id: string } | null
+    }>(LISTING_QUERY, { id: listing.id })
+    expect(before.marketplaceListing?.id).toBe(listing.id)
+
+    await page.goto('/minha-conta/clipping')
+    await waitForAuthReady(page)
+
+    // Localiza o card do clipping-fonte (publicado no beforeEach).
+    const card = page
+      .locator('[data-testid="clipping-card"]')
+      .filter({ hasText: clipping.name })
+    await expect(card).toBeVisible({ timeout: 15_000 })
+
+    // Abre o dropdown de ações do card.
+    await card.locator('button[aria-haspopup="menu"]').first().click()
+
+    // Fluxo de 2 passos: "Despublicar" revela "Confirmar despublicação".
+    await page.getByRole('menuitem', { name: /^despublicar$/i }).click()
+    await page.getByRole('menuitem', { name: /confirmar despublica/i }).click()
+
+    // Valida no backend (não na UI): `get_marketplace_listing` filtra
+    // `active=false` → retorna null quando o listing foi desativado.
+    await expect
+      .poll(
+        async () => {
+          const r = await client.execute<{
+            marketplaceListing: { id: string } | null
+          }>(LISTING_QUERY, { id: listing.id })
+          return r.marketplaceListing
+        },
+        { timeout: 10_000 },
+      )
+      .toBeNull()
   })
 
   test('unpublish funciona mesmo com o clipping-fonte já excluído', async () => {

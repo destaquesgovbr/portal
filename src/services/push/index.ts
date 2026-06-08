@@ -1,78 +1,58 @@
 /**
  * Facade do serviço de push.
  *
- * Padrão idêntico ao da Fase B2 (clippings): cada função roteia para
- * REST ou GraphQL conforme a flag `graphql.push` no momento da chamada.
- * Default (flag indisponível ou falha) = REST (fail-safe).
- *
- * O caller decide se está em contexto client (passa `useGraphQL`
- * vindo de `useFeatureFlag`) ou server (passa um boolean qualquer).
- * O facade não chama hooks — é puramente de runtime.
+ * GraphQL é o único caminho — não há mais fallback REST. Cada função
+ * resolve o `urql` Client (default = singleton `getClient()`) e delega
+ * para a implementação GraphQL. Importável server-side (sem `'use client'`).
  */
 
 import type { Client } from '@urql/core'
 import { getClient } from '@/lib/graphql/client'
 import * as graphql from './graphql'
-import type { PushPreferences, PushSubscriptionPayload } from './rest'
-import * as rest from './rest'
-import type { AgencyOption } from './types'
+import type {
+  AgencyOption,
+  PushPreferences,
+  PushSubscriptionPayload,
+} from './types'
 
-export type { PushPreferences, PushSubscriptionPayload } from './rest'
-export type { AgencyOption } from './types'
-
-export interface PushFacadeOptions {
-  /** Se true, usa GraphQL; se false, usa REST. */
-  useGraphQL: boolean
-  /** Override do urql Client (testes / SSR). */
-  client?: Client
-  /** Override do fetch (testes). */
-  fetchImpl?: typeof fetch
-}
+export type {
+  AgencyOption,
+  PushPreferences,
+  PushSubscriptionPayload,
+} from './types'
 
 function resolveClient(client?: Client): Client {
   return client ?? getClient()
 }
 
 export async function getPushPreferences(
-  opts: PushFacadeOptions,
+  client?: Client,
 ): Promise<PushPreferences> {
-  if (opts.useGraphQL) {
-    return graphql.getPushPreferencesViaGraphQL(resolveClient(opts.client))
-  }
-  return rest.getPushPreferencesViaRest(opts.fetchImpl)
+  return graphql.getPushPreferencesViaGraphQL(resolveClient(client))
 }
 
 export async function updatePushPreferences(
   preferences: PushPreferences,
-  opts: PushFacadeOptions,
+  client?: Client,
 ): Promise<void> {
-  if (opts.useGraphQL) {
-    return graphql.updatePushPreferencesViaGraphQL(
-      preferences,
-      resolveClient(opts.client),
-    )
-  }
-  return rest.updatePushPreferencesViaRest(preferences, opts.fetchImpl)
+  return graphql.updatePushPreferencesViaGraphQL(
+    preferences,
+    resolveClient(client),
+  )
 }
 
 export async function syncPushSubscription(
   subscription: PushSubscriptionPayload,
-  opts: PushFacadeOptions,
+  client?: Client,
 ): Promise<void> {
-  if (opts.useGraphQL) {
-    return graphql.syncPushSubscriptionViaGraphQL(
-      subscription,
-      resolveClient(opts.client),
-    )
-  }
-  return rest.syncPushSubscriptionViaRest(subscription, opts.fetchImpl)
+  return graphql.syncPushSubscriptionViaGraphQL(
+    subscription,
+    resolveClient(client),
+  )
 }
 
 export async function getPushFiltersData(
-  opts: PushFacadeOptions,
+  client?: Client,
 ): Promise<{ agencies: AgencyOption[] }> {
-  if (opts.useGraphQL) {
-    return graphql.getPushFiltersDataViaGraphQL(resolveClient(opts.client))
-  }
-  return rest.getPushFiltersDataViaRest(opts.fetchImpl)
+  return graphql.getPushFiltersDataViaGraphQL(resolveClient(client))
 }
