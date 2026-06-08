@@ -1,15 +1,13 @@
 import Link from 'next/link'
 import { auth } from '@/auth'
-import {
-  FollowCard,
-  type FollowedListing,
-} from '@/components/marketplace/FollowCard'
+import { FollowCard } from '@/components/marketplace/FollowCard'
 import { getAgenciesList } from '@/data/agencies-utils'
 import { getThemesWithHierarchy } from '@/data/themes-utils'
-import { getFirestoreDb } from '@/lib/firebase-admin'
 import { createSSRClient } from '@/lib/graphql/client'
+import { getHasTelegram } from '@/lib/graphql/user'
 import { createGraphQLClippingService } from '@/services/clipping/graphql'
-import type { Clipping, MarketplaceListing } from '@/types/clipping'
+import { getMarketplaceService } from '@/services/marketplace'
+import type { Clipping } from '@/types/clipping'
 import { ClippingListClient } from './ClippingListClient'
 
 export async function getClippings(): Promise<Clipping[]> {
@@ -27,89 +25,20 @@ export async function getClippings(): Promise<Clipping[]> {
   }
 }
 
-async function getFollows(userId: string): Promise<FollowedListing[]> {
-  try {
-    const db = getFirestoreDb()
-
-    // Query subscriptions where user is a subscriber
-    const subsSnap = await db
-      .collection('subscriptions')
-      .where('userId', '==', userId)
-      .where('role', '==', 'subscriber')
-      .where('active', '==', true)
-      .get()
-
-    if (subsSnap.empty) return []
-
-    // Get the clipping IDs and look up their marketplace listings
-    const follows = await Promise.all(
-      subsSnap.docs.map(async (subDoc) => {
-        const subData = subDoc.data()
-        const clippingId = subData.clippingId
-
-        // Find the marketplace listing for this clipping
-        const listingsSnap = await db
-          .collection('marketplace')
-          .where('sourceClippingId', '==', clippingId)
-          .where('active', '==', true)
-          .limit(1)
-          .get()
-
-        if (listingsSnap.empty) return null
-
-        const listingDoc = listingsSnap.docs[0]
-        const listingData = listingDoc.data()
-
-        return {
-          listingId: listingDoc.id,
-          listing: {
-            id: listingDoc.id,
-            ...listingData,
-            publishedAt:
-              listingData.publishedAt?.toDate?.()?.toISOString?.() ?? '',
-            updatedAt: listingData.updatedAt?.toDate?.()?.toISOString?.() ?? '',
-          } as MarketplaceListing,
-          deliveryChannels: subData.deliveryChannels,
-          extraEmails: subData.extraEmails ?? [],
-          webhookUrl: subData.webhookUrl ?? '',
-          followedAt: subData.subscribedAt?.toDate?.()?.toISOString?.() ?? '',
-        } satisfies FollowedListing
-      }),
-    )
-
-    return follows.filter(Boolean) as FollowedListing[]
-  } catch (error) {
-    console.error('Error reading follows:', error)
-    return []
-  }
-}
-
-async function getHasTelegram(userId: string): Promise<boolean> {
-  try {
-    const db = getFirestoreDb()
-    const tgDoc = await db
-      .collection('users')
-      .doc(userId)
-      .collection('telegramLink')
-      .doc('account')
-      .get()
-    return tgDoc.exists
-  } catch {
-    return false
-  }
-}
-
 export default async function ClippingPage() {
   const session = await auth()
   const userId = session?.user?.id
+  const ssrClient = createSSRClient(async () => session?.accessToken ?? null)
 
   const [clippings, themes, agencies, follows, hasTelegram] = await Promise.all(
     [
       getClippings(),
       getThemesWithHierarchy(),
       getAgenciesList(),
-      userId ? getFollows(userId) : Promise.resolve([]),
-      userId ? getHasTelegram(userId) : Promise.resolve(false),
+      userId
+        ? getMarketplaceService(ssrClient).listFollowedListings()
+        : Promise.resolve([]),
+      userId ? getHasTelegram(ssrClient) : Promise.resolve(false),
     ],
   )
   const themeMap = Object.fromEntries(themes.map((t) => [t.key, t.name]))

@@ -1,4 +1,6 @@
-import { getFirestoreDb } from '@/lib/firebase-admin'
+import { auth } from '@/auth'
+import { createSSRClient } from '@/lib/graphql/client'
+import { getClippingService } from '@/services/clipping'
 
 export type ReleaseItem = {
   id: string
@@ -11,43 +13,51 @@ export type ReleaseItem = {
   digestPreview?: string
 }
 
+/**
+ * Busca as releases (edições) de um clipping via GraphQL (substitui o acesso
+ * direto ao Firestore).
+ *
+ * **Contexto AUTOR/AUTENTICADO apenas.** Usa o facade
+ * `clipping(id) { releases(limit, before) }`, que o graphql-api GATEIA a
+ * autor/assinante (anônimo recebe UNAUTHENTICATED). Por isso esta função serve
+ * só a página do dono (`/minha-conta/clipping/[id]`). Páginas PÚBLICAS do
+ * marketplace devem usar `MarketplaceService.listListingReleases(listingId)`
+ * (campo `MarketplaceListing.releases`, público para listing ativo).
+ *
+ * Monta um `createSSRClient` com o token da sessão. Paginação: o schema usa
+ * cursor `before` (DateTime ISO) em vez de offset. Para a primeira página,
+ * omitimos `before`; o `hasMore` vem do facade, que pede `limit + 1`
+ * internamente e fatia o excedente. O `loadMore` do `ReleaseList` (client)
+ * continua a paginação passando o `refTime`/`createdAt` da release mais antiga
+ * como cursor.
+ */
 export async function fetchReleasesForClipping(
   clippingId: string,
   clippingName: string,
   limit = 10,
 ): Promise<{ releases: ReleaseItem[]; hasMore: boolean }> {
-  const db = getFirestoreDb()
+  const session = await auth()
+  const client = createSSRClient(async () => session?.accessToken ?? null)
 
-  const snap = await db
-    .collection('releases')
-    .where('clippingId', '==', clippingId)
-    .orderBy('createdAt', 'desc')
-    .limit(limit + 1)
-    .get()
+  const { releases, hasMore } = await getClippingService(client).listReleases(
+    clippingId,
+    { limit },
+  )
 
-  const hasMore = snap.docs.length > limit
-  const docs = hasMore ? snap.docs.slice(0, limit) : snap.docs
+  const items: ReleaseItem[] = releases.map((r) => ({
+    id: r.id,
+    clippingName: r.clippingName || clippingName,
+    articlesCount: r.articlesCount,
+    createdAt: r.createdAt,
+    releaseUrl: r.releaseUrl || `/clipping/release/${r.id}`,
+    refTime: r.refTime ?? null,
+    sinceHours: r.sinceHours ?? null,
+    // `digestPreview` agora vem computado do servidor (campo `Release.digestPreview`);
+    // a derivação local (parse do digest) foi removida. O facade `listReleases`
+    // carrega o preview no campo `digest` do `Release` (o tipo não tem campo
+    // próprio para o preview).
+    digestPreview: r.digest || undefined,
+  }))
 
-  const releases: ReleaseItem[] = docs.map((doc) => {
-    const d = doc.data()
-    return {
-      id: doc.id,
-      clippingName: d.clippingName ?? clippingName,
-      articlesCount: d.articlesCount ?? 0,
-      createdAt: d.createdAt?.toDate?.()?.toISOString?.() ?? '',
-      releaseUrl: d.releaseUrl ?? `/clipping/release/${doc.id}`,
-      refTime: d.refTime?.toDate?.()?.toISOString?.() ?? null,
-      sinceHours: d.sinceHours ?? null,
-      digestPreview: (() => {
-        try {
-          const parsed = JSON.parse(d.digest ?? '{}')
-          return parsed.intro?.slice(0, 150) ?? ''
-        } catch {
-          return (d.digest ?? '').slice(0, 150)
-        }
-      })(),
-    }
-  })
-
-  return { releases, hasMore }
+  return { releases: items, hasMore }
 }

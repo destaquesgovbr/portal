@@ -163,6 +163,7 @@ describe('createGraphQLMarketplaceService', () => {
       clippingId: 'src-1',
       clippingName: 'Top Economia',
       digestHtml: `<p>${id}</p>`,
+      digestPreview: `Prévia ${id}`,
       articlesCount: 8,
       releaseUrl: `/clipping/release/${id}`,
       refTime: '2026-05-26T08:00:00Z',
@@ -183,12 +184,16 @@ describe('createGraphQLMarketplaceService', () => {
 
     expect(queries[0].query).toContain('MarketplaceListingReleases')
     expect(queries[0].query).toContain('articlesCount')
+    expect(queries[0].query).toContain('digestPreview')
     // pede limit+1 para detectar hasMore.
     expect(queries[0].vars).toMatchObject({ id: 'l-1', limit: 3, before: null })
     expect(result.releases).toHaveLength(2)
     expect(result.hasMore).toBe(true)
     expect(result.releases[0].articlesCount).toBe(8)
     expect(result.releases[0].digestHtml).toBe('<p>rel-1</p>')
+    // `digestPreview` é carregado no campo `digest` do Release (o tipo não tem
+    // campo próprio para o preview).
+    expect(result.releases[0].digest).toBe('Prévia rel-1')
   })
 
   it('listListingReleases: listing inativo/inexistente (null) → sem releases', async () => {
@@ -426,6 +431,141 @@ describe('createGraphQLMarketplaceService', () => {
     expect(mutations).toHaveLength(1)
     expect(mutations[0].query).toContain('CloneFromListing')
     expect(mutations[0].vars).toMatchObject({ listingId: 'l-5' })
+  })
+
+  it('listFollowedListings: dispara MyFollowedListings e mapeia para o shape do FollowCard', async () => {
+    const { client, queries } = makeClientStub({
+      onQuery: (q) => {
+        if (q.includes('MyFollowedListings')) {
+          return {
+            myFollowedListings: [
+              {
+                id: 'l-1',
+                authorUserId: 'u-1',
+                authorDisplayName: 'Author One',
+                sourceClippingId: 'c-1',
+                name: 'Listing 1',
+                description: 'desc',
+                recortes: [
+                  {
+                    id: 'r1',
+                    title: 'Recorte 1',
+                    themes: ['01'],
+                    agencies: [],
+                    keywords: [],
+                  },
+                ],
+                prompt: null,
+                schedule: '0 8 * * *',
+                likeCount: 3,
+                followerCount: 2,
+                cloneCount: 1,
+                publishedAt: '2026-05-01T10:00:00Z',
+                updatedAt: '2026-05-02T10:00:00Z',
+                active: true,
+                deliveryChannels: {
+                  email: true,
+                  telegram: false,
+                  push: false,
+                  webhook: false,
+                },
+                extraEmails: ['extra@example.test'],
+                webhookUrl: 'https://hooks.example.test/wh',
+                followedAt: '2026-05-03T10:00:00Z',
+              },
+            ],
+          }
+        }
+        return {}
+      },
+    })
+
+    const service = createGraphQLMarketplaceService(client)
+    const result = await service.listFollowedListings()
+
+    expect(queries).toHaveLength(1)
+    expect(queries[0].query).toContain('MyFollowedListings')
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      listingId: 'l-1',
+      listing: {
+        id: 'l-1',
+        authorUserId: 'u-1',
+        authorDisplayName: 'Author One',
+        sourceClippingId: 'c-1',
+        name: 'Listing 1',
+        description: 'desc',
+        recortes: [
+          {
+            id: 'r1',
+            title: 'Recorte 1',
+            themes: ['01'],
+            agencies: [],
+            keywords: [],
+          },
+        ],
+        prompt: '',
+        schedule: '0 8 * * *',
+        likeCount: 3,
+        followerCount: 2,
+        cloneCount: 1,
+        publishedAt: '2026-05-01T10:00:00Z',
+        updatedAt: '2026-05-02T10:00:00Z',
+        active: true,
+      },
+      deliveryChannels: {
+        email: true,
+        telegram: false,
+        push: false,
+        webhook: false,
+      },
+      extraEmails: ['extra@example.test'],
+      webhookUrl: 'https://hooks.example.test/wh',
+      followedAt: '2026-05-03T10:00:00Z',
+    })
+  })
+
+  it('listFollowedListings: aplica defaults quando campos da subscription vêm nulos', async () => {
+    const { client } = makeClientStub({
+      onQuery: () => ({
+        myFollowedListings: [
+          {
+            id: 'l-2',
+            authorUserId: 'u-2',
+            authorDisplayName: 'Author Two',
+            sourceClippingId: 'c-2',
+            name: 'Listing 2',
+            description: null,
+            recortes: [],
+            prompt: null,
+            schedule: null,
+            likeCount: 0,
+            followerCount: 0,
+            cloneCount: 0,
+            publishedAt: null,
+            updatedAt: null,
+            active: true,
+            deliveryChannels: null,
+            extraEmails: [],
+            webhookUrl: null,
+            followedAt: null,
+          },
+        ],
+      }),
+    })
+
+    const service = createGraphQLMarketplaceService(client)
+    const result = await service.listFollowedListings()
+
+    expect(result[0].deliveryChannels).toEqual({
+      email: false,
+      telegram: false,
+      push: false,
+      webhook: false,
+    })
+    expect(result[0].webhookUrl).toBe('')
+    expect(result[0].followedAt).toBe('')
+    expect(result[0].listing.description).toBe('')
   })
 
   it('propaga erro do urql como Error legível', async () => {

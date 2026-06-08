@@ -1,7 +1,8 @@
 import { auth } from '@/auth'
 import { getAgenciesList } from '@/data/agencies-utils'
 import { getThemesWithHierarchy } from '@/data/themes-utils'
-import { getFirestoreDb } from '@/lib/firebase-admin'
+import { createSSRClient } from '@/lib/graphql/client'
+import { getHasTelegram } from '@/lib/graphql/user'
 import { NovoClippingClient } from './NovoClippingClient'
 
 export default async function NovoClippingPage() {
@@ -13,18 +14,8 @@ export default async function NovoClippingPage() {
 
   let hasTelegram = false
   if (session?.user?.id) {
-    try {
-      const db = getFirestoreDb()
-      const doc = await db
-        .collection('users')
-        .doc(session.user.id)
-        .collection('telegramLink')
-        .doc('account')
-        .get()
-      hasTelegram = doc.exists
-    } catch {
-      // non-fatal — show as unlinked
-    }
+    const ssrClient = createSSRClient(async () => session.accessToken ?? null)
+    hasTelegram = await getHasTelegram(ssrClient)
   }
 
   return (

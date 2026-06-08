@@ -81,6 +81,14 @@ type Article {
   agencyName: String
   publishedAt: DateTime
   extractedAt: DateTime
+  theme1Level1Code: String
+  theme1Level1Label: String
+  theme1Level2Code: String
+  theme1Level2Label: String
+  theme1Level3Code: String
+  theme1Level3Label: String
+  mostSpecificThemeCode: String
+  mostSpecificThemeLabel: String
 }
 
 input ArticleFilter {
@@ -89,6 +97,8 @@ input ArticleFilter {
   tags: [String!] = null
   startDate: String = null
   endDate: String = null
+  themeLabel: String = null
+  dedup: Boolean = null
 }
 
 type ArticlesResult {
@@ -229,6 +239,28 @@ type EstimateResult {
 input FeatureUpsertInput {
   uniqueId: String!
   features: JSON!
+}
+
+type FollowedListing {
+  id: String!
+  authorUserId: String!
+  authorDisplayName: String!
+  sourceClippingId: String!
+  name: String!
+  description: String
+  recortes: [MarketplaceRecorte!]!
+  prompt: String
+  schedule: String
+  likeCount: Int!
+  followerCount: Int!
+  cloneCount: Int!
+  publishedAt: DateTime
+  updatedAt: DateTime
+  active: Boolean!
+  deliveryChannels: DeliveryChannels
+  extraEmails: [String!]!
+  webhookUrl: String
+  followedAt: DateTime
 }
 
 type IntegrityCandidateType {
@@ -473,6 +505,8 @@ type Query {
     filter: ArticleFilter = null
     page: Int! = 1
     semantic: Boolean! = false
+    alpha: Float = null
+    dedup: Boolean! = false
   ): ArticlesResult!
 
   """
@@ -526,6 +560,11 @@ type Query {
   clipping(id: String!): Clipping
 
   """
+  Busca um release por ID. Autorizacao espelha `MarketplaceListing.releases`: PUBLICO se o listing fonte do clipping esta ativo; caso contrario somente autor ou subscriber. Substitui o `getReleaseById` do portal. Retorna None se o release nao existe OU o caller nao esta autorizado. Para o caller autorizado, popula `recortes` (filtros do clipping fonte) e `marketplaceListingId` (id do listing ativo, ou null).
+  """
+  release(id: String!): Release
+
+  """
   Estima o numero de artigos para um clipping
   """
   clippingEstimate(
@@ -543,6 +582,11 @@ type Query {
   Busca um listing do marketplace por ID
   """
   marketplaceListing(id: String!): MarketplaceListing
+
+  """
+  Listings que o usuario autenticado segue, com os campos da subscription dele (canais, emails extras, webhook, data). Substitui o `getFollows` do portal. Exclui follows cujo listing esta inativo ou ausente.
+  """
+  myFollowedListings: [FollowedListing!]!
 
   """
   Preferencias de push notification do usuario autenticado
@@ -566,6 +610,11 @@ type Query {
     config: WidgetConfigInput!
     page: Int! = 1
   ): WidgetArticlesResult!
+
+  """
+  True se o usuario autenticado tem o Telegram vinculado (`users/{id}/telegramLink/account` existe). Substitui o `getHasTelegram` do portal. Retorna False se nao logado ou sem doc.
+  """
+  currentUserHasTelegramLinked: Boolean!
 
   """
   Fetch a single news record by unique_id
@@ -605,6 +654,31 @@ type Query {
   Fetch a batch of articles needing integrity checks
   """
   integrityBatch(batchSize: Int! = 50): [IntegrityCandidateType!]!
+
+  """
+  Artigos relacionados a `uniqueId`, baseados no theme-code (Typesense). Replica a logica do portal: usa most_specific_theme_code quando presente, senao theme_1_level_1_code; exclui o proprio artigo; ordena por publishedAt desc; deduplica por content_hash. PUBLICO. (Distinto do `similarArticles` interno, baseado em embedding postgres.)
+  """
+  relatedArticles(uniqueId: String!, limit: Int! = 4): [Article!]!
+
+  """
+  Contagem de artigos por code de tema (nivel `level`) nos ultimos `days` dias. `label` e None (o portal mapeia pela config). PUBLICO.
+  """
+  themeArticleCounts(days: Int! = 30, level: Int! = 1): [ThemeCount!]!
+
+  """
+  Artigos de um release (pagina de artigos do release). Autorizacao espelha `release(id)`: PUBLICO se o listing fonte do clipping esta ativo; caso contrario somente autor ou subscriber. Retorna [] se negado ou inexistente. Janela temporal [refTime - sinceHours, refTime] (default ultimas 24h). Para cada recorte: se tem keywords, uma busca por keyword (q em title,summary) + filtro (themes OR-levels + agencies + janela); senao, uma busca q=* filter-only. Une tudo, deduplica por uniqueId, ordena por publishedAt desc. PUBLICO (sujeito a auth do release).
+  """
+  releaseArticles(id: String!): [Article!]!
+
+  """
+  Estima quantos artigos um recorte capturaria nas ultimas `sinceHours` horas. Replica `lib/estimate-recorte-count.ts`: filtro = themes OR-levels + agencies OR'd + published_at >= now-sinceHours; para keywords, conta por keyword (q em title,summary) e retorna o MAX; sem keywords, uma unica contagem. Substitui o mock `clippingEstimate`. PUBLICO.
+  """
+  estimateRecorteCount(
+    themes: [String!]!
+    agencies: [String!]!
+    keywords: [String!]!
+    sinceHours: Int! = 24
+  ): Int!
 }
 
 type Recorte {
@@ -623,6 +697,9 @@ input RecorteInput {
 }
 
 type Release {
+  digestPreview: String
+  recortes: [Recorte!]!
+  marketplaceListingId: String
   id: String!
   clippingId: String!
   clippingName: String!
@@ -671,6 +748,12 @@ type Tag {
 type Theme {
   code: String!
   label: String!
+}
+
+type ThemeCount {
+  code: String!
+  label: String
+  count: Int!
 }
 
 """

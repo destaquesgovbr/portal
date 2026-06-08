@@ -22,6 +22,21 @@ export interface ListingsPage {
   total: number
 }
 
+/**
+ * Listing que o usuário autenticado segue, com os campos da subscription dele.
+ * Espelha o shape `FollowedListing` consumido pelo `FollowCard` — substitui o
+ * antigo `getFollows` (Firestore). `listing` reusa o `MarketplaceListing` do
+ * portal; os demais campos vêm da subscription.
+ */
+export interface FollowedListing {
+  listingId: string
+  listing: MarketplaceListing
+  deliveryChannels: DeliveryChannels
+  extraEmails: string[]
+  webhookUrl: string
+  followedAt: string
+}
+
 export interface ReleasesPage {
   releases: Release[]
   hasMore: boolean
@@ -77,6 +92,12 @@ export interface CloneResult {
 export interface MarketplaceService {
   /** Lista listings públicos com paginação. */
   listListings(query?: ListingsQuery): Promise<ListingsPage>
+
+  /**
+   * Lista os listings que o usuário autenticado segue, com os campos da
+   * subscription dele. Substitui o `getFollows` do portal (Firestore).
+   */
+  listFollowedListings(): Promise<FollowedListing[]>
 
   /** Carrega um único listing. */
   getListing(listingId: string): Promise<ListingDetail | null>

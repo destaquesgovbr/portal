@@ -99,6 +99,7 @@ export const MARKETPLACE_LISTING_RELEASES_QUERY = gql`
         clippingId
         clippingName
         digestHtml
+        digestPreview
         articlesCount
         releaseUrl
         refTime
@@ -106,6 +107,60 @@ export const MARKETPLACE_LISTING_RELEASES_QUERY = gql`
         createdAt
       }
     }
+  }
+`
+
+/**
+ * Lista os listings que o usuário autenticado segue, com os campos da
+ * subscription dele (canais, emails extras, webhook, data). Substitui o
+ * `getFollows` do portal (que lia Firestore). Exclui follows cujo listing
+ * está inativo ou ausente.
+ */
+export const MY_FOLLOWED_LISTINGS_QUERY = gql`
+  query MyFollowedListings {
+    myFollowedListings {
+      id
+      authorUserId
+      authorDisplayName
+      sourceClippingId
+      name
+      description
+      recortes {
+        id
+        title
+        themes
+        agencies
+        keywords
+      }
+      prompt
+      schedule
+      likeCount
+      followerCount
+      cloneCount
+      publishedAt
+      updatedAt
+      active
+      deliveryChannels {
+        email
+        telegram
+        push
+        webhook
+      }
+      extraEmails
+      webhookUrl
+      followedAt
+    }
+  }
+`
+
+/**
+ * True se o usuário autenticado tem o Telegram vinculado. Substitui o
+ * `getHasTelegram` do portal (que lia Firestore). Retorna False se não logado
+ * ou sem doc.
+ */
+export const CURRENT_USER_HAS_TELEGRAM_QUERY = gql`
+  query CurrentUserHasTelegram {
+    currentUserHasTelegramLinked
   }
 `
 
@@ -226,6 +281,8 @@ export interface MarketplaceReleaseGraphQL {
   clippingId: string
   clippingName: string
   digestHtml: string
+  /** Computado no servidor (≤150 chars); usado para o preview nos cards. */
+  digestPreview?: string | null
   articlesCount: number
   releaseUrl: string | null
   refTime: string | null
@@ -238,6 +295,41 @@ export interface MarketplaceListingReleasesQueryData {
     id: string
     releases: MarketplaceReleaseGraphQL[]
   } | null
+}
+
+/**
+ * Shape de um `FollowedListing` — todos os campos escalares de
+ * `MarketplaceListing` mais os da subscription do usuário (`deliveryChannels`,
+ * `extraEmails`, `webhookUrl`, `followedAt`).
+ */
+export interface FollowedListingGraphQL {
+  id: string
+  authorUserId: string
+  authorDisplayName: string
+  sourceClippingId: string
+  name: string
+  description: string | null
+  recortes: MarketplaceRecorteGraphQL[]
+  prompt: string | null
+  schedule: string | null
+  likeCount: number
+  followerCount: number
+  cloneCount: number
+  publishedAt: string | null
+  updatedAt: string | null
+  active: boolean
+  deliveryChannels: DeliveryChannelsInputGraphQL | null
+  extraEmails: string[]
+  webhookUrl: string | null
+  followedAt: string | null
+}
+
+export interface MyFollowedListingsQueryData {
+  myFollowedListings: FollowedListingGraphQL[]
+}
+
+export interface CurrentUserHasTelegramQueryData {
+  currentUserHasTelegramLinked: boolean
 }
 
 export interface PublishInputGraphQL {

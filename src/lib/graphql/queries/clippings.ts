@@ -98,6 +98,7 @@ export const CLIPPING_RELEASES_QUERY = gql`
         clippingId
         clippingName
         digestHtml
+        digestPreview
         articlesCount
         releaseUrl
         refTime
@@ -122,6 +123,38 @@ export const CLIPPING_ESTIMATE_QUERY = gql`
   ) {
     clippingEstimate(themes: $themes, agencies: $agencies, keywords: $keywords) {
       totalEstimate
+    }
+  }
+`
+
+/**
+ * Busca um release por ID. Substitui o `getReleaseById` do portal (que lia
+ * Firestore). O campo `digestPreview` agora é computado no servidor (o portal
+ * removerá a derivação local). Autorização: público se o listing fonte do
+ * clipping está ativo; caso contrário só autor/subscriber. Retorna null se o
+ * release não existe OU o caller não está autorizado.
+ */
+export const RELEASE_BY_ID_QUERY = gql`
+  query ReleaseById($id: String!) {
+    release(id: $id) {
+      id
+      clippingId
+      clippingName
+      digestHtml
+      digestPreview
+      articlesCount
+      createdAt
+      releaseUrl
+      refTime
+      sinceHours
+      recortes {
+        id
+        title
+        themes
+        agencies
+        keywords
+      }
+      marketplaceListingId
     }
   }
 `
@@ -258,11 +291,27 @@ export interface ReleaseGraphQL {
   clippingId: string
   clippingName: string
   digestHtml: string
+  /** Computado no servidor; só selecionado por `RELEASE_BY_ID_QUERY`. */
+  digestPreview?: string | null
   articlesCount: number
   releaseUrl: string | null
   refTime: string | null
   sinceHours: number | null
   createdAt: string
+  /**
+   * Recortes do clipping fonte. Só selecionado por `RELEASE_BY_ID_QUERY`
+   * (o resolver os popula para o caller autorizado).
+   */
+  recortes?: RecorteGraphQL[]
+  /**
+   * ID do listing ativo do marketplace (ou null). Só selecionado por
+   * `RELEASE_BY_ID_QUERY`.
+   */
+  marketplaceListingId?: string | null
+}
+
+export interface ReleaseByIdQueryData {
+  release: ReleaseGraphQL | null
 }
 
 /** RecorteInput do schema NÃO tem `id` (diferente do `Recorte` de saída). */

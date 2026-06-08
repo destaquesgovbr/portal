@@ -25,6 +25,7 @@ export type {
   ClippingService,
   EstimateResult,
   ReleasesPage,
+  ReleaseWithContext,
   SubscriptionUpdate,
 } from './types'
 
