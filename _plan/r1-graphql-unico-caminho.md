@@ -32,7 +32,7 @@ Constraints: `--project=inspire-7-finep`; nunca `terraform apply` local; commits
 - Remover a infra de flags da migração (`GRAPHQL_FLAGS`, `feature-flags-server.ts`), **mantendo** o GrowthBook genérico (`src/ab-testing/`, `useFeatureFlag`/`getFeatureFlag` genéricos) para A/B futuro.
 
 **Fora (documentado, não tocar):**
-- Rotas REST `src/app/api/clipping*`, `/api/clippings/*`, `/api/push/*`, `/api/widgets/*` — ficam (feeds RSS/JSON e possíveis consumidores externos dependem; são camada independente). Apenas deixam de ser chamadas pelo portal.
+- ~~Rotas REST `src/app/api/clipping*`, `/api/clippings/*`, `/api/push/*`, `/api/widgets/*` — ficam... Apenas deixam de ser chamadas pelo portal.~~ **(Fase 4 — `chore/remove-rest-legado`)** Estas rotas foram **removidas** após confirmar que nenhum caller interno restava (último: `useRecorteEstimation` → migrado para `estimateRecorteCount` via fachada GraphQL). **Mantidos:** apenas os feeds `src/app/api/clippings/public/[listingId]/feed.{json,xml}` (RSS/JSON por design) e os feeds globais `src/app/feed.{xml,json,atom}`. Também removido o helper órfão `src/lib/clipping-worker.ts`. ⚠️ Possíveis consumidores externos de `/api/widgets/*` e `/api/clippings/public/*` (terceiros embarcando widgets/feeds JSON) perderam esses endpoints REST — confirmar que nenhum integrador externo dependia deles.
 - As 2 chamadas a `PUSH_WORKER_URL` (subscribe/unsubscribe) no `PushSubscriber` — serviço push-worker, não coberto pela fachada GraphQL.
 - SSR Firestore-direto nas outras superfícies (clipping `[id]`, galeria pública, `[listingId]`) — nunca foram flag-gated; migração de SSR dessas páginas é follow-up (R1-02 diferido).
 - GrowthBook genérico e qualquer fix de infra do Mongo (separado).

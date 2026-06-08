@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useContentService } from '@/services/content'
 import type { Recorte } from '@/types/clipping'
 
 type EstimationResult = {
@@ -10,57 +11,71 @@ type EstimationResult = {
   error: string | null
 }
 
+function hasFilters(recorte: Recorte): boolean {
+  return (
+    recorte.themes.length > 0 ||
+    recorte.agencies.length > 0 ||
+    recorte.keywords.length > 0
+  )
+}
+
 export function useRecorteEstimation(recortes: Recorte[]): EstimationResult {
+  const content = useContentService()
   const [total, setTotal] = useState(0)
   const [perRecorte, setPerRecorte] = useState<number[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const abortControllerRef = useRef<AbortController | null>(null)
+  const requestIdRef = useRef(0)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchEstimation = useCallback(async (recortes: Recorte[]) => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
+  const fetchEstimation = useCallback(
+    async (recortes: Recorte[]) => {
+      const hasAnyFilter = recortes.some(hasFilters)
 
-    const hasAnyFilter = recortes.some(
-      (r) =>
-        r.themes.length > 0 || r.agencies.length > 0 || r.keywords.length > 0,
-    )
-
-    if (!hasAnyFilter) {
-      setTotal(0)
-      setPerRecorte([])
-      setLoading(false)
-      return
-    }
-
-    const controller = new AbortController()
-    abortControllerRef.current = controller
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch(
-        `/api/clipping/estimate?recortes=${encodeURIComponent(JSON.stringify(recortes))}`,
-        { signal: controller.signal },
-      )
-
-      if (!response.ok) {
-        throw new Error('Erro ao buscar estimativa')
+      if (!hasAnyFilter) {
+        setTotal(0)
+        setPerRecorte([])
+        setLoading(false)
+        return
       }
 
-      const data = await response.json()
-      setTotal(data.total)
-      setPerRecorte(data.perRecorte)
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return
-      setError(err instanceof Error ? err.message : 'Erro desconhecido')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+      // Discard stale responses: only the latest request may commit state.
+      const requestId = ++requestIdRef.current
+
+      setLoading(true)
+      setError(null)
+
+      try {
+        const counts: number[] = []
+        let totalCount = 0
+        for (const recorte of recortes) {
+          const count = hasFilters(recorte)
+            ? await content.estimateRecorteCount({
+                themes: recorte.themes,
+                agencies: recorte.agencies,
+                keywords: recorte.keywords,
+                sinceHours: 24,
+              })
+            : 0
+          counts.push(count)
+          totalCount += count
+        }
+
+        if (requestId !== requestIdRef.current) return
+
+        setTotal(totalCount)
+        setPerRecorte(counts)
+      } catch (err) {
+        if (requestId !== requestIdRef.current) return
+        setError(err instanceof Error ? err.message : 'Erro desconhecido')
+      } finally {
+        if (requestId === requestIdRef.current) {
+          setLoading(false)
+        }
+      }
+    },
+    [content],
+  )
 
   useEffect(() => {
     if (timeoutRef.current) {
@@ -80,9 +95,8 @@ export function useRecorteEstimation(recortes: Recorte[]): EstimationResult {
 
   useEffect(() => {
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
+      // Invalidate any in-flight request on unmount.
+      requestIdRef.current++
     }
   }, [])
 
