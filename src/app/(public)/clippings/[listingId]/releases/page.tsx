@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
+import { auth } from '@/auth'
 import { ReleaseList } from '@/components/clipping/ReleaseList'
-import { getFirestoreDb } from '@/lib/firebase-admin'
+import { createSSRClient } from '@/lib/graphql/client'
+import { createGraphQLMarketplaceService } from '@/services/marketplace/graphql'
 
 export const revalidate = 600
 
@@ -11,13 +13,15 @@ interface Props {
 export async function generateMetadata({ params }: Props) {
   const { listingId } = await params
   try {
-    const db = getFirestoreDb()
-    const snap = await db.collection('marketplace').doc(listingId).get()
-    if (!snap.exists || !snap.data()?.active) {
+    // Caminho público (sem token) — só precisamos dos metadados do listing.
+    const listing = await createGraphQLMarketplaceService(
+      createSSRClient(),
+    ).getListing(listingId)
+    if (!listing || !listing.active) {
       return { title: 'Edições — DestaquesGovBr' }
     }
     return {
-      title: `Edições — ${snap.data()!.name} — DestaquesGovBr`,
+      title: `Edições — ${listing.name} — DestaquesGovBr`,
     }
   } catch {
     return { title: 'Edições — DestaquesGovBr' }
@@ -26,12 +30,12 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function ReleasesPage({ params }: Props) {
   const { listingId } = await params
-  const db = getFirestoreDb()
+  const session = await auth()
+  const client = createSSRClient(async () => session?.accessToken ?? null)
 
-  const listingSnap = await db.collection('marketplace').doc(listingId).get()
-  if (!listingSnap.exists || !listingSnap.data()?.active) notFound()
-
-  const listing = listingSnap.data()!
+  const service = createGraphQLMarketplaceService(client)
+  const listing = await service.getListing(listingId)
+  if (!listing || !listing.active) notFound()
 
   let initialReleases: Array<{
     id: string
@@ -46,33 +50,24 @@ export default async function ReleasesPage({ params }: Props) {
   let hasMoreReleases = false
 
   try {
-    const releasesSnap = await db
-      .collection('releases')
-      .where('clippingId', '==', listing.sourceClippingId)
-      .orderBy('createdAt', 'desc')
-      .limit(21)
-      .get()
-    hasMoreReleases = releasesSnap.docs.length > 20
-    initialReleases = releasesSnap.docs.slice(0, 20).map((doc) => {
-      const d = doc.data()
-      return {
-        id: doc.id,
-        clippingName: d.clippingName ?? listing.name,
-        articlesCount: d.articlesCount ?? 0,
-        createdAt: d.createdAt?.toDate?.()?.toISOString?.() ?? '',
-        releaseUrl: d.releaseUrl ?? `/clipping/release/${doc.id}`,
-        refTime: d.refTime?.toDate?.()?.toISOString?.() ?? null,
-        sinceHours: d.sinceHours ?? null,
-        digestPreview: (() => {
-          try {
-            const parsed = JSON.parse(d.digest ?? '{}')
-            return parsed.intro?.slice(0, 150) ?? ''
-          } catch {
-            return (d.digest ?? '').slice(0, 150)
-          }
-        })(),
-      }
+    // Caminho PÚBLICO: `MarketplaceListing.releases` (público para listing
+    // ativo, paginação por cursor `before`). NÃO usamos `clipping.releases`
+    // (gated a autor/assinante → UNAUTHENTICATED para anônimo). O preview vem
+    // no campo `digest` do `Release` (convenção do facade).
+    const { releases, hasMore } = await service.listListingReleases(listingId, {
+      limit: 20,
     })
+    initialReleases = releases.map((r) => ({
+      id: r.id,
+      clippingName: r.clippingName || listing.name,
+      articlesCount: r.articlesCount,
+      createdAt: r.createdAt,
+      releaseUrl: r.releaseUrl || `/clipping/release/${r.id}`,
+      refTime: r.refTime ?? null,
+      sinceHours: r.sinceHours ?? null,
+      digestPreview: r.digest || undefined,
+    }))
+    hasMoreReleases = hasMore
   } catch (error) {
     console.error('Failed to load releases:', error)
   }

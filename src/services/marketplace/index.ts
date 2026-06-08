@@ -29,6 +29,7 @@ import type { MarketplaceService } from './types'
 
 export type {
   CloneResult,
+  FollowedListing,
   LikeResult,
   ListingDetail,
   ListingsPage,

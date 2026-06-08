@@ -22,6 +22,24 @@ export interface ReleasesPage {
   hasMore: boolean
 }
 
+/**
+ * Release com contexto adicional, retornado por `getReleaseById`. Substitui o
+ * antigo `getReleaseById` (Firestore) da página de release.
+ *
+ * `digestPreview` agora vem computado do servidor (campo `Release.digestPreview`
+ * do schema) — o consumidor pode remover a derivação local.
+ *
+ * GAP vs. o antigo shape Firestore: o resolver GraphQL `Release` NÃO expõe
+ * `recortes`, `marketplaceListingId`, `userId` nem `digest` (texto puro). Aqui
+ * `recortes` vem `[]` e `marketplaceListingId` vem `null` — o stream que
+ * consome deve buscá-los por outra via se ainda precisar deles.
+ */
+export type ReleaseWithContext = Release & {
+  digestPreview: string | null
+  recortes: Recorte[]
+  marketplaceListingId?: string | null
+}
+
 /** Dados aceitos por `updateMySubscription` — só canais de entrega. */
 export interface SubscriptionUpdate {
   deliveryChannels: {
@@ -74,4 +92,11 @@ export interface ClippingService {
     clippingId: string,
     opts?: { limit?: number; before?: string },
   ): Promise<ReleasesPage>
+
+  /**
+   * Busca um release por ID. Substitui o `getReleaseById` (Firestore) da página
+   * de release. Retorna `null` se o release não existe OU o caller não está
+   * autorizado (mesma semântica do resolver `release(id)`).
+   */
+  getReleaseById(id: string): Promise<ReleaseWithContext | null>
 }

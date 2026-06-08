@@ -15,6 +15,7 @@ import { getClient } from '@/lib/graphql/client'
 import {
   CLONE_FROM_LISTING_MUTATION,
   type CloneFromListingMutationData,
+  type FollowedListingGraphQL,
   LIKE_MARKETPLACE_LISTING_MUTATION,
   type LikeMarketplaceListingMutationData,
   MARKETPLACE_LISTING_QUERY,
@@ -24,6 +25,8 @@ import {
   type MarketplaceListingQueryData,
   type MarketplaceListingReleasesQueryData,
   type MarketplaceListingsQueryData,
+  MY_FOLLOWED_LISTINGS_QUERY,
+  type MyFollowedListingsQueryData,
   PUBLISH_TO_MARKETPLACE_MUTATION,
   type PublishToMarketplaceMutationData,
   SUBSCRIBE_TO_CLIPPING_MUTATION,
@@ -36,6 +39,7 @@ import {
 import type { MarketplaceListing, Release } from '@/types/clipping'
 import type {
   CloneResult,
+  FollowedListing,
   LikeResult,
   ListingDetail,
   ListingsPage,
@@ -81,6 +85,30 @@ function mapListingDetail(node: MarketplaceListingGraphQL): ListingDetail {
     ...mapListing(node),
     userHasLiked: node.hasLiked ?? undefined,
     userFollows: node.hasFollowed ?? undefined,
+  }
+}
+
+/**
+ * Mapeia um `FollowedListing` (GraphQL) → shape consumido pelo `FollowCard`.
+ * Os campos escalares do listing reusam o mapeamento de `mapListing`; os campos
+ * da subscription (`deliveryChannels`/`extraEmails`/`webhookUrl`/`followedAt`)
+ * recebem defaults quando nulos, espelhando o antigo `getFollows`.
+ */
+function mapFollowedListing(node: FollowedListingGraphQL): FollowedListing {
+  return {
+    listingId: node.id,
+    // `FollowedListing` tem os mesmos campos escalares de `MarketplaceListing`,
+    // então reaproveitamos `mapListing` (ignora os campos extras da subscription).
+    listing: mapListing(node as unknown as MarketplaceListingGraphQL),
+    deliveryChannels: node.deliveryChannels ?? {
+      email: false,
+      telegram: false,
+      push: false,
+      webhook: false,
+    },
+    extraEmails: node.extraEmails ?? [],
+    webhookUrl: node.webhookUrl ?? '',
+    followedAt: node.followedAt ?? '',
   }
 }
 
@@ -143,6 +171,21 @@ export function createGraphQLMarketplaceService(
       return { listings, total: data?.total ?? 0 }
     },
 
+    async listFollowedListings(): Promise<FollowedListing[]> {
+      const result = await client
+        .query<MyFollowedListingsQueryData>(MY_FOLLOWED_LISTINGS_QUERY, {})
+        .toPromise()
+      if (result.error) {
+        throw unwrapError(result.error, 'Erro ao listar clippings seguidos')
+      }
+      const nodes = result.data?.myFollowedListings ?? []
+      // Aquece o cache listing → sourceClippingId p/ unsubscribe sem roundtrip.
+      for (const node of nodes) {
+        sourceClippingByListing.set(node.id, node.sourceClippingId)
+      }
+      return nodes.map(mapFollowedListing)
+    },
+
     async getListing(listingId: string): Promise<ListingDetail | null> {
       const result = await client
         .query<MarketplaceListingQueryData>(MARKETPLACE_LISTING_QUERY, {
@@ -181,7 +224,11 @@ export function createGraphQLMarketplaceService(
         clippingId: r.clippingId,
         userId: '', // não exposto pelo schema GraphQL (conteúdo público)
         clippingName: r.clippingName,
-        digest: '',
+        // `Release` (tipo do portal) não tem campo próprio para o preview; o
+        // schema só expõe `digestPreview` (computado no servidor, ≤150 chars).
+        // Carregamos o preview em `digest` para que os cards o exibam (mesma
+        // convenção do facade de clipping).
+        digest: r.digestPreview ?? '',
         digestHtml: r.digestHtml,
         articlesCount: r.articlesCount,
         createdAt: r.createdAt,

@@ -25,6 +25,8 @@ import {
   type DeleteClippingMutationData,
   MY_CLIPPINGS_QUERY,
   type MyClippingsQueryData,
+  RELEASE_BY_ID_QUERY,
+  type ReleaseByIdQueryData,
   SEND_CLIPPING_NOW_MUTATION,
   SET_CLIPPING_ACTIVE_MUTATION,
   type SendClippingNowMutationData,
@@ -45,6 +47,7 @@ import type {
   ClippingService,
   EstimateResult,
   ReleasesPage,
+  ReleaseWithContext,
   SubscriptionUpdate,
 } from './types'
 
@@ -340,7 +343,11 @@ export function createGraphQLClippingService(
         clippingId: r.clippingId,
         userId: '', // não exposto pelo schema GraphQL (autor é resolvido contextualmente)
         clippingName: r.clippingName,
-        digest: '',
+        // `Release` (tipo do portal) não tem campo próprio para o preview; o
+        // schema só expõe `digestPreview` (computado no servidor, ≤150 chars),
+        // não o `digest` cru. Carregamos o preview em `digest` para que os
+        // consumidores SSR (release-utils) o usem sem alterar o tipo `Release`.
+        digest: r.digestPreview ?? '',
         digestHtml: r.digestHtml,
         articlesCount: r.articlesCount,
         createdAt: r.createdAt,
@@ -349,6 +356,43 @@ export function createGraphQLClippingService(
         sinceHours: r.sinceHours,
       }))
       return { releases, hasMore }
+    },
+
+    async getReleaseById(id: string): Promise<ReleaseWithContext | null> {
+      const result = await client
+        .query<ReleaseByIdQueryData>(RELEASE_BY_ID_QUERY, { id })
+        .toPromise()
+      if (result.error) {
+        throw unwrapError(result.error, 'Erro ao buscar release')
+      }
+      const r = result.data?.release
+      // null = release inexistente OU sem autorização (semântica do resolver).
+      if (!r) return null
+      return {
+        id: r.id,
+        clippingId: r.clippingId,
+        userId: '', // não exposto pelo schema GraphQL (autor resolvido contextualmente)
+        clippingName: r.clippingName,
+        digest: '', // schema só expõe digestHtml/digestPreview, não o texto puro
+        digestHtml: r.digestHtml,
+        digestPreview: r.digestPreview ?? null,
+        articlesCount: r.articlesCount,
+        createdAt: r.createdAt,
+        releaseUrl: r.releaseUrl ?? `/clipping/release/${r.id}`,
+        refTime: r.refTime,
+        sinceHours: r.sinceHours,
+        // O resolver `Release` agora expõe `recortes` (filtros do clipping fonte)
+        // e `marketplaceListingId` (listing ativo, ou null) para o caller
+        // autorizado — selecionados por `RELEASE_BY_ID_QUERY`.
+        recortes: (r.recortes ?? []).map((rec) => ({
+          id: rec.id,
+          title: rec.title,
+          themes: rec.themes ?? [],
+          agencies: rec.agencies ?? [],
+          keywords: rec.keywords ?? [],
+        })),
+        marketplaceListingId: r.marketplaceListingId ?? null,
+      }
     },
   }
 }

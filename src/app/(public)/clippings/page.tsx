@@ -1,6 +1,11 @@
 import { auth } from '@/auth'
 import { getThemeNameByCode } from '@/data/themes-utils'
-import { getFirestoreDb } from '@/lib/firebase-admin'
+import { createSSRClient } from '@/lib/graphql/client'
+import {
+  MARKETPLACE_LISTINGS_QUERY,
+  type MarketplaceListingGraphQL,
+  type MarketplaceListingsQueryData,
+} from '@/lib/graphql/queries/marketplace'
 import type { MarketplaceListing } from '@/types/clipping'
 import { ClippingsPageClient } from './ClippingsPageClient'
 
@@ -8,28 +13,75 @@ export const revalidate = 600
 
 export type ThemeChip = { code: string; label: string; count: number }
 
+/** Trava de segurança contra loop infinito caso `total` venha inconsistente. */
+const MAX_PAGES = 50
+
+function mapListing(node: MarketplaceListingGraphQL): MarketplaceListing {
+  return {
+    id: node.id,
+    authorUserId: node.authorUserId,
+    authorDisplayName: node.authorDisplayName,
+    sourceClippingId: node.sourceClippingId,
+    name: node.name,
+    description: node.description ?? '',
+    recortes: node.recortes.map((r) => ({
+      id: r.id,
+      title: r.title,
+      themes: r.themes ?? [],
+      agencies: r.agencies ?? [],
+      keywords: r.keywords ?? [],
+    })),
+    prompt: node.prompt ?? '',
+    schedule: node.schedule ?? undefined,
+    likeCount: node.likeCount,
+    followerCount: node.followerCount,
+    cloneCount: node.cloneCount,
+    publishedAt: node.publishedAt ?? '',
+    updatedAt: node.updatedAt ?? '',
+    active: node.active,
+  }
+}
+
 export default async function MarketplacePage() {
   const session = await auth()
-  const userId = session?.user?.id
   let listings: MarketplaceListing[] = []
+  let followedIds: string[] = []
+  let likedIds: string[] = []
 
   try {
-    const db = getFirestoreDb()
-    const snapshot = await db
-      .collection('marketplace')
-      .where('active', '==', true)
-      .orderBy('publishedAt', 'desc')
-      .get()
+    // Caminho público; se logado, o token habilita `hasLiked`/`hasFollowed`.
+    const client = createSSRClient(async () => session?.accessToken ?? null)
 
-    listings = snapshot.docs.map((doc) => {
-      const data = doc.data()
-      return {
-        id: doc.id,
-        ...data,
-        publishedAt: data.publishedAt?.toDate?.()?.toISOString?.() ?? '',
-        updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? '',
-      } as MarketplaceListing
-    })
+    // A galeria precisa de TODAS as listings ativas (deriva os theme-chips do
+    // conjunto completo e filtra client-side). O resolver `marketplaceListings`
+    // é paginado e a operação não aceita `limit`, então acumulamos páginas até
+    // termos buscado o `total` reportado (com trava `MAX_PAGES`).
+    const nodes: MarketplaceListingGraphQL[] = []
+    let page = 1
+    let total = Number.POSITIVE_INFINITY
+    while (nodes.length < total && page <= MAX_PAGES) {
+      const result = await client
+        .query<MarketplaceListingsQueryData>(MARKETPLACE_LISTINGS_QUERY, {
+          page,
+        })
+        .toPromise()
+      if (result.error) {
+        throw result.error
+      }
+      const data = result.data?.marketplaceListings
+      const pageNodes = data?.listings ?? []
+      total = data?.total ?? nodes.length + pageNodes.length
+      nodes.push(...pageNodes)
+      // Página vazia → não há mais o que buscar (evita loop se `total` mentir).
+      if (pageNodes.length === 0) break
+      page += 1
+    }
+
+    listings = nodes.map(mapListing)
+    // `hasLiked`/`hasFollowed` vêm do schema (resolvidos para o usuário logado),
+    // substituindo o batch manual por-usuário de likes/follows do Firestore.
+    followedIds = nodes.filter((n) => n.hasFollowed).map((n) => n.id)
+    likedIds = nodes.filter((n) => n.hasLiked).map((n) => n.id)
   } catch (error) {
     console.error('Failed to load marketplace:', error)
   }
@@ -54,39 +106,6 @@ export default async function MarketplacePage() {
       count,
     })),
   )
-
-  // Fetch user's follows and likes
-  let followedIds: string[] = []
-  let likedIds: string[] = []
-
-  if (userId && listings.length > 0) {
-    const db = getFirestoreDb()
-    const checks = listings.map(async (listing) => {
-      const [followerSnap, likeSnap] = await Promise.all([
-        db
-          .collection('subscriptions')
-          .where('clippingId', '==', listing.sourceClippingId)
-          .where('userId', '==', userId)
-          .where('role', '==', 'subscriber')
-          .limit(1)
-          .get(),
-        db
-          .collection('marketplace')
-          .doc(listing.id)
-          .collection('likes')
-          .doc(userId)
-          .get(),
-      ])
-      return {
-        listingId: listing.id,
-        follows: !followerSnap.empty,
-        liked: likeSnap.exists,
-      }
-    })
-    const results = await Promise.all(checks)
-    followedIds = results.filter((r) => r.follows).map((r) => r.listingId)
-    likedIds = results.filter((r) => r.liked).map((r) => r.listingId)
-  }
 
   return (
     <div className="container mx-auto px-4 py-8">
