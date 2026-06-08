@@ -1,6 +1,7 @@
 'use server'
 
-import { typesense } from '@/services/typesense/client'
+import { createSSRClient } from '@/lib/graphql/client'
+import { getContentService } from '@/services/content'
 import type { ArticleRow } from '@/types/article'
 
 export type GetArticlesArgs = {
@@ -18,44 +19,37 @@ export type GetArticlesResult = {
 
 const PAGE_SIZE = 40
 
+/** Cliente GraphQL público (sem token) para a server action do tema. */
+function content() {
+  return getContentService(createSSRClient(async () => null))
+}
+
 export async function getArticles(
   args: GetArticlesArgs,
 ): Promise<GetArticlesResult> {
   const { theme_1_level_1, page, startDate, endDate, agencies } = args
 
-  const filter_by: string[] = [`theme_1_level_1_label:=${theme_1_level_1}`]
+  // Datas: o filtro do facade usa strings ISO (DateTime do schema).
+  // startDate/endDate chegam em ms; endDate é exclusivo do dia seguinte no
+  // comportamento original (`< endDate + 1 dia`).
+  const startIso = startDate ? new Date(startDate).toISOString() : null
+  const endIso = endDate ? new Date(endDate + 86400000).toISOString() : null
 
-  if (startDate) {
-    filter_by.push(`published_at:>=${Math.floor(startDate / 1000)}`)
-  }
-
-  if (endDate) {
-    filter_by.push(`published_at:<${Math.floor(endDate / 1000) + 86400}`)
-  }
-
-  if (agencies && agencies.length > 0) {
-    filter_by.push(`agency:[${agencies.join(',')}]`)
-  }
-
-  // biome-ignore format: true
-  const result = await typesense
-    .collections<ArticleRow>('news')
-    .documents()
-    .search({
-      q: '*',
-      sort_by: 'published_at:desc, unique_id:desc',
-      filter_by: filter_by.join(" && "),
-      group_by: 'content_hash',
-      group_limit: 1,
-      limit: PAGE_SIZE,
-      page
-    })
+  const result = await content().listArticles({
+    page,
+    limit: PAGE_SIZE,
+    // dedup por content_hash (group_by + group_limit:1 no comportamento original).
+    dedup: true,
+    filter: {
+      themeLabel: theme_1_level_1,
+      startDate: startIso,
+      endDate: endIso,
+      agencies: agencies && agencies.length > 0 ? agencies : null,
+    },
+  })
 
   return {
-    articles:
-      result.grouped_hits?.flatMap((group) =>
-        group.hits.map((hit) => hit.document),
-      ) ?? [],
+    articles: result.articles,
     page: page + 1,
   }
 }

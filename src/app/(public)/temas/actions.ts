@@ -1,8 +1,12 @@
 'use server'
 
-import { subDays } from 'date-fns'
-import { typesense } from '@/services/typesense/client'
-import type { ArticleRow } from '@/types/article'
+import { createSSRClient } from '@/lib/graphql/client'
+import { getContentService } from '@/services/content'
+
+/** Cliente GraphQL público (sem token) para as server actions de temas. */
+function content() {
+  return getContentService(createSSRClient(async () => null))
+}
 
 /**
  * Get article counts by theme code for the last 30 days
@@ -12,69 +16,21 @@ import type { ArticleRow } from '@/types/article'
 export async function getThemeArticleCounts(): Promise<Map<string, number>> {
   const counts = new Map<string, number>()
 
-  // Calculate date range (last 30 days)
-  const endDate = new Date()
-  const startDate = subDays(endDate, 30)
-  const startSeconds = Math.floor(startDate.getTime() / 1000)
-  const endSeconds = Math.floor(endDate.getTime() / 1000)
-
-  const filter = `published_at:>=${startSeconds} && published_at:<${endSeconds}`
-
   try {
-    // Query for level 1 themes
-    const level1Res = await typesense
-      .collections<ArticleRow>('news')
-      .documents()
-      .search({
-        q: '*',
-        filter_by: filter,
-        group_by: 'theme_1_level_1_code',
-        per_page: 250,
-      })
+    const svc = content()
 
-    // Query for level 2 themes
-    const level2Res = await typesense
-      .collections<ArticleRow>('news')
-      .documents()
-      .search({
-        q: '*',
-        filter_by: filter,
-        group_by: 'theme_1_level_2_code',
-        per_page: 250,
-      })
+    // Conta cada nível separadamente (1, 2 e 3), janela de 30 dias.
+    const [level1, level2, level3] = await Promise.all([
+      svc.getThemeArticleCounts(30, 1),
+      svc.getThemeArticleCounts(30, 2),
+      svc.getThemeArticleCounts(30, 3),
+    ])
 
-    // Query for level 3 themes
-    const level3Res = await typesense
-      .collections<ArticleRow>('news')
-      .documents()
-      .search({
-        q: '*',
-        filter_by: filter,
-        group_by: 'theme_1_level_3_code',
-        per_page: 250,
-      })
-
-    // Process level 1 results
-    for (const group of level1Res.grouped_hits ?? []) {
-      const code = group.group_key?.[0]
-      if (code && code !== 'null' && code !== '') {
-        counts.set(code, group.found ?? 0)
-      }
-    }
-
-    // Process level 2 results
-    for (const group of level2Res.grouped_hits ?? []) {
-      const code = group.group_key?.[0]
-      if (code && code !== 'null' && code !== '') {
-        counts.set(code, group.found ?? 0)
-      }
-    }
-
-    // Process level 3 results
-    for (const group of level3Res.grouped_hits ?? []) {
-      const code = group.group_key?.[0]
-      if (code && code !== 'null' && code !== '') {
-        counts.set(code, group.found ?? 0)
+    for (const level of [level1, level2, level3]) {
+      for (const { code, count } of level) {
+        if (code && code !== 'null' && code !== '') {
+          counts.set(code, count)
+        }
       }
     }
 

@@ -1,32 +1,33 @@
 'use server'
 
 import { getAgencyField } from '@/data/agencies-utils'
+import { createSSRClient } from '@/lib/graphql/client'
 import { ResultError, withResult } from '@/lib/result'
-import { typesense } from '@/services/typesense/client'
+import { getContentService } from '@/services/content'
 import type { ArticleRow } from '@/types/article'
 
 export type GetArticleError = 'not_found' | 'db_error'
 
+/** Cliente GraphQL público (sem token) para as server actions de artigo. */
+function content() {
+  return getContentService(createSSRClient(async () => null))
+}
+
 export const getArticleById = withResult(
   async (id: string): Promise<ArticleRow> => {
-    const result = await typesense
-      .collections<ArticleRow>('news')
-      .documents()
-      .search({
-        q: '*',
-        filter_by: `unique_id:=${id}`,
-      })
+    let article: ArticleRow | null
+    try {
+      article = await content().getArticle(id)
+    } catch {
+      throw new ResultError<GetArticleError>('db_error')
+    }
 
-    if (!result.hits || result.hits.length === 0)
-      throw new ResultError<GetArticleError>('not_found')
+    if (!article) throw new ResultError<GetArticleError>('not_found')
 
-    const agencyName = await getAgencyField(
-      result.hits[0].document.agency,
-      'name',
-    )
+    const agencyName = await getAgencyField(article.agency, 'name')
 
     return {
-      ...result.hits[0].document,
+      ...article,
       agency: agencyName || 'Órgão público federal',
     }
   },
@@ -37,31 +38,7 @@ export async function getSimilarArticles(
   article: ArticleRow,
   limit = 4,
 ): Promise<ArticleRow[]> {
-  const filters: string[] = [`unique_id:!=${article.unique_id}`]
-
-  if (article.most_specific_theme_code) {
-    filters.push(
-      `(theme_1_level_1_code:=${article.most_specific_theme_code} || theme_1_level_2_code:=${article.most_specific_theme_code} || theme_1_level_3_code:=${article.most_specific_theme_code})`,
-    )
-  } else if (article.theme_1_level_1_code) {
-    filters.push(`theme_1_level_1_code:=${article.theme_1_level_1_code}`)
-  }
-
-  const result = await typesense
-    .collections<ArticleRow>('news')
-    .documents()
-    .search({
-      q: '*',
-      filter_by: filters.join(' && '),
-      sort_by: 'published_at:desc',
-      group_by: 'content_hash',
-      group_limit: 1,
-      limit,
-    })
-
-  return (
-    result.grouped_hits?.flatMap((group) =>
-      group.hits.map((hit) => hit.document),
-    ) ?? []
-  )
+  // O graphql-api `relatedArticles` replica server-side a lógica baseada em
+  // tema (mesmo `most_specific_theme_code`/nível 1) que antes vivia aqui.
+  return content().getRelatedArticles(article.unique_id, limit)
 }

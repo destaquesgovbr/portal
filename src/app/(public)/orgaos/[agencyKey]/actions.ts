@@ -1,6 +1,7 @@
 'use server'
 
-import { typesense } from '@/services/typesense/client'
+import { createSSRClient } from '@/lib/graphql/client'
+import { getContentService } from '@/services/content'
 import type { ArticleRow } from '@/types/article'
 
 export type GetArticlesArgs = {
@@ -18,44 +19,38 @@ export type GetArticlesResult = {
 
 const PAGE_SIZE = 40
 
+/** Cliente GraphQL público (sem token) para a server action do órgão. */
+function content() {
+  return getContentService(createSSRClient(async () => null))
+}
+
 export async function getArticles(
   args: GetArticlesArgs,
 ): Promise<GetArticlesResult> {
   const { agency, page, startDate, endDate, themes } = args
 
-  const filter_by: string[] = [`agency:=${agency}`]
+  // Datas: o filtro do facade usa strings ISO (DateTime do schema).
+  // startDate/endDate chegam em ms; endDate é exclusivo do dia seguinte no
+  // comportamento original (`< endDate + 1 dia`).
+  const startIso = startDate ? new Date(startDate).toISOString() : null
+  const endIso = endDate ? new Date(endDate + 86400000).toISOString() : null
 
-  if (startDate) {
-    filter_by.push(`published_at:>=${Math.floor(startDate / 1000)}`)
-  }
-
-  if (endDate) {
-    filter_by.push(`published_at:<${Math.floor(endDate / 1000) + 86400}`)
-  }
-
-  if (themes && themes.length > 0) {
-    // Filter by any theme level - level 1, 2, or 3
-    const themeFilters = themes.map(
-      (theme) =>
-        `(theme_1_level_1_code:${theme} || theme_1_level_2_code:${theme} || theme_1_level_3_code:${theme})`,
-    )
-    filter_by.push(`(${themeFilters.join(' || ')})`)
-  }
-
-  // biome-ignore format: true
-  const result = await typesense
-    .collections<ArticleRow>('news')
-    .documents()
-    .search({
-      q: '*',
-      sort_by: 'published_at:desc, unique_id:desc',
-      filter_by: filter_by.join(" && "),
-      limit: PAGE_SIZE,
-      page
-    })
+  const result = await content().listArticles({
+    page,
+    limit: PAGE_SIZE,
+    // Órgão não deduplica por content_hash (comportamento original sem group_by).
+    dedup: false,
+    filter: {
+      agencies: [agency],
+      // themes filtra por código, OR através de L1/L2/L3 (resolvido server-side).
+      themes: themes && themes.length > 0 ? themes : null,
+      startDate: startIso,
+      endDate: endIso,
+    },
+  })
 
   return {
-    articles: result.hits?.map((hit) => hit.document) ?? [],
+    articles: result.articles,
     page: page + 1,
   }
 }
