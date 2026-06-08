@@ -74,7 +74,7 @@
     "js-yaml": "^4.1.0",
     "lucide-react": "^0.544.0",
     "nanoid": "^5.1.7",
-    "next": "15.5.13",
+    "next": "15.5.19",
     "next-auth": "5.0.0-beta.30",
     "next-themes": "^0.3.0",
     "react": "18.3.1",
@@ -133,6 +133,15 @@
   },
   "lint-staged": {
     "*": "biome check --write --no-errors-on-unmatched"
+  },
+  "pnpm": {
+    "overrides": {
+      "axios@>=1.0.0 <1.16.0": "^1.17.0",
+      "follow-redirects@<1.16.0": "^1.16.0",
+      "lodash@<4.18.0": "^4.18.1",
+      "postcss@<8.5.10": "^8.5.15",
+      "tar@<7.5.11": "^7.5.16"
+    }
   },
   "packageManager": "pnpm@10.18.2+sha512.9fb969fa749b3ade6035e0f109f0b8a60b5d08a1a87fdf72e337da90dcc93336e2280ca4e44f2358a649b83c17959e9993e777c2080879f3801e6f0d999ad3dd"
 }

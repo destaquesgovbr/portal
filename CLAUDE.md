@@ -411,6 +411,12 @@ Suíte nova (R1) que valida as 5 features migradas (`clippings`, `marketplace`,
 portal↔graphql-api que o curl mascarava. Catálogo de bugs encontrados:
 `graphql-api/_plan/R1-DRIFT-CATALOG.md`.
 
+> **Esta suíte é também o gate de validação do graphql-api.** Embora ela viva
+> aqui (é o portal que ela exercita, via browser), uma mudança de schema no
+> graphql-api quebra estes specs. O lado de lá documenta isso em
+> `graphql-api/CLAUDE.md` › "Validação E2E (Playwright via portal)" — quem mexe
+> no schema deve rodar `e2e/graphql` antes de mergear. Cross-link nos dois sentidos.
+
 **Estrutura:**
 
 - `e2e/fixtures/` — factory de dados via GraphQL direto (não pela UI):
@@ -421,7 +427,19 @@ portal↔graphql-api que o curl mascarava. Catálogo de bugs encontrados:
     `publishListing`, etc. Todo dado leva prefixo `E2E_TEST_` e é limpo no
     `afterAll` (+ `cleanupTestClippings` defensivo).
   - `seed.ts` — pré-flight de dados (themes/articles). Sem `test.skip` mudo.
-- `e2e/graphql/*.authed.spec.ts` — jornadas logadas; `widgets.spec.ts` é público.
+- `e2e/graphql/*.authed.spec.ts` — jornadas logadas; `widgets.spec.ts` e
+  `public-content.spec.ts` são públicos (rodam no project `chromium`).
+
+**Specs (o que cada um cobre):**
+
+| Spec | Auth | Cobre |
+|------|------|-------|
+| `public-content.spec.ts` | público | `/noticias` (cards), `/busca?q=` (resultados), `/artigos/[id]` (título + relacionados), `/temas` + `/temas/[label]`, `/orgaos/[key]` |
+| `clippings.authed.spec.ts` | logado | CRUD de clippings (lista, cria via wizard manual, edita nome, exclui), detalhe do autor com releases (facade GraphQL) |
+| `marketplace.authed.spec.ts` | logado | galeria pública, edições do listing, like, follow (`subscribeToClipping`), clone, unpublish (inclusive com clipping-fonte já excluído) |
+| `push.authed.spec.ts` | logado | `pushFiltersData` (agências), round-trip de preferências de agências |
+| `widgets.spec.ts` | público | configurador renderiza, `widgetConfig` (agências/temas), `widgetArticles` (paginado), CORS preflight da origin permitida |
+| `agent.authed.spec.ts` | logado | prompt → recortes + timeline do agente, aceitar recortes → modo manual (depende do LLM upstream; `test.skip` justificado em `ThrottlingException` do Bedrock) |
 
 **Regras (proibido):** `.catch(() => {})` silencioso, `test.skip` data-dependent,
 asserções vazias (`toBeGreaterThanOrEqual(0)`). As fixtures garantem o estado;
