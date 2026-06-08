@@ -16,8 +16,8 @@ vi.mock('@/lib/graphql/client', () => ({
   createSSRClient: () => ({}) as unknown,
 }))
 
-vi.mock('@/services/content', () => ({
-  getContentService: () => ({
+vi.mock('@/services/content/graphql', () => ({
+  createGraphQLContentService: () => ({
     getThemeArticleCounts: getThemeArticleCountsMock,
   }),
 }))

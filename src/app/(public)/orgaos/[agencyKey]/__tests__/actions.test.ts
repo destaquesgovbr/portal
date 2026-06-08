@@ -17,8 +17,8 @@ vi.mock('@/lib/graphql/client', () => ({
   createSSRClient: () => ({}) as unknown,
 }))
 
-vi.mock('@/services/content', () => ({
-  getContentService: () => ({ listArticles: listArticlesMock }),
+vi.mock('@/services/content/graphql', () => ({
+  createGraphQLContentService: () => ({ listArticles: listArticlesMock }),
 }))
 
 import { getArticles } from '../actions'

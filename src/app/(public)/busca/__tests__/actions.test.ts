@@ -24,8 +24,8 @@ vi.mock('@/lib/graphql/client', () => ({
   createSSRClient: vi.fn(() => ({}) as unknown),
 }))
 
-vi.mock('@/services/content', () => ({
-  getContentService: vi.fn(() => fakeService),
+vi.mock('@/services/content/graphql', () => ({
+  createGraphQLContentService: vi.fn(() => fakeService),
 }))
 
 // removeDiacritics é usado pela derivação de autocomplete — usamos o real.

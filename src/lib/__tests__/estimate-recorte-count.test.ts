@@ -3,8 +3,8 @@ import type { Recorte } from '@/types/clipping'
 
 const mockEstimateRecorteCount = vi.fn()
 
-vi.mock('@/services/content', () => ({
-  getContentService: () => ({
+vi.mock('@/services/content/graphql', () => ({
+  createGraphQLContentService: () => ({
     estimateRecorteCount: mockEstimateRecorteCount,
   }),
 }))
