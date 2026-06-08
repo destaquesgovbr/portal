@@ -1,6 +1,6 @@
 import { auth } from '@/auth'
 import { createSSRClient } from '@/lib/graphql/client'
-import { getClippingService } from '@/services/clipping'
+import { createGraphQLClippingService } from '@/services/clipping/graphql'
 
 export type ReleaseItem = {
   id: string
@@ -39,10 +39,9 @@ export async function fetchReleasesForClipping(
   const session = await auth()
   const client = createSSRClient(async () => session?.accessToken ?? null)
 
-  const { releases, hasMore } = await getClippingService(client).listReleases(
-    clippingId,
-    { limit },
-  )
+  const { releases, hasMore } = await createGraphQLClippingService(
+    client,
+  ).listReleases(clippingId, { limit })
 
   const items: ReleaseItem[] = releases.map((r) => ({
     id: r.id,

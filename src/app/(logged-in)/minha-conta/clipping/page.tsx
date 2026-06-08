@@ -6,7 +6,7 @@ import { getThemesWithHierarchy } from '@/data/themes-utils'
 import { createSSRClient } from '@/lib/graphql/client'
 import { getHasTelegram } from '@/lib/graphql/user'
 import { createGraphQLClippingService } from '@/services/clipping/graphql'
-import { getMarketplaceService } from '@/services/marketplace'
+import { createGraphQLMarketplaceService } from '@/services/marketplace/graphql'
 import type { Clipping } from '@/types/clipping'
 import { ClippingListClient } from './ClippingListClient'
 
@@ -36,7 +36,7 @@ export default async function ClippingPage() {
       getThemesWithHierarchy(),
       getAgenciesList(),
       userId
-        ? getMarketplaceService(ssrClient).listFollowedListings()
+        ? createGraphQLMarketplaceService(ssrClient).listFollowedListings()
         : Promise.resolve([]),
       userId ? getHasTelegram(ssrClient) : Promise.resolve(false),
     ],

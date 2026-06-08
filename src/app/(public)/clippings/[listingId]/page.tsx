@@ -6,7 +6,7 @@ import { estimateTotalCount } from '@/lib/estimate-recorte-count'
 import { createSSRClient } from '@/lib/graphql/client'
 import { getHasTelegram } from '@/lib/graphql/user'
 import { resolveRecorteLabels } from '@/lib/recorte-utils'
-import { getMarketplaceService } from '@/services/marketplace'
+import { createGraphQLMarketplaceService } from '@/services/marketplace/graphql'
 
 export const revalidate = 600
 
@@ -18,9 +18,9 @@ export async function generateMetadata({ params }: Props) {
   const { listingId } = await params
   try {
     // Caminho público (sem token) — só precisamos dos metadados.
-    const listing = await getMarketplaceService(createSSRClient()).getListing(
-      listingId,
-    )
+    const listing = await createGraphQLMarketplaceService(
+      createSSRClient(),
+    ).getListing(listingId)
     if (!listing || !listing.active) {
       return { title: 'Listing não encontrado — DestaquesGovBr' }
     }
@@ -40,7 +40,7 @@ export default async function ListingDetailPage({ params }: Props) {
   // SSR client com token (se logado) → `hasLiked`/`hasFollowed` resolvidos pelo
   // schema; público sem token continua funcionando (flags vêm null → false).
   const client = createSSRClient(async () => session?.accessToken ?? null)
-  const service = getMarketplaceService(client)
+  const service = createGraphQLMarketplaceService(client)
 
   const listing = await service.getListing(listingId)
   if (!listing || !listing.active) notFound()

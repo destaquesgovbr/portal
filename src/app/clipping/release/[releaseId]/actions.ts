@@ -2,7 +2,7 @@
 
 import { auth } from '@/auth'
 import { createSSRClient } from '@/lib/graphql/client'
-import { getClippingService } from '@/services/clipping'
+import { createGraphQLClippingService } from '@/services/clipping/graphql'
 import type { ReleaseWithContext } from '@/services/clipping/types'
 
 /**
@@ -28,7 +28,8 @@ export async function getReleaseById(
   try {
     const session = await auth()
     const client = createSSRClient(async () => session?.accessToken ?? null)
-    const release = await getClippingService(client).getReleaseById(releaseId)
+    const release =
+      await createGraphQLClippingService(client).getReleaseById(releaseId)
     if (!release) return null
 
     // `page.tsx#generateMetadata` ainda lê `release.digest` (texto puro), que o

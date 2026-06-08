@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { auth } from '@/auth'
 import { ReleaseList } from '@/components/clipping/ReleaseList'
 import { createSSRClient } from '@/lib/graphql/client'
-import { getMarketplaceService } from '@/services/marketplace'
+import { createGraphQLMarketplaceService } from '@/services/marketplace/graphql'
 
 export const revalidate = 600
 
@@ -14,9 +14,9 @@ export async function generateMetadata({ params }: Props) {
   const { listingId } = await params
   try {
     // Caminho público (sem token) — só precisamos dos metadados do listing.
-    const listing = await getMarketplaceService(createSSRClient()).getListing(
-      listingId,
-    )
+    const listing = await createGraphQLMarketplaceService(
+      createSSRClient(),
+    ).getListing(listingId)
     if (!listing || !listing.active) {
       return { title: 'Edições — DestaquesGovBr' }
     }
@@ -33,7 +33,7 @@ export default async function ReleasesPage({ params }: Props) {
   const session = await auth()
   const client = createSSRClient(async () => session?.accessToken ?? null)
 
-  const service = getMarketplaceService(client)
+  const service = createGraphQLMarketplaceService(client)
   const listing = await service.getListing(listingId)
   if (!listing || !listing.active) notFound()
 
