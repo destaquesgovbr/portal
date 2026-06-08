@@ -6,7 +6,7 @@ import { createSSRClient } from '@/lib/graphql/client'
 import { markdownToHtml } from '@/lib/markdown-to-html'
 import { getExcerpt } from '@/lib/utils'
 import type { ArticleFilterInput } from '@/services/content'
-import { getContentService } from '@/services/content'
+import { createGraphQLContentService } from '@/services/content/graphql'
 import type { ArticleRow } from '@/types/article'
 
 // --- Types ---
@@ -235,7 +235,7 @@ async function queryArticlesForFeed(
   params: FeedParams,
   limit: number,
 ): Promise<ArticleRow[]> {
-  const content = getContentService(createSSRClient(async () => null))
+  const content = createGraphQLContentService(createSSRClient(async () => null))
 
   const filter: ArticleFilterInput = {}
   if (params.agencias && params.agencias.length > 0) {

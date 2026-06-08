@@ -3,14 +3,14 @@
 import { getAgencyField } from '@/data/agencies-utils'
 import { createSSRClient } from '@/lib/graphql/client'
 import { ResultError, withResult } from '@/lib/result'
-import { getContentService } from '@/services/content'
+import { createGraphQLContentService } from '@/services/content/graphql'
 import type { ArticleRow } from '@/types/article'
 
 export type GetArticleError = 'not_found' | 'db_error'
 
 /** Cliente GraphQL público (sem token) para as server actions de artigo. */
 function content() {
-  return getContentService(createSSRClient(async () => null))
+  return createGraphQLContentService(createSSRClient(async () => null))
 }
 
 export const getArticleById = withResult(

@@ -1,7 +1,7 @@
 'use server'
 
 import { createSSRClient } from '@/lib/graphql/client'
-import { getContentService } from '@/services/content'
+import { createGraphQLContentService } from '@/services/content/graphql'
 import type { ArticleRow } from '@/types/article'
 
 export type GetArticlesArgs = {
@@ -21,7 +21,7 @@ const PAGE_SIZE = 40
 
 /** Cliente GraphQL público (sem token) para a server action do tema. */
 function content() {
-  return getContentService(createSSRClient(async () => null))
+  return createGraphQLContentService(createSSRClient(async () => null))
 }
 
 export async function getArticles(

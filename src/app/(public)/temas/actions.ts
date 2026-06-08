@@ -1,11 +1,11 @@
 'use server'
 
 import { createSSRClient } from '@/lib/graphql/client'
-import { getContentService } from '@/services/content'
+import { createGraphQLContentService } from '@/services/content/graphql'
 
 /** Cliente GraphQL público (sem token) para as server actions de temas. */
 function content() {
-  return getContentService(createSSRClient(async () => null))
+  return createGraphQLContentService(createSSRClient(async () => null))
 }
 
 /**

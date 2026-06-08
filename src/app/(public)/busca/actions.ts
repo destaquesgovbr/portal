@@ -2,7 +2,7 @@
 
 import { createSSRClient } from '@/lib/graphql/client'
 import { removeDiacritics } from '@/lib/utils'
-import { getContentService } from '@/services/content'
+import { createGraphQLContentService } from '@/services/content/graphql'
 import type {
   CombinedSearchResults,
   InlineAutocompleteSuggestion,
@@ -13,7 +13,7 @@ import type {
 
 /** Cliente GraphQL público (sem token) para as server actions de busca. */
 function content() {
-  return getContentService(createSSRClient(async () => null))
+  return createGraphQLContentService(createSSRClient(async () => null))
 }
 
 /**

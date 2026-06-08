@@ -1,7 +1,7 @@
 import { auth } from '@/auth'
 import { Badge } from '@/components/ui/badge'
 import { createSSRClient } from '@/lib/graphql/client'
-import { getContentService } from '@/services/content'
+import { createGraphQLContentService } from '@/services/content/graphql'
 
 export const revalidate = 600
 
@@ -17,7 +17,7 @@ export default async function ReleaseArticlesPage({ params }: Props) {
   // Cliente SSR com o token da sessão para que releases privadas
   // (autor/assinante) resolvam; releases públicas funcionam sem token.
   const session = await auth()
-  const content = getContentService(
+  const content = createGraphQLContentService(
     createSSRClient(async () => session?.accessToken ?? null),
   )
 

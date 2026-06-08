@@ -6,11 +6,12 @@ import { getPrioritizedArticles } from '@/config/prioritization'
 import { loadConfig } from '@/config/prioritization-config'
 import { createSSRClient } from '@/lib/graphql/client'
 import { withResult } from '@/lib/result'
-import { getContentService } from '@/services/content'
+import { createGraphQLContentService } from '@/services/content/graphql'
 import type { ArticleRow } from '@/types/article'
 
 // Conteúdo público não precisa de token de autenticação.
-const content = () => getContentService(createSSRClient(async () => null))
+const content = () =>
+  createGraphQLContentService(createSSRClient(async () => null))
 
 // Internal function for fetching latest articles
 const fetchLatestArticles = cache(async (): Promise<ArticleRow[]> => {

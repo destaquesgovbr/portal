@@ -1,5 +1,5 @@
 import { createSSRClient } from '@/lib/graphql/client'
-import { getContentService } from '@/services/content'
+import { createGraphQLContentService } from '@/services/content/graphql'
 import type { Recorte } from '@/types/clipping'
 
 export const MAX_DAILY_ARTICLES = 100
@@ -21,7 +21,7 @@ export function hasFilters(recorte: Recorte): boolean {
  * Components), por isso usamos o cliente SSR (sem token — resolver público).
  */
 function content() {
-  return getContentService(createSSRClient(async () => null))
+  return createGraphQLContentService(createSSRClient(async () => null))
 }
 
 export async function estimateRecorteCount(

@@ -2,7 +2,7 @@ import { unstable_cache } from 'next/cache'
 import { getAgenciesList } from '@/data/agencies-utils'
 import { getFirestoreDb } from '@/lib/firebase-admin'
 import { createSSRClient } from '@/lib/graphql/client'
-import { getContentService } from '@/services/content'
+import { createGraphQLContentService } from '@/services/content/graphql'
 
 export type LandingStats = {
   portalsCount: number
@@ -12,7 +12,7 @@ export type LandingStats = {
 
 async function computeStats(): Promise<LandingStats> {
   // Conteúdo público não precisa de token de autenticação.
-  const content = getContentService(createSSRClient(async () => null))
+  const content = createGraphQLContentService(createSSRClient(async () => null))
 
   const [agencies, newsResult, marketplaceSnap] = await Promise.all([
     getAgenciesList().catch(() => []),
