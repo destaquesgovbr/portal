@@ -71,7 +71,7 @@
     "graphql": "^16.14.0",
     "graphql-sse": "^2.6.0",
     "input-otp": "^1.4.2",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.2.0",
     "lucide-react": "^0.544.0",
     "nanoid": "^5.1.7",
     "next": "15.5.19",
@@ -140,7 +140,21 @@
       "follow-redirects@<1.16.0": "^1.16.0",
       "lodash@<4.18.0": "^4.18.1",
       "postcss@<8.5.10": "^8.5.15",
-      "tar@<7.5.11": "^7.5.16"
+      "tar@<7.5.11": "^7.5.16",
+      "protobufjs@<7.5.8": "^7.5.8",
+      "@protobufjs/utf8@<1.1.1": "^1.1.1",
+      "node-forge@<1.4.0": "^1.4.0",
+      "fast-xml-parser@>=5.0.0 <5.7.0": "^5.8.0",
+      "fast-xml-builder@<1.1.7": "^1.2.0",
+      "minimatch@>=9.0.0 <9.0.7": "^9.0.7",
+      "brace-expansion@>=2.0.0 <2.0.3": "^2.0.3",
+      "uuid@>=11.0.0 <11.1.1": "^11.1.1",
+      "mdast-util-to-hast@>=13.0.0 <13.2.1": "^13.2.1",
+      "js-yaml@>=4.0.0 <4.1.1": "^4.2.0",
+      "@tootallnate/once@<2.0.1": "^2.0.1",
+      "handlebars@<4.7.9": "^4.7.9",
+      "flatted@<3.4.2": "^3.4.2",
+      "lodash-es@<4.18.0": "^4.18.1"
     }
   },
   "packageManager": "pnpm@10.18.2+sha512.9fb969fa749b3ade6035e0f109f0b8a60b5d08a1a87fdf72e337da90dcc93336e2280ca4e44f2358a649b83c17959e9993e777c2080879f3801e6f0d999ad3dd"
