@@ -1,0 +1,42 @@
+name: Dependency Submission
+
+# Mantém o dependency graph do GitHub em sincronia com o pnpm-lock.yaml.
+#
+# Contexto: após a migração npm→pnpm (dez/2025) o package-lock.json foi removido,
+# mas o dependency graph do GitHub congelou no estado pré-migração — um manifesto
+# "fantasma" (package-lock.json) que não existe mais continuava gerando alertas
+# Dependabot que nunca fechavam, mesmo com as deps já corrigidas no pnpm-lock.yaml.
+#
+# A action component-detection (do time GitHub Advanced Security) parseia o
+# pnpm-lock.yaml e submete a árvore REAL de dependências via Dependency Submission
+# API, substituindo o manifesto fantasma e destravando o fechamento dos alertas.
+#
+# Roda no push para main (quando o lockfile muda), semanalmente como rede de
+# segurança, e sob demanda via workflow_dispatch.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - pnpm-lock.yaml
+      - package.json
+      - .github/workflows/dependency-submission.yml
+  schedule:
+    - cron: "0 6 * * 1" # segunda-feira 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  dependency-submission:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Submit pnpm dependency graph
+        uses: advanced-security/component-detection-dependency-submission-action@v0.1.1
+        with:
+          filePath: "."
