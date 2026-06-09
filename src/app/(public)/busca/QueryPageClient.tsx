@@ -33,11 +33,15 @@ const SORT_OPTIONS: Array<{
   value: string
   sort: ArticleSort
   label: string
+  /** Mantida no mapeamento URL→enum, mas oculta do dropdown. */
+  hidden?: boolean
 }> = [
   { value: 'relevance', sort: 'RELEVANCE', label: 'Relevância' },
   { value: 'date', sort: 'DATE', label: 'Mais recentes' },
   { value: 'trending', sort: 'TRENDING', label: 'Em alta' },
-  { value: 'views', sort: 'VIEWS', label: 'Mais vistas' },
+  // "Mais vistas" (VIEWS) oculto até a DAG de engagement popular view_count (cobertura ~0,3%).
+  // O valor segue mapeado para não quebrar links antigos com ?ordenar=views.
+  { value: 'views', sort: 'VIEWS', label: 'Mais vistas', hidden: true },
 ]
 
 const DEFAULT_SORT_VALUE = 'relevance'
@@ -82,7 +86,8 @@ export default function QueryPageClient({
 
   const [sortValue, setSortValue] = useState<string>(() => {
     const ordenar = searchParams.get('ordenar')
-    return SORT_OPTIONS.some((o) => o.value === ordenar)
+    // Opções ocultas (ex.: ?ordenar=views de links antigos) caem no default.
+    return SORT_OPTIONS.some((o) => o.value === ordenar && !o.hidden)
       ? (ordenar as string)
       : DEFAULT_SORT_VALUE
   })
@@ -432,11 +437,13 @@ export default function QueryPageClient({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {SORT_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
+                      {SORT_OPTIONS.filter((option) => !option.hidden).map(
+                        (option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ),
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
