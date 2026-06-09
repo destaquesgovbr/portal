@@ -10,6 +10,10 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import {
+  ArticleEntities,
+  ArticleFichaBar,
+} from '@/components/articles/ArticleFeatures'
 import NewsCard from '@/components/articles/NewsCard'
 import { VideoPlayer } from '@/components/articles/VideoPlayer'
 import { MarkdownRenderer } from '@/components/common/MarkdownRenderer'
@@ -147,6 +151,9 @@ export default function ClientArticle({
           </div>
         </header>
 
+        {/* Faixa de leitura/trending (features computadas) */}
+        <ArticleFichaBar features={article.features} />
+
         {/* Video takes priority over cover image */}
         {article.video_url ? (
           <VideoPlayer videoUrl={article.video_url} title={article.title} />
@@ -206,6 +213,9 @@ export default function ClientArticle({
             </div>
           </section>
         )}
+
+        {/* Entidades mencionadas (features computadas) */}
+        <ArticleEntities entities={article.features?.entities} />
 
         {/* Notícias similares */}
         {similarArticles.length > 0 && (

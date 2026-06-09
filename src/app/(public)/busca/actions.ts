@@ -3,6 +3,7 @@
 import { createSSRClient } from '@/lib/graphql/client'
 import { removeDiacritics } from '@/lib/utils'
 import { createGraphQLContentService } from '@/services/content/graphql'
+import type { EntityFacet } from '@/services/content/types'
 import type {
   CombinedSearchResults,
   InlineAutocompleteSuggestion,
@@ -186,6 +187,9 @@ export async function queryArticles(
     agencies,
     themes,
     semantic = true,
+    sort,
+    sentiment,
+    entities,
   } = args
 
   const normalizedQuery = query ? query.trim().replace(/\s+/g, ' ') : null
@@ -203,9 +207,12 @@ export async function queryArticles(
     semantic,
     alpha: 0.8,
     dedup: true,
+    sort: sort ?? null,
     filter: {
       agencies: agencies && agencies.length > 0 ? agencies : null,
       themes: themes && themes.length > 0 ? themes : null,
+      sentiment: sentiment && sentiment.length > 0 ? sentiment : null,
+      entities: entities && entities.length > 0 ? entities : null,
       startDate: startIso,
       endDate: endIso,
     },
@@ -218,5 +225,27 @@ export async function queryArticles(
     articles: result.articles,
     page: page + 1,
     found: result.found,
+  }
+}
+
+/**
+ * Busca sugestões de entidades (facets) para o typeahead do filtro de busca e
+ * para as páginas `/entidades/[slug]`. `type` (ORG/PER/LOC) restringe ao campo
+ * tipado. Degrada para `[]` enquanto a Fase 0 (reindex Typesense) não rodar.
+ */
+export async function getEntitySuggestions(
+  query: string,
+  type?: string | null,
+  limit = 10,
+): Promise<EntityFacet[]> {
+  const normalizedQuery = query.trim().replace(/\s+/g, ' ')
+  try {
+    return await content().getEntitySuggestions(
+      normalizedQuery,
+      type ?? null,
+      limit,
+    )
+  } catch {
+    return []
   }
 }

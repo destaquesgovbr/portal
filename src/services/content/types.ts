@@ -9,6 +9,9 @@
 
 import type { ArticleRow } from '@/types/article'
 
+/** Valores do enum `ArticleSort` do schema, usados na ordenação de busca. */
+export type ArticleSort = 'RELEVANCE' | 'DATE' | 'TRENDING' | 'VIEWS'
+
 /** Filtro de artigos/busca (espelha `ArticleFilter` do schema). */
 export interface ArticleFilterInput {
   agencies?: string[] | null
@@ -18,6 +21,10 @@ export interface ArticleFilterInput {
   endDate?: string | null
   themeLabel?: string | null
   dedup?: boolean | null
+  /** Textos canônicos de entidades (NER). Depende da Fase 0 (reindex). */
+  entities?: string[] | null
+  /** Sentimentos: `positive` / `neutral` / `negative`. */
+  sentiment?: string[] | null
 }
 
 export interface ListArticlesArgs {
@@ -34,6 +41,8 @@ export interface SearchArticlesArgs {
   semantic?: boolean
   alpha?: number | null
   dedup?: boolean
+  /** Ordenação dos resultados. Ausente → RELEVANCE (default do schema). */
+  sort?: ArticleSort | null
 }
 
 export interface ArticlesPage {
@@ -55,6 +64,12 @@ export interface SearchSuggestion {
 export interface ThemeCount {
   code: string
   label: string | null
+  count: number
+}
+
+/** Facet de entidade: texto canônico + contagem de artigos. */
+export interface EntityFacet {
+  value: string
   count: number
 }
 
@@ -83,6 +98,17 @@ export interface ContentService {
 
   /** Contagens de artigos por tema nos últimos N dias. */
   getThemeArticleCounts(days?: number, level?: number): Promise<ThemeCount[]>
+
+  /**
+   * Sugestões de entidades (facets) por prefixo, para o typeahead do filtro e
+   * para resolver o texto canônico nas páginas de entidade. `type` (ORG/PER/LOC)
+   * restringe ao campo tipado. Degrada para `[]` enquanto a Fase 0 não rodar.
+   */
+  getEntitySuggestions(
+    query: string,
+    type?: string | null,
+    limit?: number,
+  ): Promise<EntityFacet[]>
 
   /** Artigos que compõem uma release de clipping. */
   getReleaseArticles(id: string): Promise<ArticleRow[]>

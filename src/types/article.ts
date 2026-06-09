@@ -1,3 +1,20 @@
+/** Entidade nomeada extraída do conteúdo (NER). type: ORG/PER/LOC/MISC/EVENT/… */
+export type ArticleEntity = {
+  text: string
+  type: string
+  count: number
+}
+
+/** Features computadas (news_features), expostas no detalhe do artigo. */
+export type ArticleFeatures = {
+  entities: ArticleEntity[]
+  view_count: number | null
+  unique_sessions: number | null
+  trending_score: number | null
+  word_count: number | null
+  readability_flesch: number | null
+}
+
 export type ArticleRow = {
   unique_id: string
   agency: string | null
@@ -26,6 +43,8 @@ export type ArticleRow = {
   tags: string[] | null
   // Manter theme_1_level_1 como alias para compatibilidade
   theme_1_level_1?: string | null
+  // Features computadas — presentes apenas no detalhe do artigo (ARTICLE_QUERY).
+  features?: ArticleFeatures | null
 }
 
 export type TagFacet = {
