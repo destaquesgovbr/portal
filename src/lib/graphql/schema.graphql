@@ -89,6 +89,34 @@ type Article {
   theme1Level3Label: String
   mostSpecificThemeCode: String
   mostSpecificThemeLabel: String
+  features: ArticleFeatures
+}
+
+type ArticleFeatures {
+  entities: [EntityType!]!
+  viewCount: Int
+  uniqueSessions: Int
+  trendingScore: Float
+  wordCount: Int
+  readabilityFlesch: Float
+}
+
+type EntityType {
+  text: String!
+  type: String!
+  count: Int!
+}
+
+type EntityFacet {
+  value: String!
+  count: Int!
+}
+
+enum ArticleSort {
+  RELEVANCE
+  DATE
+  TRENDING
+  VIEWS
 }
 
 input ArticleFilter {
@@ -99,6 +127,8 @@ input ArticleFilter {
   endDate: String = null
   themeLabel: String = null
   dedup: Boolean = null
+  entities: [String!] = null
+  sentiment: [String!] = null
 }
 
 type ArticlesResult {
@@ -490,6 +520,7 @@ type Query {
     page: Int! = 1
     limit: Int! = 10
     filter: ArticleFilter = null
+    sort: ArticleSort = null
   ): ArticlesResult!
 
   """
@@ -507,6 +538,7 @@ type Query {
     semantic: Boolean! = false
     alpha: Float = null
     dedup: Boolean! = false
+    sort: ArticleSort = null
   ): ArticlesResult!
 
   """
@@ -659,6 +691,15 @@ type Query {
   Artigos relacionados a `uniqueId`, baseados no theme-code (Typesense). Replica a logica do portal: usa most_specific_theme_code quando presente, senao theme_1_level_1_code; exclui o proprio artigo; ordena por publishedAt desc; deduplica por content_hash. PUBLICO. (Distinto do `similarArticles` interno, baseado em embedding postgres.)
   """
   relatedArticles(uniqueId: String!, limit: Int! = 4): [Article!]!
+
+  """
+  Sugestoes de entidades (facet) para o filtro de busca e as paginas de entidade. `type` (ORG/PER/LOC) restringe ao campo tipado; ausente usa o campo combinado. `query` filtra por prefixo. PUBLICO.
+  """
+  entitySuggestions(
+    query: String! = ""
+    type: String = null
+    limit: Int! = 10
+  ): [EntityFacet!]!
 
   """
   Contagem de artigos por code de tema (nivel `level`) nos ultimos `days` dias. `label` e None (o portal mapeia pela config). PUBLICO.
