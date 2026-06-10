@@ -1,5 +1,5 @@
-import { deslugifyEntity } from '@/lib/entity-slug'
-import { resolveEntity } from './actions'
+import { deslugifyEntity, isCanonicalEntityId } from '@/lib/entity-slug'
+import { resolveCanonicalEntity, resolveEntity } from './actions'
 import EntityPageClient from './EntityPageClient'
 
 type EntityPageProps = {
@@ -10,8 +10,17 @@ type EntityPageProps = {
 
 export async function generateMetadata({ params }: EntityPageProps) {
   const { slug } = await params
-  const resolved = await resolveEntity(slug)
-  const name = resolved?.text ?? deslugifyEntity(slug)
+
+  // Caminho canônico (id `Q…`/`dgb_…`): resolve o nome via entity(id).
+  // Caminho legado (texto): resolve o texto canônico via fuzzy-match.
+  let name: string
+  if (isCanonicalEntityId(slug)) {
+    const node = await resolveCanonicalEntity(slug)
+    name = node?.canonicalName ?? slug
+  } else {
+    const resolved = await resolveEntity(slug)
+    name = resolved?.text ?? deslugifyEntity(slug)
+  }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
   const pageUrl = `${siteUrl}/entidades/${slug}`
@@ -40,12 +49,29 @@ export async function generateMetadata({ params }: EntityPageProps) {
 
 export default async function EntityPage({ params }: EntityPageProps) {
   const { slug } = await params
-  const resolved = await resolveEntity(slug)
 
+  // Slug canônico → resolve o nó do registry e filtra por id canônico.
+  if (isCanonicalEntityId(slug)) {
+    const node = await resolveCanonicalEntity(slug)
+    return (
+      <EntityPageClient
+        canonicalId={slug}
+        entityText=""
+        slugLabel={node?.canonicalName ?? slug}
+        entityNode={node}
+        initialCount={null}
+      />
+    )
+  }
+
+  // Slug legado (texto) → comportamento fuzzy-text preservado.
+  const resolved = await resolveEntity(slug)
   return (
     <EntityPageClient
+      canonicalId={null}
       entityText={resolved?.text ?? ''}
       slugLabel={deslugifyEntity(slug)}
+      entityNode={null}
       initialCount={resolved?.count ?? null}
     />
   )

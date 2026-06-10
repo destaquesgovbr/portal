@@ -5,22 +5,27 @@ import {
   Calendar,
   Check,
   ExternalLink,
+  Highlighter,
   Share2,
   Tag,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArticleEntities,
   ArticleFichaBar,
 } from '@/components/articles/ArticleFeatures'
 import NewsCard from '@/components/articles/NewsCard'
+import { SemanticLens } from '@/components/articles/SemanticLens'
 import { VideoPlayer } from '@/components/articles/VideoPlayer'
 import { MarkdownRenderer } from '@/components/common/MarkdownRenderer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatDateTime } from '@/lib/utils'
 import type { ArticleRow } from '@/types/article'
+
+/** Chave de persistência da preferência de exibir a lente semântica. */
+const LENS_STORAGE_KEY = 'dgb:semantic-lens'
 
 export default function ClientArticle({
   article,
@@ -35,6 +40,24 @@ export default function ClientArticle({
 }) {
   const [copied, setCopied] = useState(false)
   const [coverImageBroken, setCoverImageBroken] = useState(false)
+
+  // Lente semântica: default OFF, escolha persistida em localStorage.
+  const [lensOn, setLensOn] = useState(false)
+  useEffect(() => {
+    setLensOn(localStorage.getItem(LENS_STORAGE_KEY) === '1')
+  }, [])
+
+  function toggleLens() {
+    setLensOn((prev) => {
+      const next = !prev
+      localStorage.setItem(LENS_STORAGE_KEY, next ? '1' : '0')
+      return next
+    })
+  }
+
+  // A lente só faz sentido quando há anotações de span derivadas para o corpo.
+  const annotations = article.features?.content_annotations ?? []
+  const lensAvailable = annotations.length > 0 && !!article.content
 
   // Check if the cover image appears in the article body
   const isImageInBody = useMemo(() => {
@@ -111,6 +134,24 @@ export default function ClientArticle({
                 </>
               )}
             </Button>
+
+            {/* Lente semântica: liga/desliga o destaque de entidades no corpo */}
+            {lensAvailable && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleLens}
+                aria-pressed={lensOn}
+                className={
+                  lensOn
+                    ? 'text-government-blue hover:text-government-blue transition-colors'
+                    : 'text-primary/70 hover:text-primary transition-colors'
+                }
+              >
+                <Highlighter className="w-4 h-4 mr-1" />
+                {lensOn ? 'Lente ativa' : 'Lente semântica'}
+              </Button>
+            )}
           </div>
 
           {/* Editorial Lead - aparece como tag acima do título */}
@@ -175,9 +216,17 @@ export default function ClientArticle({
           )
         )}
 
-        {/* Corpo do artigo */}
+        {/* Corpo do artigo — lente ON destaca entidades sobre o texto plano;
+            lente OFF mantém o Markdown renderizado normalmente. */}
         <article className="prose prose-lg mx-auto max-w-3xl text-primary/90 leading-relaxed article-content">
-          <MarkdownRenderer content={article.content ?? ''} />
+          {lensOn && lensAvailable ? (
+            <SemanticLens
+              content={article.content ?? ''}
+              annotations={annotations}
+            />
+          ) : (
+            <MarkdownRenderer content={article.content ?? ''} />
+          )}
         </article>
 
         {/* Botão CTA para notícia original */}

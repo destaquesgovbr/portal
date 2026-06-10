@@ -94,6 +94,7 @@ type Article {
 
 type ArticleFeatures {
   entities: [EntityType!]!
+  contentAnnotations: [ContentAnnotation!]!
   viewCount: Int
   uniqueSessions: Int
   trendingScore: Float
@@ -101,15 +102,38 @@ type ArticleFeatures {
   readabilityFlesch: Float
 }
 
+type ContentAnnotation {
+  start: Int!
+  end: Int!
+  type: String!
+  text: String!
+  canonicalId: String
+}
+
 type EntityType {
   text: String!
   type: String!
   count: Int!
+  canonicalId: String
+  salience: Float
 }
 
 type EntityFacet {
   value: String!
   count: Int!
+  entityId: String
+  label: String
+}
+
+type EntityNode {
+  entityId: String!
+  canonicalName: String
+  type: String
+  aliases: [String!]!
+  wikidataId: String
+  wikidataUrl: String
+  description: String
+  agencyKey: String
 }
 
 enum ArticleSort {
@@ -129,6 +153,7 @@ input ArticleFilter {
   dedup: Boolean = null
   entities: [String!] = null
   sentiment: [String!] = null
+  entityCanonical: [String!] = null
 }
 
 type ArticlesResult {
@@ -700,6 +725,11 @@ type Query {
     type: String = null
     limit: Int! = 10
   ): [EntityFacet!]!
+
+  """
+  Resolve uma entidade canonica pelo seu id (QID Wikidata ou dgb_<ulid>) do entity_registry. Retorna None se o id nao existe. PUBLICO.
+  """
+  entity(id: String!): EntityNode
 
   """
   Contagem de artigos por code de tema (nivel `level`) nos ultimos `days` dias. `label` e None (o portal mapeia pela config). PUBLICO.
