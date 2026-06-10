@@ -15,6 +15,8 @@ export type QueryArticlesArgs = {
   sentiment?: string[]
   /** Textos canônicos de entidades (depende da Fase 0). */
   entities?: string[]
+  /** Ids canônicos de entidades (`Q…`/`dgb_…`); depende da canonicalização. */
+  entityCanonical?: string[]
 }
 
 export type QueryArticlesResult = {

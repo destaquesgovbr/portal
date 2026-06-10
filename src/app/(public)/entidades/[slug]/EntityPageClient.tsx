@@ -2,35 +2,47 @@
 
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Tag as TagIcon } from 'lucide-react'
+import { ExternalLink, Tag as TagIcon } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
 import NewsCard from '@/components/articles/NewsCard'
+import { Badge } from '@/components/ui/badge'
+import { entityTypeStyle } from '@/lib/entity-types'
+import type { EntityNode } from '@/services/content/types'
 import { getEntityArticles } from './actions'
 
 type EntityPageClientProps = {
-  /** Texto canônico exato da entidade (vazio quando não resolvida). */
+  /** Id canônico (`Q…`/`dgb_…`) quando a página é canônica; senão `null`. */
+  canonicalId: string | null
+  /** Texto canônico exato da entidade (caminho legado; vazio quando canônico). */
   entityText: string
-  /** Slug original da URL (usado no header quando a entidade não resolve). */
+  /** Rótulo do cabeçalho (nome canônico, ou o deslug do texto legado). */
   slugLabel: string
-  /** Contagem inicial (do facet), se disponível. */
+  /** Nó do registry (só no caminho canônico, pode ser `null` se não resolveu). */
+  entityNode: EntityNode | null
+  /** Contagem inicial (do facet, só no caminho legado), se disponível. */
   initialCount: number | null
 }
 
 export default function EntityPageClient({
+  canonicalId,
   entityText,
   slugLabel,
+  entityNode,
   initialCount,
 }: EntityPageClientProps) {
-  // Quando a entidade não resolve (Fase 0 pendente), não dispara a query —
-  // a página renderiza o estado vazio amigável.
-  const resolved = entityText.length > 0
-  const displayName = resolved ? entityText : slugLabel
+  // Dispara a query quando temos um id canônico OU um texto legado resolvido.
+  // Caso contrário (texto não resolvido, Fase 0 pendente), mostra o estado vazio.
+  const resolved = canonicalId != null || entityText.length > 0
+  const displayName = entityNode?.canonicalName ?? slugLabel
+  const typeStyle = entityNode?.type ? entityTypeStyle(entityNode.type) : null
+  const TypeIcon = typeStyle?.icon ?? TagIcon
 
   const articlesQ = useInfiniteQuery({
-    queryKey: ['entity-articles', entityText],
+    queryKey: ['entity-articles', canonicalId ?? entityText],
     queryFn: ({ pageParam }: { pageParam: number | null }) =>
       getEntityArticles({
         entity: entityText,
+        canonicalId,
         page: pageParam ?? 1,
       }),
     getNextPageParam: (lastPage) => lastPage.page ?? undefined,
@@ -54,8 +66,8 @@ export default function EntityPageClient({
       {/* Cabeçalho institucional da entidade */}
       <div className="container mx-auto px-4 text-center mb-12">
         <div className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary/70">
-          <TagIcon className="h-4 w-4" aria-hidden />
-          Entidade
+          <TypeIcon className="h-4 w-4" aria-hidden />
+          {typeStyle?.label ?? 'Entidade'}
         </div>
 
         <h1 className="text-3xl font-bold text-primary">{displayName}</h1>
@@ -65,11 +77,47 @@ export default function EntityPageClient({
           <img src="/underscore.svg" alt="" />
         </div>
 
-        {resolved && found > 0 && (
+        {/* Descrição canônica (Wikidata/registry), quando disponível */}
+        {entityNode?.description && (
+          <p className="mx-auto mt-4 max-w-2xl text-base text-primary/70">
+            {entityNode.description}
+          </p>
+        )}
+
+        {found > 0 && (
           <p className="mt-4 text-base text-primary/80">
             {new Intl.NumberFormat('pt-BR').format(found)} notícia
             {found === 1 ? '' : 's'} mencionam esta entidade.
           </p>
+        )}
+
+        {/* Link para o verbete Wikidata da entidade canônica */}
+        {entityNode?.wikidataUrl && (
+          <div className="mt-4 flex justify-center">
+            <a
+              href={entityNode.wikidataUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-primary/70 hover:text-primary hover:underline"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              {entityNode.wikidataId ?? 'Wikidata'}
+            </a>
+          </div>
+        )}
+
+        {/* Aliases conhecidos da entidade canônica */}
+        {entityNode?.aliases && entityNode.aliases.length > 0 && (
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {entityNode.aliases.map((alias) => (
+              <Badge
+                key={alias}
+                className="bg-white text-primary/80 font-normal"
+              >
+                {alias}
+              </Badge>
+            ))}
+          </div>
         )}
       </div>
 

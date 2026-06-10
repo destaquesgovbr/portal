@@ -127,6 +127,15 @@ export const ARTICLE_QUERY = gql`
           text
           type
           count
+          canonicalId
+          salience
+        }
+        contentAnnotations {
+          start
+          end
+          type
+          text
+          canonicalId
         }
         viewCount
         uniqueSessions
@@ -134,6 +143,26 @@ export const ARTICLE_QUERY = gql`
         wordCount
         readabilityFlesch
       }
+    }
+  }
+`
+
+/**
+ * Resolve uma entidade canônica pelo seu `entityId` (QID Wikidata `Q…` ou
+ * `dgb_<ulid>`) — usado no cabeçalho das páginas `/entidades/[id-canônico]`.
+ * Retorna `null` quando o id não existe no `entity_registry`.
+ */
+export const ENTITY_QUERY = gql`
+  query Entity($id: String!) {
+    entity(id: $id) {
+      entityId
+      canonicalName
+      type
+      aliases
+      wikidataId
+      wikidataUrl
+      description
+      agencyKey
     }
   }
 `
@@ -205,15 +234,54 @@ export type ArticleSort = 'RELEVANCE' | 'DATE' | 'TRENDING' | 'VIEWS'
 export interface EntityFacetGraphQL {
   value: string
   count: number
+  /** Id canônico (`Q…`/`dgb_…`) quando o facet já está canonicalizado. */
+  entityId?: string | null
+  /** Rótulo de exibição (canonical_name) quando disponível. */
+  label?: string | null
 }
 
 export interface EntitySuggestionsQueryData {
   entitySuggestions: EntityFacetGraphQL[]
 }
 
+/** Entidade canônica (nó do registry) resolvida por `entity(id)`. */
+export interface EntityNodeGraphQL {
+  entityId: string
+  canonicalName: string | null
+  type: string | null
+  aliases: string[]
+  wikidataId: string | null
+  wikidataUrl: string | null
+  description: string | null
+  agencyKey: string | null
+}
+
+export interface EntityQueryData {
+  entity: EntityNodeGraphQL | null
+}
+
+/** Menção de entidade no artigo (camelCase, graphql-api). */
+export interface ArticleEntityGraphQL {
+  text: string
+  type: string
+  count: number
+  canonicalId?: string | null
+  salience?: number | null
+}
+
+/** Anotação de span inline (lente semântica), com offsets char no `content`. */
+export interface ContentAnnotationGraphQL {
+  start: number
+  end: number
+  type: string
+  text: string
+  canonicalId?: string | null
+}
+
 /** Features computadas, como vêm do graphql-api (camelCase). Só no detalhe. */
 export interface ArticleFeaturesGraphQL {
-  entities: Array<{ text: string; type: string; count: number }>
+  entities: ArticleEntityGraphQL[]
+  contentAnnotations?: ContentAnnotationGraphQL[] | null
   viewCount: number | null
   uniqueSessions: number | null
   trendingScore: number | null

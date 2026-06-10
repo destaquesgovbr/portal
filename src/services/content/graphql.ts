@@ -21,7 +21,9 @@ import {
   type ArticleGraphQL,
   type ArticleQueryData,
   type ArticlesQueryData,
+  ENTITY_QUERY,
   ENTITY_SUGGESTIONS_QUERY,
+  type EntityQueryData,
   type EntitySuggestionsQueryData,
   ESTIMATE_RECORTE_COUNT_QUERY,
   type EstimateRecorteCountQueryData,
@@ -112,7 +114,18 @@ export function mapGraphqlArticleToRow(article: ArticleGraphQL): ArticleRow {
             text: e.text,
             type: e.type,
             count: e.count,
+            canonical_id: e.canonicalId ?? null,
+            salience: e.salience ?? null,
           })),
+          content_annotations: (article.features.contentAnnotations ?? []).map(
+            (a) => ({
+              start: a.start,
+              end: a.end,
+              type: a.type,
+              text: a.text,
+              canonical_id: a.canonicalId ?? null,
+            }),
+          ),
           view_count: article.features.viewCount ?? null,
           unique_sessions: article.features.uniqueSessions ?? null,
           trending_score: article.features.trendingScore ?? null,
@@ -282,7 +295,33 @@ export function createGraphQLContentService(
       return (result.data?.entitySuggestions ?? []).map((e) => ({
         value: e.value,
         count: e.count,
+        entityId: e.entityId ?? null,
+        label: e.label ?? null,
       }))
+    },
+
+    async getEntity(id: string) {
+      // Degrada para null enquanto a canonicalização não rodar: o `entity(id)`
+      // pode não existir ou retornar erro — a página de entidade cai no
+      // fallback de texto fuzzy. Não propagamos o erro.
+      const result = await client
+        .query<EntityQueryData>(ENTITY_QUERY, { id })
+        .toPromise()
+      if (result.error) {
+        return null
+      }
+      const node = result.data?.entity ?? null
+      if (!node) return null
+      return {
+        entityId: node.entityId,
+        canonicalName: node.canonicalName ?? null,
+        type: node.type ?? null,
+        aliases: node.aliases ?? [],
+        wikidataId: node.wikidataId ?? null,
+        wikidataUrl: node.wikidataUrl ?? null,
+        description: node.description ?? null,
+        agencyKey: node.agencyKey ?? null,
+      }
     },
 
     async getReleaseArticles(id: string) {

@@ -12,6 +12,22 @@
 import { removeDiacritics } from '@/lib/utils'
 
 /**
+ * Um slug de entidade é um **id canônico** (chave do `entity_registry`) quando
+ * é um QID do Wikidata (`Q` seguido de dígitos, ex.: `Q216330`) ou um id interno
+ * `dgb_<ulid>`. Nesse caso a página resolve o cabeçalho via `entity(id)` e lista
+ * artigos por `filter.entityCanonical`. Caso contrário, o slug é texto legado
+ * (kebab-case) e mantém o comportamento fuzzy-text (`resolveEntity`).
+ *
+ * @example
+ * isCanonicalEntityId('Q216330') // true
+ * isCanonicalEntityId('dgb_01h8...') // true
+ * isCanonicalEntityId('ministerio-da-saude') // false
+ */
+export function isCanonicalEntityId(slug: string): boolean {
+  return /^Q\d+$/.test(slug) || /^dgb_/.test(slug)
+}
+
+/**
  * Converte o texto canônico de uma entidade em um slug URL-safe.
  *
  * @example

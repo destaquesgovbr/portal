@@ -1,8 +1,13 @@
 'use server'
 
-import { deslugifyEntity, matchEntityBySlug } from '@/lib/entity-slug'
+import {
+  deslugifyEntity,
+  isCanonicalEntityId,
+  matchEntityBySlug,
+} from '@/lib/entity-slug'
 import { createSSRClient } from '@/lib/graphql/client'
 import { createGraphQLContentService } from '@/services/content/graphql'
+import type { EntityNode } from '@/services/content/types'
 import type { ArticleRow } from '@/types/article'
 
 /** Cliente GraphQL público (sem token) para as server actions de entidade. */
@@ -15,6 +20,18 @@ export type ResolvedEntity = {
   text: string
   /** Contagem de artigos associada ao facet (best-effort). */
   count: number | null
+}
+
+/**
+ * Cabeçalho de uma entidade canônica, resolvido por `entity(id)`. `null` quando
+ * o id não existe (ou o `entity(id)` ainda não está disponível) — a página
+ * então cai num cabeçalho mínimo a partir do próprio id.
+ */
+export async function resolveCanonicalEntity(
+  id: string,
+): Promise<EntityNode | null> {
+  if (!isCanonicalEntityId(id)) return null
+  return content().getEntity(id)
 }
 
 /**
@@ -47,8 +64,13 @@ export async function resolveEntity(
 }
 
 export type GetEntityArticlesArgs = {
-  /** Texto canônico exato da entidade. */
+  /**
+   * Texto canônico exato da entidade (caminho legado fuzzy-text). Ignorado
+   * quando `canonicalId` está presente.
+   */
   entity: string
+  /** Id canônico (`Q…`/`dgb_…`); quando presente, filtra por `entityCanonical`. */
+  canonicalId?: string | null
   page: number
 }
 
@@ -60,13 +82,16 @@ export type GetEntityArticlesResult = {
 
 /**
  * Lista paginada de artigos que mencionam a entidade. Reutiliza a busca
- * (`search`) com `filter.entities=[texto]`, espelhando o comportamento da
- * página /busca (dedup por content_hash, sem busca semântica).
+ * (`search`) filter-only (dedup por content_hash, sem busca semântica).
+ *
+ * - **Canônico** (`canonicalId`): filtra por `filter.entityCanonical=[id]` —
+ *   dedup'd por `entity_id`, robusto a variantes de texto.
+ * - **Legado** (texto): filtra por `filter.entities=[texto]` (migração graciosa).
  */
 export async function getEntityArticles(
   args: GetEntityArticlesArgs,
 ): Promise<GetEntityArticlesResult> {
-  const { entity, page } = args
+  const { entity, canonicalId, page } = args
 
   const result = await content().searchArticles({
     // Busca filter-only por entidade: o resolver `search` do graphql-api
@@ -77,9 +102,9 @@ export async function getEntityArticles(
     semantic: false,
     dedup: true,
     sort: 'DATE',
-    filter: {
-      entities: [entity],
-    },
+    filter: canonicalId
+      ? { entityCanonical: [canonicalId] }
+      : { entities: [entity] },
   })
 
   return {

@@ -168,3 +168,81 @@ describe('mapGraphqlArticleToRow', () => {
     expect(row.most_specific_theme_label).toBeNull()
   })
 })
+
+describe('mapGraphqlArticleToRow — features (entidades + lente)', () => {
+  it('mapeia canonicalId/salience das entidades e contentAnnotations', () => {
+    const row = mapGraphqlArticleToRow({
+      ...fullArticle(),
+      features: {
+        entities: [
+          {
+            text: 'Ministério da Saúde',
+            type: 'ORG',
+            count: 3,
+            canonicalId: 'Q216330',
+            salience: 0.82,
+          },
+        ],
+        contentAnnotations: [
+          {
+            start: 10,
+            end: 29,
+            type: 'ORG',
+            text: 'Ministério da Saúde',
+            canonicalId: 'Q216330',
+          },
+        ],
+        viewCount: 12,
+        uniqueSessions: 8,
+        trendingScore: 1.7,
+        wordCount: 420,
+        readabilityFlesch: 55.5,
+      },
+    })
+
+    expect(row.features?.entities[0]).toEqual({
+      text: 'Ministério da Saúde',
+      type: 'ORG',
+      count: 3,
+      canonical_id: 'Q216330',
+      salience: 0.82,
+    })
+    expect(row.features?.content_annotations).toEqual([
+      {
+        start: 10,
+        end: 29,
+        type: 'ORG',
+        text: 'Ministério da Saúde',
+        canonical_id: 'Q216330',
+      },
+    ])
+  })
+
+  it('campos canônicos ausentes → null; contentAnnotations ausente → []', () => {
+    const row = mapGraphqlArticleToRow({
+      ...fullArticle(),
+      features: {
+        entities: [{ text: 'Lula', type: 'PER', count: 5 }],
+        viewCount: null,
+        uniqueSessions: null,
+        trendingScore: null,
+        wordCount: null,
+        readabilityFlesch: null,
+      },
+    })
+
+    expect(row.features?.entities[0]).toEqual({
+      text: 'Lula',
+      type: 'PER',
+      count: 5,
+      canonical_id: null,
+      salience: null,
+    })
+    expect(row.features?.content_annotations).toEqual([])
+  })
+
+  it('features ausentes → null', () => {
+    const row = mapGraphqlArticleToRow(fullArticle())
+    expect(row.features).toBeNull()
+  })
+})

@@ -190,6 +190,7 @@ export async function queryArticles(
     sort,
     sentiment,
     entities,
+    entityCanonical,
   } = args
 
   const normalizedQuery = query ? query.trim().replace(/\s+/g, ' ') : null
@@ -209,6 +210,7 @@ export async function queryArticles(
     (themes?.length ?? 0) > 0 ||
     (sentiment?.length ?? 0) > 0 ||
     (entities?.length ?? 0) > 0 ||
+    (entityCanonical?.length ?? 0) > 0 ||
     startIso != null ||
     endIso != null
   const effectiveQuery = normalizedQuery ?? (hasAnyFilter ? '*' : '')
@@ -226,6 +228,8 @@ export async function queryArticles(
       themes: themes && themes.length > 0 ? themes : null,
       sentiment: sentiment && sentiment.length > 0 ? sentiment : null,
       entities: entities && entities.length > 0 ? entities : null,
+      entityCanonical:
+        entityCanonical && entityCanonical.length > 0 ? entityCanonical : null,
       startDate: startIso,
       endDate: endIso,
     },

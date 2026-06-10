@@ -25,6 +25,11 @@ export interface ArticleFilterInput {
   entities?: string[] | null
   /** Sentimentos: `positive` / `neutral` / `negative`. */
   sentiment?: string[] | null
+  /**
+   * Ids canônicos de entidades (`Q…`/`dgb_…`) — facet dedup'd por `entity_id`.
+   * Usado pelas páginas `/entidades/[id-canônico]`. Depende da canonicalização.
+   */
+  entityCanonical?: string[] | null
 }
 
 export interface ListArticlesArgs {
@@ -71,6 +76,25 @@ export interface ThemeCount {
 export interface EntityFacet {
   value: string
   count: number
+  /** Id canônico (`Q…`/`dgb_…`) quando o facet já está canonicalizado. */
+  entityId?: string | null
+  /** Rótulo de exibição (canonical_name) quando disponível. */
+  label?: string | null
+}
+
+/**
+ * Entidade canônica (nó do registry) resolvida por `entity(id)` — cabeçalho das
+ * páginas `/entidades/[id-canônico]`.
+ */
+export interface EntityNode {
+  entityId: string
+  canonicalName: string | null
+  type: string | null
+  aliases: string[]
+  wikidataId: string | null
+  wikidataUrl: string | null
+  description: string | null
+  agencyKey: string | null
 }
 
 export interface EstimateRecorteCountArgs {
@@ -109,6 +133,13 @@ export interface ContentService {
     type?: string | null,
     limit?: number,
   ): Promise<EntityFacet[]>
+
+  /**
+   * Resolve uma entidade canônica pelo seu id (`Q…`/`dgb_…`). Retorna `null`
+   * quando o id não existe. Degrada para `null` enquanto o `entity(id)` não
+   * estiver disponível (canonicalização pendente).
+   */
+  getEntity(id: string): Promise<EntityNode | null>
 
   /** Artigos que compõem uma release de clipping. */
   getReleaseArticles(id: string): Promise<ArticleRow[]>

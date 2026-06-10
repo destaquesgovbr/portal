@@ -10,21 +10,18 @@
  * quando não há dado (o pipeline de features é parcial).
  */
 
-import {
-  Building2,
-  Clock,
-  Eye,
-  Flame,
-  Gauge,
-  type LucideIcon,
-  MapPin,
-  Tag as TagIcon,
-  User,
-} from 'lucide-react'
+import { Clock, Eye, Flame, Gauge, type LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { slugifyEntity } from '@/lib/entity-slug'
+import {
+  ENTITY_TYPE_ORDER,
+  ENTITY_TYPE_STYLES,
+  type EntityTypeKey,
+  entityTypeStyle,
+  KNOWN_ENTITY_TYPES,
+} from '@/lib/entity-types'
 import type { ArticleEntity, ArticleFeatures } from '@/types/article'
 
 // trending_score = volume 24h / média 7d por tema (nível 1). >= 1.5 indica
@@ -95,47 +92,24 @@ export function ArticleFichaBar({
   )
 }
 
-type EntityGroup = {
-  key: string
-  label: string
-  types: string[]
-  icon: LucideIcon
-  dot: string
+/**
+ * Destino de navegação de um chip de entidade: a página canônica
+ * `/entidades/{canonicalId}` quando a menção já tem id canônico; senão o
+ * fallback de texto `/entidades/{slug}` (migração graciosa).
+ */
+function entityHref(entity: ArticleEntity): string {
+  return entity.canonical_id
+    ? `/entidades/${entity.canonical_id}`
+    : `/entidades/${slugifyEntity(entity.text)}`
 }
-
-const GROUPS: EntityGroup[] = [
-  {
-    key: 'org',
-    label: 'Instituições',
-    types: ['ORG'],
-    icon: Building2,
-    dot: 'bg-government-blue',
-  },
-  {
-    key: 'per',
-    label: 'Pessoas',
-    types: ['PER'],
-    icon: User,
-    dot: 'bg-government-green',
-  },
-  {
-    key: 'loc',
-    label: 'Locais',
-    types: ['LOC'],
-    icon: MapPin,
-    dot: 'bg-government-yellow',
-  },
-]
-
-const KNOWN_TYPES = new Set(GROUPS.flatMap((g) => g.types))
 
 function EntityChips({ items }: { items: ArticleEntity[] }) {
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((entity) => (
         <Link
-          key={entity.text}
-          href={`/entidades/${slugifyEntity(entity.text)}`}
+          key={`${entity.type}:${entity.text}`}
+          href={entityHref(entity)}
           aria-label={`Ver notícias sobre ${entity.text}`}
         >
           <Badge className="bg-white text-primary font-medium hover:bg-primary/5 transition-colors cursor-pointer">
@@ -150,6 +124,52 @@ function EntityChips({ items }: { items: ArticleEntity[] }) {
   )
 }
 
+type ResolvedGroup = {
+  key: string
+  label: string
+  icon: LucideIcon
+  dot: string
+  items: ArticleEntity[]
+}
+
+/**
+ * Agrupa as menções por tipo na ordem canônica (ORG/PER/LOC/EVENT/POLICY),
+ * drenando o resíduo para o balde "Outros". Grupos vazios são omitidos.
+ */
+export function groupEntities(entities: ArticleEntity[]): ResolvedGroup[] {
+  const byCountDesc = (a: ArticleEntity, b: ArticleEntity) => b.count - a.count
+
+  const named: ResolvedGroup[] = ENTITY_TYPE_ORDER.map(
+    (type: EntityTypeKey) => {
+      const style = ENTITY_TYPE_STYLES[type]
+      return {
+        key: type.toLowerCase(),
+        label: style.label,
+        icon: style.icon,
+        dot: style.dot,
+        items: entities.filter((e) => e.type === type).sort(byCountDesc),
+      }
+    },
+  ).filter((group) => group.items.length > 0)
+
+  const others = entities
+    .filter((e) => !KNOWN_ENTITY_TYPES.has(e.type))
+    .sort(byCountDesc)
+
+  if (others.length > 0) {
+    const style = entityTypeStyle('OTHER')
+    named.push({
+      key: 'outros',
+      label: style.label,
+      icon: style.icon,
+      dot: style.dot,
+      items: others,
+    })
+  }
+
+  return named
+}
+
 export function ArticleEntities({
   entities,
 }: {
@@ -157,35 +177,7 @@ export function ArticleEntities({
 }) {
   if (!entities || entities.length === 0) return null
 
-  const byCountDesc = (a: ArticleEntity, b: ArticleEntity) => b.count - a.count
-
-  const named = GROUPS.map((group) => ({
-    ...group,
-    items: entities
-      .filter((e) => group.types.includes(e.type))
-      .sort(byCountDesc),
-  })).filter((group) => group.items.length > 0)
-
-  const others = entities
-    .filter((e) => !KNOWN_TYPES.has(e.type))
-    .sort(byCountDesc)
-
-  const groups: Array<EntityGroup & { items: ArticleEntity[] }> = [
-    ...named,
-    ...(others.length > 0
-      ? [
-          {
-            key: 'outros',
-            label: 'Outros',
-            types: [],
-            icon: TagIcon,
-            dot: 'bg-primary/40',
-            items: others,
-          },
-        ]
-      : []),
-  ]
-
+  const groups = groupEntities(entities)
   if (groups.length === 0) return null
 
   return (
