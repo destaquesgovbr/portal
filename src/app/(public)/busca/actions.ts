@@ -200,8 +200,21 @@ export async function queryArticles(
   const startIso = startDate ? new Date(startDate).toISOString() : null
   const endIso = endDate ? new Date(endDate + 86400000).toISOString() : null
 
+  // O resolver `search` do graphql-api rejeita query vazia. Quando NÃO há
+  // texto mas HÁ ao menos um filtro (entidade/sentimento/agência/tema/data),
+  // usamos `'*'` — o wildcard filter-only aceito. Sem texto E sem filtro
+  // algum, mantemos `''` (não disparamos uma busca "tudo").
+  const hasAnyFilter =
+    (agencies?.length ?? 0) > 0 ||
+    (themes?.length ?? 0) > 0 ||
+    (sentiment?.length ?? 0) > 0 ||
+    (entities?.length ?? 0) > 0 ||
+    startIso != null ||
+    endIso != null
+  const effectiveQuery = normalizedQuery ?? (hasAnyFilter ? '*' : '')
+
   const result = await content().searchArticles({
-    query: normalizedQuery ?? '',
+    query: effectiveQuery,
     page,
     // graphql-api faz embeddings + híbrido server-side (alpha:0.8, group_by content_hash).
     semantic,

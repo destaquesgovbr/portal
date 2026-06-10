@@ -69,7 +69,10 @@ export async function getEntityArticles(
   const { entity, page } = args
 
   const result = await content().searchArticles({
-    query: '',
+    // Busca filter-only por entidade: o resolver `search` do graphql-api
+    // rejeita query vazia ("Query must not be empty"). `'*'` é o wildcard
+    // filter-only aceito (convenção já usada em outros call-sites).
+    query: '*',
     page,
     semantic: false,
     dedup: true,
