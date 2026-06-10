@@ -15,6 +15,8 @@ env:
 jobs:
   validate-tag:
     runs-on: ubuntu-latest
+    # Only validate tag when triggered by actual release event
+    if: github.event_name == 'release'
     steps:
       - name: Validate semver tag
         run: |
