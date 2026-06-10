@@ -11,13 +11,43 @@ import { ArticleFilters } from '@/components/articles/ArticleFilters'
 import NewsCard from '@/components/articles/NewsCard'
 import { FeedLink } from '@/components/common/FeedLink'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
+import type { ArticleSort } from '@/services/content/types'
 import { queryArticles } from './actions'
 
 type QueryPageClientProps = {
   agencies: AgencyOption[]
   themes: ThemeOption[]
+}
+
+/** Opções de ordenação: valor URL (`ordenar`) ↔ enum ArticleSort. */
+const SORT_OPTIONS: Array<{
+  value: string
+  sort: ArticleSort
+  label: string
+  /** Mantida no mapeamento URL→enum, mas oculta do dropdown. */
+  hidden?: boolean
+}> = [
+  { value: 'relevance', sort: 'RELEVANCE', label: 'Relevância' },
+  { value: 'date', sort: 'DATE', label: 'Mais recentes' },
+  { value: 'trending', sort: 'TRENDING', label: 'Em alta' },
+  // "Mais vistas" (VIEWS) oculto até a DAG de engagement popular view_count (cobertura ~0,3%).
+  // O valor segue mapeado para não quebrar links antigos com ?ordenar=views.
+  { value: 'views', sort: 'VIEWS', label: 'Mais vistas', hidden: true },
+]
+
+const DEFAULT_SORT_VALUE = 'relevance'
+
+function sortValueToEnum(value: string): ArticleSort {
+  return SORT_OPTIONS.find((o) => o.value === value)?.sort ?? 'RELEVANCE'
 }
 
 export default function QueryPageClient({
@@ -54,6 +84,24 @@ export default function QueryPageClient({
     () => searchParams.get('semantica') !== '0',
   )
 
+  const [sortValue, setSortValue] = useState<string>(() => {
+    const ordenar = searchParams.get('ordenar')
+    // Opções ocultas (ex.: ?ordenar=views de links antigos) caem no default.
+    return SORT_OPTIONS.some((o) => o.value === ordenar && !o.hidden)
+      ? (ordenar as string)
+      : DEFAULT_SORT_VALUE
+  })
+
+  const [selectedSentiments, setSelectedSentiments] = useState<string[]>(() => {
+    const sentimento = searchParams.get('sentimento')
+    return sentimento ? sentimento.split(',') : []
+  })
+
+  const [selectedEntities, setSelectedEntities] = useState<string[]>(() => {
+    const entidades = searchParams.get('entidades')
+    return entidades ? entidades.split(',') : []
+  })
+
   // Analytics tracking
   const { track } = useUmamiTrack()
   const hasTrackedSearch = useRef(false)
@@ -65,6 +113,9 @@ export default function QueryPageClient({
       dataFim?: string | null
       agencias?: string | null
       temas?: string | null
+      ordenar?: string | null
+      sentimento?: string | null
+      entidades?: string | null
     }) => {
       const params = new URLSearchParams(searchParams.toString())
 
@@ -148,6 +199,51 @@ export default function QueryPageClient({
     [updateUrlParams, track],
   )
 
+  const handleSortChange = useCallback(
+    (value: string) => {
+      setSortValue(value)
+      updateUrlParams({
+        ordenar: value === DEFAULT_SORT_VALUE ? null : value,
+      })
+      track('filter_changed', {
+        filter_type: 'sort',
+        action: 'set',
+        value,
+      })
+    },
+    [updateUrlParams, track],
+  )
+
+  const handleSentimentsChange = useCallback(
+    (sentimentsList: string[]) => {
+      setSelectedSentiments(sentimentsList)
+      updateUrlParams({
+        sentimento: sentimentsList.length > 0 ? sentimentsList.join(',') : null,
+      })
+      track('filter_changed', {
+        filter_type: 'sentiment',
+        action: sentimentsList.length > 0 ? 'set' : 'clear',
+        value: sentimentsList.length > 0 ? sentimentsList.join(',') : null,
+      })
+    },
+    [updateUrlParams, track],
+  )
+
+  const handleEntitiesChange = useCallback(
+    (entitiesList: string[]) => {
+      setSelectedEntities(entitiesList)
+      updateUrlParams({
+        entidades: entitiesList.length > 0 ? entitiesList.join(',') : null,
+      })
+      track('filter_changed', {
+        filter_type: 'entities',
+        action: entitiesList.length > 0 ? 'set' : 'clear',
+        value: entitiesList.length > 0 ? entitiesList.join(',') : null,
+      })
+    },
+    [updateUrlParams, track],
+  )
+
   const handleSemanticToggle = useCallback(() => {
     const next = !semantic
     setSemantic(next)
@@ -173,6 +269,9 @@ export default function QueryPageClient({
       selectedAgencies,
       selectedThemes,
       semantic,
+      sortValue,
+      selectedSentiments,
+      selectedEntities,
     ],
     queryFn: ({ pageParam }: { pageParam: number | null }) =>
       queryArticles({
@@ -183,6 +282,10 @@ export default function QueryPageClient({
         agencies: selectedAgencies.length > 0 ? selectedAgencies : undefined,
         themes: selectedThemes.length > 0 ? selectedThemes : undefined,
         semantic,
+        sort: sortValueToEnum(sortValue),
+        sentiment:
+          selectedSentiments.length > 0 ? selectedSentiments : undefined,
+        entities: selectedEntities.length > 0 ? selectedEntities : undefined,
       }),
     getNextPageParam: (lastPage) => lastPage.page ?? undefined,
     initialPageParam: 1,
@@ -291,20 +394,26 @@ export default function QueryPageClient({
             endDate={endDate}
             selectedAgencies={selectedAgencies}
             selectedThemes={selectedThemes}
+            selectedSentiments={selectedSentiments}
+            selectedEntities={selectedEntities}
             onStartDateChange={handleStartDateChange}
             onEndDateChange={handleEndDateChange}
             onAgenciesChange={handleAgenciesChange}
             onThemesChange={handleThemesChange}
+            onSentimentsChange={handleSentimentsChange}
+            onEntitiesChange={handleEntitiesChange}
             getAgencyName={getAgencyName}
             getThemeName={getThemeName}
             getThemeHierarchyPath={getThemeHierarchyPath}
+            showSentimentFilter
+            showEntityFilter
           />
 
           {/* Right Content - Results Grid */}
           <main className="flex-1 min-w-0">
-            {/* Semantic search toggle */}
+            {/* Toolbar: busca inteligente + ordenação */}
             {query && (
-              <div className="mb-4 flex items-center gap-2">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <Button
                   type="button"
                   variant={semantic ? 'default' : 'secondary'}
@@ -317,6 +426,27 @@ export default function QueryPageClient({
                   <Sparkles className="h-3.5 w-3.5" />
                   Busca inteligente
                 </Button>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-primary/70">Ordenar por</span>
+                  <Select value={sortValue} onValueChange={handleSortChange}>
+                    <SelectTrigger
+                      className="w-44 bg-white"
+                      aria-label="Ordenar resultados"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SORT_OPTIONS.filter((option) => !option.hidden).map(
+                        (option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
             <motion.div

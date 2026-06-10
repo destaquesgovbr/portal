@@ -138,6 +138,7 @@ describe('createGraphQLContentService', () => {
         alpha: 0.5,
         dedup: true,
         filter: { themes: ['01'] },
+        sort: null,
       })
       expect(res.page).toBe(3)
       expect(res.found).toBe(7)
@@ -157,6 +158,7 @@ describe('createGraphQLContentService', () => {
         alpha: null,
         dedup: false,
         filter: null,
+        sort: null,
       })
     })
   })

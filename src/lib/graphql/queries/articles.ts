@@ -64,7 +64,7 @@ export const ARTICLES_QUERY = gql`
   }
 `
 
-/** Busca (keyword/semântica/híbrida) com filtro, paginação e dedup. */
+/** Busca (keyword/semântica/híbrida) com filtro, paginação, dedup e ordenação. */
 export const SEARCH_QUERY = gql`
   ${ARTICLE_FIELDS}
   query Search(
@@ -74,6 +74,7 @@ export const SEARCH_QUERY = gql`
     $semantic: Boolean!
     $alpha: Float
     $dedup: Boolean!
+    $sort: ArticleSort
   ) {
     search(
       query: $query
@@ -82,6 +83,7 @@ export const SEARCH_QUERY = gql`
       semantic: $semantic
       alpha: $alpha
       dedup: $dedup
+      sort: $sort
     ) {
       articles {
         ...ArticleFields
@@ -92,12 +94,46 @@ export const SEARCH_QUERY = gql`
   }
 `
 
-/** Carrega um único artigo pelo `uniqueId`. */
+/**
+ * Sugestões de entidades (facets) para o typeahead do filtro de busca e para
+ * resolver o texto canônico de uma entidade nas páginas `/entidades/[slug]`.
+ *
+ * ⚠️ Depende de campos Typesense (`entities`/`entity_org`/…) que só existem
+ * após a Fase 0 (reindex de produção). Até lá, retorna vazio/erro graciosamente
+ * — o facade `getEntitySuggestions` engole o erro e devolve `[]`.
+ */
+export const ENTITY_SUGGESTIONS_QUERY = gql`
+  query EntitySuggestions($query: String!, $type: String, $limit: Int!) {
+    entitySuggestions(query: $query, type: $type, limit: $limit) {
+      value
+      count
+    }
+  }
+`
+
+/**
+ * Carrega um único artigo pelo `uniqueId`, incluindo as features computadas
+ * (entidades, leitura/legibilidade, popularidade/trending). O bloco `features`
+ * fica SÓ aqui — não no fragment `ArticleFields` — para não onerar
+ * listas/busca/relacionadas, que não selecionam features.
+ */
 export const ARTICLE_QUERY = gql`
   ${ARTICLE_FIELDS}
   query Article($uniqueId: String!) {
     article(uniqueId: $uniqueId) {
       ...ArticleFields
+      features {
+        entities {
+          text
+          type
+          count
+        }
+        viewCount
+        uniqueSessions
+        trendingScore
+        wordCount
+        readabilityFlesch
+      }
     }
   }
 `
@@ -162,6 +198,29 @@ export const ESTIMATE_RECORTE_COUNT_QUERY = gql`
 
 // ---------- TypeScript shapes ----------
 
+/** Valores do enum `ArticleSort` do schema, usados na ordenação de busca. */
+export type ArticleSort = 'RELEVANCE' | 'DATE' | 'TRENDING' | 'VIEWS'
+
+/** Facet de entidade (texto canônico + contagem) do `entitySuggestions`. */
+export interface EntityFacetGraphQL {
+  value: string
+  count: number
+}
+
+export interface EntitySuggestionsQueryData {
+  entitySuggestions: EntityFacetGraphQL[]
+}
+
+/** Features computadas, como vêm do graphql-api (camelCase). Só no detalhe. */
+export interface ArticleFeaturesGraphQL {
+  entities: Array<{ text: string; type: string; count: number }>
+  viewCount: number | null
+  uniqueSessions: number | null
+  trendingScore: number | null
+  wordCount: number | null
+  readabilityFlesch: number | null
+}
+
 /** Artigo camelCase como vem do graphql-api (espelha o fragment acima). */
 export interface ArticleGraphQL {
   uniqueId: string
@@ -187,6 +246,8 @@ export interface ArticleGraphQL {
   theme1Level3Label: string | null
   mostSpecificThemeCode: string | null
   mostSpecificThemeLabel: string | null
+  // Presente apenas em ARTICLE_QUERY (detalhe do artigo).
+  features?: ArticleFeaturesGraphQL | null
 }
 
 export interface ArticlesResultGraphQL {

@@ -4,6 +4,7 @@ import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { TagFilter } from '@/components/articles/TagFilter'
 import { AgencyMultiSelect } from '@/components/filters/AgencyMultiSelect'
+import { EntityMultiSelect } from '@/components/filters/EntityMultiSelect'
 import { ThemeMultiSelect } from '@/components/filters/ThemeMultiSelect'
 import { Portal } from '@/components/layout/Portal'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,13 @@ import { Input } from '@/components/ui/input'
 import type { AgencyOption } from '@/data/agencies-utils'
 import type { ThemeOption } from '@/data/themes-utils'
 import type { TagFacet } from '@/types/article'
+
+/** Opções de sentimento expostas no filtro (valor enviado ao filter.sentiment). */
+const SENTIMENT_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: 'positive', label: 'Positivo' },
+  { value: 'neutral', label: 'Neutro' },
+  { value: 'negative', label: 'Negativo' },
+]
 
 type DateFilterProps = {
   label: string
@@ -112,17 +120,23 @@ type ArticleFiltersProps = {
   selectedAgencies?: string[]
   selectedThemes?: string[]
   selectedTags?: string[]
+  selectedSentiments?: string[]
+  selectedEntities?: string[]
   onStartDateChange: (date: Date | undefined) => void
   onEndDateChange: (date: Date | undefined) => void
   onAgenciesChange?: (agencies: string[]) => void
   onThemesChange?: (themes: string[]) => void
   onTagsChange?: (tags: string[]) => void
+  onSentimentsChange?: (sentiments: string[]) => void
+  onEntitiesChange?: (entities: string[]) => void
   getAgencyName?: (key: string) => string
   getThemeName?: (key: string) => string
   getThemeHierarchyPath?: (key: string) => string
   showAgencyFilter?: boolean
   showThemeFilter?: boolean
   showTagFilter?: boolean
+  showSentimentFilter?: boolean
+  showEntityFilter?: boolean
 }
 
 export function ArticleFilters({
@@ -134,18 +148,32 @@ export function ArticleFilters({
   selectedAgencies = [],
   selectedThemes = [],
   selectedTags = [],
+  selectedSentiments = [],
+  selectedEntities = [],
   onStartDateChange,
   onEndDateChange,
   onAgenciesChange,
   onThemesChange,
   onTagsChange,
+  onSentimentsChange,
+  onEntitiesChange,
   getAgencyName,
   getThemeName,
   getThemeHierarchyPath,
   showAgencyFilter = true,
   showThemeFilter = true,
   showTagFilter = true,
+  showSentimentFilter = false,
+  showEntityFilter = false,
 }: ArticleFiltersProps) {
+  const toggleSentiment = (value: string) => {
+    if (!onSentimentsChange) return
+    onSentimentsChange(
+      selectedSentiments.includes(value)
+        ? selectedSentiments.filter((s) => s !== value)
+        : [...selectedSentiments, value],
+    )
+  }
   return (
     <aside className="lg:w-80 flex-shrink-0 lg:border-r lg:border-border lg:pr-8 relative z-[98]">
       <div>
@@ -310,6 +338,93 @@ export function ArticleFilters({
                 onSelectedTagsChange={onTagsChange}
               />
             </div>
+          )}
+
+          {/* Sentiment Filter */}
+          {showSentimentFilter && onSentimentsChange && (
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-semibold text-primary">
+                Sentimento
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {SENTIMENT_OPTIONS.map((option) => {
+                  const active = selectedSentiments.includes(option.value)
+                  return (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      variant={active ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => toggleSentiment(option.value)}
+                      className="rounded-full"
+                      aria-pressed={active}
+                    >
+                      {option.label}
+                    </Button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Entity Filter (typeahead — depende da Fase 0 para retornar dados) */}
+          {showEntityFilter && onEntitiesChange && (
+            <>
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-primary">
+                  Entidades
+                </span>
+                <EntityMultiSelect
+                  selectedEntities={selectedEntities}
+                  onSelectedEntitiesChange={onEntitiesChange}
+                />
+              </div>
+
+              {/* Selected Entities List */}
+              {selectedEntities.length > 0 && (
+                <div className="pt-4 border-t border-border">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-semibold text-primary">
+                      Entidades selecionadas ({selectedEntities.length})
+                    </span>
+                    <Button
+                      type="button"
+                      variant="link"
+                      onClick={() => onEntitiesChange([])}
+                      className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
+                    >
+                      Limpar todas
+                    </Button>
+                  </div>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {selectedEntities.map((value) => (
+                      <div
+                        key={value}
+                        className="flex items-center justify-between gap-2 px-3 py-2 bg-primary/5 border border-primary/10 rounded-md text-sm hover:bg-primary/10 transition-colors group"
+                      >
+                        <span className="truncate text-primary/90 flex-1 min-w-0">
+                          {value}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            onEntitiesChange(
+                              selectedEntities.filter((v) => v !== value),
+                            )
+                          }
+                          className="h-6 w-6 p-0 text-primary/50 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                          aria-label={`Remover ${value}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

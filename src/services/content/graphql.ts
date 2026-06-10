@@ -21,6 +21,8 @@ import {
   type ArticleGraphQL,
   type ArticleQueryData,
   type ArticlesQueryData,
+  ENTITY_SUGGESTIONS_QUERY,
+  type EntitySuggestionsQueryData,
   ESTIMATE_RECORTE_COUNT_QUERY,
   type EstimateRecorteCountQueryData,
   RELATED_ARTICLES_QUERY,
@@ -103,6 +105,21 @@ export function mapGraphqlArticleToRow(article: ArticleGraphQL): ArticleRow {
     tags: article.tags ?? null,
     // Alias de compatibilidade (espelha o label de nível 1).
     theme_1_level_1: article.theme1Level1Label ?? null,
+    // Features só vêm no detalhe (ARTICLE_QUERY); ausentes nas demais ops → null.
+    features: article.features
+      ? {
+          entities: (article.features.entities ?? []).map((e) => ({
+            text: e.text,
+            type: e.type,
+            count: e.count,
+          })),
+          view_count: article.features.viewCount ?? null,
+          unique_sessions: article.features.uniqueSessions ?? null,
+          trending_score: article.features.trendingScore ?? null,
+          word_count: article.features.wordCount ?? null,
+          readability_flesch: article.features.readabilityFlesch ?? null,
+        }
+      : null,
   }
 }
 
@@ -178,6 +195,7 @@ export function createGraphQLContentService(
         alpha: args.alpha ?? null,
         dedup: args.dedup ?? false,
         filter: args.filter ?? null,
+        sort: args.sort ?? null,
       }
       const result = await client
         .query<SearchQueryData>(SEARCH_QUERY, vars)
@@ -244,6 +262,26 @@ export function createGraphQLContentService(
         code: t.code,
         label: t.label ?? null,
         count: t.count,
+      }))
+    },
+
+    async getEntitySuggestions(query: string, type = null, limit = 10) {
+      // Degrada para [] enquanto a Fase 0 (reindex Typesense) não rodar: os
+      // campos `entities`/`entity_org`/… ainda não existem, então o resolver
+      // retorna erro. Não propagamos — o typeahead/página fica vazio, não quebra.
+      const result = await client
+        .query<EntitySuggestionsQueryData>(ENTITY_SUGGESTIONS_QUERY, {
+          query,
+          type,
+          limit,
+        })
+        .toPromise()
+      if (result.error) {
+        return []
+      }
+      return (result.data?.entitySuggestions ?? []).map((e) => ({
+        value: e.value,
+        count: e.count,
       }))
     },
 
