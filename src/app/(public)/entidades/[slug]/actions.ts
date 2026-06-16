@@ -7,7 +7,11 @@ import {
 } from '@/lib/entity-slug'
 import { createSSRClient } from '@/lib/graphql/client'
 import { createGraphQLContentService } from '@/services/content/graphql'
-import type { EntityNode } from '@/services/content/types'
+import type {
+  EntityNetwork,
+  EntityNode,
+  RelatedEntity,
+} from '@/services/content/types'
 import type { ArticleRow } from '@/types/article'
 
 /** Cliente GraphQL público (sem token) para as server actions de entidade. */
@@ -112,4 +116,32 @@ export async function getEntityArticles(
     page: page + 1,
     found: result.found,
   }
+}
+
+/**
+ * Entidades relacionadas (co-menção, 1-hop) a uma entidade canônica, ordenadas
+ * por peso. Só faz sentido no caminho canônico (`id` = `Q…`/`dgb_…`); para
+ * qualquer outra entrada retorna `[]`. Degrada para `[]` enquanto o grafo
+ * (`entity_edges`) não estiver populado.
+ */
+export async function getRelatedEntities(
+  id: string,
+  limit = 12,
+): Promise<RelatedEntity[]> {
+  if (!isCanonicalEntityId(id)) return []
+  return content().getRelatedEntities(id, limit)
+}
+
+/**
+ * Rede ego-centrada (nós + arestas) de uma entidade canônica, para a
+ * visualização de rede. Retorna rede vazia para entradas não-canônicas ou
+ * enquanto o grafo não estiver disponível.
+ */
+export async function getEntityNetwork(
+  id: string,
+  depth = 1,
+  limit = 50,
+): Promise<EntityNetwork> {
+  if (!isCanonicalEntityId(id)) return { nodes: [], edges: [] }
+  return content().getEntityNetwork(id, depth, limit)
 }

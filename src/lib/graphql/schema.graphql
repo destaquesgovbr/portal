@@ -136,6 +136,34 @@ type EntityNode {
   agencyKey: String
 }
 
+type RelatedEntity {
+  canonicalId: String!
+  canonicalName: String
+  type: String
+  wikidataId: String
+  weight: Int!
+  kind: String!
+}
+
+type EntityNetworkNode {
+  entityId: String!
+  canonicalName: String
+  type: String
+  wikidataId: String
+}
+
+type EntityNetworkEdge {
+  src: String!
+  dst: String!
+  weight: Int!
+  kind: String!
+}
+
+type EntityNetwork {
+  nodes: [EntityNetworkNode!]!
+  edges: [EntityNetworkEdge!]!
+}
+
 enum ArticleSort {
   RELEVANCE
   DATE
@@ -730,6 +758,16 @@ type Query {
   Resolve uma entidade canonica pelo seu id (QID Wikidata ou dgb_<ulid>) do entity_registry. Retorna None se o id nao existe. PUBLICO.
   """
   entity(id: String!): EntityNode
+
+  """
+  Entidades relacionadas a `id` por co-mencao (1-hop), ordenadas por `weight` (numero de artigos em co-mencao) desc. Le `entity_edges` (Postgres); nao depende de Neo4j. PUBLICO.
+  """
+  relatedEntities(id: String!, limit: Int! = 12): [RelatedEntity!]!
+
+  """
+  Rede ego-centrada na entidade `id` (nos + arestas) ate `depth` saltos. `depth<=2` roda via CTE recursiva em `entity_edges`; `limit` capa o numero de nos para legibilidade. PUBLICO.
+  """
+  entityNetwork(id: String!, depth: Int! = 1, limit: Int! = 50): EntityNetwork!
 
   """
   Contagem de artigos por code de tema (nivel `level`) nos ultimos `days` dias. `label` e None (o portal mapeia pela config). PUBLICO.

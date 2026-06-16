@@ -97,6 +97,44 @@ export interface EntityNode {
   agencyKey: string | null
 }
 
+/**
+ * Entidade relacionada (vizinho de co-menção, 1-hop) — alimenta a seção
+ * "Entidades relacionadas" da página `/entidades/[id]`.
+ */
+export interface RelatedEntity {
+  /** Id canônico do vizinho (`Q…`/`dgb_…`) — destino do link da página. */
+  canonicalId: string
+  canonicalName: string | null
+  type: string | null
+  wikidataId: string | null
+  /** Peso da aresta (nº de artigos em co-menção). */
+  weight: number
+  /** Tipo da aresta: `co_mention` | `subordinate_to` | `is_agency`. */
+  kind: string
+}
+
+/** Nó da rede ego-centrada (`entityNetwork`). */
+export interface EntityNetworkNode {
+  entityId: string
+  canonicalName: string | null
+  type: string | null
+  wikidataId: string | null
+}
+
+/** Aresta da rede ego-centrada (par direcionado `src`→`dst`). */
+export interface EntityNetworkEdge {
+  src: string
+  dst: string
+  weight: number
+  kind: string
+}
+
+/** Rede de entidades (nós + arestas) consumida pela visualização. */
+export interface EntityNetwork {
+  nodes: EntityNetworkNode[]
+  edges: EntityNetworkEdge[]
+}
+
 export interface EstimateRecorteCountArgs {
   themes: string[]
   agencies: string[]
@@ -146,4 +184,20 @@ export interface ContentService {
 
   /** Estima a contagem de artigos para um recorte. */
   estimateRecorteCount(args: EstimateRecorteCountArgs): Promise<number>
+
+  /**
+   * Entidades relacionadas (co-menção, 1-hop) a uma entidade canônica, por peso.
+   * Degrada para `[]` enquanto o grafo (`entity_edges`) não estiver populado.
+   */
+  getRelatedEntities(id: string, limit?: number): Promise<RelatedEntity[]>
+
+  /**
+   * Rede ego-centrada (nós + arestas) de uma entidade canônica, até `depth`
+   * saltos. Degrada para uma rede vazia quando o grafo não estiver disponível.
+   */
+  getEntityNetwork(
+    id: string,
+    depth?: number,
+    limit?: number,
+  ): Promise<EntityNetwork>
 }
