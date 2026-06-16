@@ -380,4 +380,98 @@ describe('createGraphQLContentService', () => {
       })
     })
   })
+
+  describe('getRelatedEntities', () => {
+    it('envia id/limit e mapeia os vizinhos', async () => {
+      const { client, queries } = makeClientStub({
+        onQuery: () => ({
+          relatedEntities: [
+            {
+              canonicalId: 'Q2',
+              canonicalName: 'MCTI',
+              type: 'ORG',
+              wikidataId: 'Q2',
+              weight: 7,
+              kind: 'co_mention',
+            },
+          ],
+        }),
+      })
+      const svc = createGraphQLContentService(client)
+      const rels = await svc.getRelatedEntities('Q1', 5)
+      expect(queries[0].query).toContain('query RelatedEntities')
+      expect(queries[0].vars).toEqual({ id: 'Q1', limit: 5 })
+      expect(rels).toEqual([
+        {
+          canonicalId: 'Q2',
+          canonicalName: 'MCTI',
+          type: 'ORG',
+          wikidataId: 'Q2',
+          weight: 7,
+          kind: 'co_mention',
+        },
+      ])
+    })
+
+    it('usa limit default 12', async () => {
+      const { client, queries } = makeClientStub({
+        onQuery: () => ({ relatedEntities: [] }),
+      })
+      const svc = createGraphQLContentService(client)
+      await svc.getRelatedEntities('Q1')
+      expect(queries[0].vars).toEqual({ id: 'Q1', limit: 12 })
+    })
+
+    it('degrada para [] em erro (grafo ainda não populado)', async () => {
+      const { client } = makeClientStub({ queryError: new Error('boom') })
+      const svc = createGraphQLContentService(client)
+      expect(await svc.getRelatedEntities('Q1')).toEqual([])
+    })
+  })
+
+  describe('getEntityNetwork', () => {
+    it('envia id/depth/limit e mapeia nós + arestas', async () => {
+      const { client, queries } = makeClientStub({
+        onQuery: () => ({
+          entityNetwork: {
+            nodes: [
+              {
+                entityId: 'Q1',
+                canonicalName: 'Finep',
+                type: 'ORG',
+                wikidataId: 'Q1',
+              },
+            ],
+            edges: [{ src: 'Q1', dst: 'Q2', weight: 3, kind: 'co_mention' }],
+          },
+        }),
+      })
+      const svc = createGraphQLContentService(client)
+      const net = await svc.getEntityNetwork('Q1', 2, 30)
+      expect(queries[0].query).toContain('query EntityNetwork')
+      expect(queries[0].vars).toEqual({ id: 'Q1', depth: 2, limit: 30 })
+      expect(net.nodes).toHaveLength(1)
+      expect(net.edges).toEqual([
+        { src: 'Q1', dst: 'Q2', weight: 3, kind: 'co_mention' },
+      ])
+    })
+
+    it('usa depth=1/limit=50 default', async () => {
+      const { client, queries } = makeClientStub({
+        onQuery: () => ({ entityNetwork: { nodes: [], edges: [] } }),
+      })
+      const svc = createGraphQLContentService(client)
+      await svc.getEntityNetwork('Q1')
+      expect(queries[0].vars).toEqual({ id: 'Q1', depth: 1, limit: 50 })
+    })
+
+    it('degrada para rede vazia em erro', async () => {
+      const { client } = makeClientStub({ queryError: new Error('boom') })
+      const svc = createGraphQLContentService(client)
+      expect(await svc.getEntityNetwork('Q1')).toEqual({
+        nodes: [],
+        edges: [],
+      })
+    })
+  })
 })

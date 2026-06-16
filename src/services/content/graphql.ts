@@ -38,6 +38,12 @@ import {
   THEME_ARTICLE_COUNTS_QUERY,
   type ThemeArticleCountsQueryData,
 } from '@/lib/graphql/queries/articles'
+import {
+  ENTITY_NETWORK_QUERY,
+  type EntityNetworkQueryData,
+  RELATED_ENTITIES_QUERY,
+  type RelatedEntitiesQueryData,
+} from '@/lib/graphql/queries/entities'
 import type { ArticleRow } from '@/types/article'
 import type {
   ContentService,
@@ -347,6 +353,56 @@ export function createGraphQLContentService(
         throw unwrapError(result.error, 'Erro ao estimar contagem')
       }
       return result.data?.estimateRecorteCount ?? 0
+    },
+
+    async getRelatedEntities(id: string, limit = 12) {
+      // Degrada para [] enquanto o grafo (`entity_edges`) não estiver populado:
+      // o resolver pode retornar vazio/erro — a seção "Entidades relacionadas"
+      // simplesmente não aparece. Não propagamos o erro.
+      const result = await client
+        .query<RelatedEntitiesQueryData>(RELATED_ENTITIES_QUERY, { id, limit })
+        .toPromise()
+      if (result.error) {
+        return []
+      }
+      return (result.data?.relatedEntities ?? []).map((e) => ({
+        canonicalId: e.canonicalId,
+        canonicalName: e.canonicalName ?? null,
+        type: e.type ?? null,
+        wikidataId: e.wikidataId ?? null,
+        weight: e.weight,
+        kind: e.kind,
+      }))
+    },
+
+    async getEntityNetwork(id: string, depth = 1, limit = 50) {
+      // Degrada para uma rede vazia quando o grafo não estiver disponível — a
+      // visualização não renderiza nós. Não propagamos o erro.
+      const result = await client
+        .query<EntityNetworkQueryData>(ENTITY_NETWORK_QUERY, {
+          id,
+          depth,
+          limit,
+        })
+        .toPromise()
+      if (result.error) {
+        return { nodes: [], edges: [] }
+      }
+      const network = result.data?.entityNetwork
+      return {
+        nodes: (network?.nodes ?? []).map((n) => ({
+          entityId: n.entityId,
+          canonicalName: n.canonicalName ?? null,
+          type: n.type ?? null,
+          wikidataId: n.wikidataId ?? null,
+        })),
+        edges: (network?.edges ?? []).map((e) => ({
+          src: e.src,
+          dst: e.dst,
+          weight: e.weight,
+          kind: e.kind,
+        })),
+      }
     },
   }
 }

@@ -1,0 +1,100 @@
+/**
+ * Operações GraphQL do grafo de entidades (Fase 6d).
+ *
+ * Alimentam a página `/entidades/[id]`:
+ *   - `relatedEntities(id, limit)`: vizinhos por co-menção (1-hop), ordenados por
+ *     peso (nº de artigos em co-menção). Origem da seção "Entidades relacionadas".
+ *   - `entityNetwork(id, depth, limit)`: ego-network (nós + arestas) da entidade,
+ *     consumida pela visualização de rede (`EntityNetwork.tsx`).
+ *
+ * IDs são `String` (scalar do schema, não `ID`). As listas e o `EntityNetwork`
+ * são non-null no retorno; o arg `id` é obrigatório, `limit`/`depth` têm default.
+ *
+ * Schema de referência: `src/lib/graphql/schema.graphql`.
+ */
+
+import { gql } from '@urql/core'
+
+// ---------- Queries ----------
+
+/**
+ * Entidades relacionadas a `id` por co-menção (1-hop), ordenadas por `weight`
+ * desc. Cada item é o nó vizinho + o peso/tipo da aresta. Roda sobre Postgres
+ * (`entity_edges`), sem dependência de Neo4j.
+ */
+export const RELATED_ENTITIES_QUERY = gql`
+  query RelatedEntities($id: String!, $limit: Int!) {
+    relatedEntities(id: $id, limit: $limit) {
+      canonicalId
+      canonicalName
+      type
+      wikidataId
+      weight
+      kind
+    }
+  }
+`
+
+/**
+ * Rede ego-centrada na entidade `id` (nós + arestas) até `depth` saltos. Usada
+ * pela visualização de rede. `depth<=2` roda via CTE recursiva em `entity_edges`.
+ */
+export const ENTITY_NETWORK_QUERY = gql`
+  query EntityNetwork($id: String!, $depth: Int!, $limit: Int!) {
+    entityNetwork(id: $id, depth: $depth, limit: $limit) {
+      nodes {
+        entityId
+        canonicalName
+        type
+        wikidataId
+      }
+      edges {
+        src
+        dst
+        weight
+        kind
+      }
+    }
+  }
+`
+
+// ---------- TypeScript shapes ----------
+
+/** Entidade relacionada (vizinho de co-menção) como vem do graphql-api. */
+export interface RelatedEntityGraphQL {
+  canonicalId: string
+  canonicalName: string | null
+  type: string | null
+  wikidataId: string | null
+  weight: number
+  kind: string
+}
+
+export interface RelatedEntitiesQueryData {
+  relatedEntities: RelatedEntityGraphQL[]
+}
+
+/** Nó da rede de entidades (camelCase, graphql-api). */
+export interface EntityNetworkNodeGraphQL {
+  entityId: string
+  canonicalName: string | null
+  type: string | null
+  wikidataId: string | null
+}
+
+/** Aresta da rede de entidades (par direcionado src→dst + peso/tipo). */
+export interface EntityNetworkEdgeGraphQL {
+  src: string
+  dst: string
+  weight: number
+  kind: string
+}
+
+export interface EntityNetworkGraphQL {
+  nodes: EntityNetworkNodeGraphQL[]
+  edges: EntityNetworkEdgeGraphQL[]
+}
+
+export interface EntityNetworkQueryData {
+  entityNetwork: EntityNetworkGraphQL
+}

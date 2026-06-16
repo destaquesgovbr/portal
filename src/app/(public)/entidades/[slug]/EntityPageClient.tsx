@@ -1,14 +1,20 @@
 'use client'
 
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ExternalLink, Tag as TagIcon } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
 import NewsCard from '@/components/articles/NewsCard'
+import EntityNetwork from '@/components/entities/EntityNetwork'
+import { RelatedEntities } from '@/components/entities/RelatedEntities'
 import { Badge } from '@/components/ui/badge'
 import { entityTypeStyle } from '@/lib/entity-types'
 import type { EntityNode } from '@/services/content/types'
-import { getEntityArticles } from './actions'
+import {
+  getEntityArticles,
+  getEntityNetwork,
+  getRelatedEntities,
+} from './actions'
 
 type EntityPageClientProps = {
   /** Id canônico (`Q…`/`dgb_…`) quando a página é canônica; senão `null`. */
@@ -48,6 +54,16 @@ export default function EntityPageClient({
     getNextPageParam: (lastPage) => lastPage.page ?? undefined,
     initialPageParam: 1,
     enabled: resolved,
+  })
+
+  // Entidades relacionadas (co-menção, 1-hop) — só no caminho canônico, onde há
+  // um id (`Q…`/`dgb_…`) para travessia no grafo. Degrada para [] enquanto o
+  // grafo não estiver populado; a seção então se esconde.
+  const relatedQ = useQuery({
+    queryKey: ['entity-related', canonicalId],
+    queryFn: () => getRelatedEntities(canonicalId as string),
+    enabled: canonicalId != null,
+    staleTime: 5 * 60 * 1000,
   })
 
   const { ref } = useInView({
@@ -120,6 +136,23 @@ export default function EntityPageClient({
           </div>
         )}
       </div>
+
+      {/* Grafo de entidades (só no caminho canônico, com id para travessia) */}
+      {canonicalId != null && (
+        <div className="container mx-auto px-4">
+          {/* Entidades relacionadas — esconde-se sozinha quando vazio */}
+          <RelatedEntities entities={relatedQ.data} />
+
+          {/* Rede ego-centrada (toggle default OFF) */}
+          <EntityNetwork
+            entityId={canonicalId}
+            depth={1}
+            fetchNetwork={(id, depth, limit) =>
+              getEntityNetwork(id, depth, limit)
+            }
+          />
+        </div>
+      )}
 
       {/* Conteúdo */}
       <div className="container mx-auto px-4">
