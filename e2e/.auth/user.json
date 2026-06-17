@@ -2,7 +2,7 @@
   "cookies": [
     {
       "name": "authjs.csrf-token",
-      "value": "d1eca29124139b8708d1a13eb315c2a4bf1296cac3a73deada05e77f4f68a98e%7C0454b278f9c6a3d7e25295192beb19cc7f1e257339f9991cd691a2b3f11c692f",
+      "value": "260d12fa45a0fdf8201332c050b4baa9904106dbc6d6bf2ccccba49617830040%7C96aa34199519dd8867ef00e23badc70d55799d942b80b932705512a1552bb909",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
@@ -21,15 +21,35 @@
       "sameSite": "Lax"
     },
     {
-      "name": "authjs.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidFpjcFhHTGhHcFE5TUYzdl9XUHZodkg0b0hNOUUtWnhGOE83RkhFbFhYdFh5cjlSSjFVM1BLeENuaWxmUDRUVjB4MDM2TkFxbC1uOWVZcVhfakllRkEifQ..r-sAkRwMmnS6_FpE5iNXAA.sziwNfpuSm7rnLsZS34luuXB2PUCB9fhrF6qPbl0QPIPDPQ0_dLrxZSFWNAKi9m64Var_Pl_6QhHiTK5COPzE56sxwH1cuE6b7pwWCmt6NJ1g_IVKPg-RatLJuMdiEUykKIZT9hSNEtO2GhA5pwpcZ2O8KR2x70roHV3UT8LhPOV48pQnk627-0ZW-GjV_pq5bRYKpO-TBLtTeOyVhCZ3v4eGwN7KkfXG_-7s_Lh6Z1_YSj5tEpVhwOBEpRs_BH_9lDPkYJ5s0tT7xjoOUnrCjkuyGwcZ6CSiDg-woFrPRVWwre8qGZgkzKpwvJC9X5XJ048qzfYHBCMP_k4MpCf4zanKDVS1kLTDeh9BY-nEt4.G3EPE7PMobEyKQ0Jmpg2HeaaXO2Cp7F0Km6bk3Jr1Ho",
+      "name": "ab_user_id",
+      "value": "1781732268021-vgylq3fq82c",
       "domain": "localhost",
       "path": "/",
-      "expires": 1778105209.959095,
+      "expires": 1813268268.02124,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiRDdZTzkxa1VQMThJaUxybjdfbUUzSllRM0hLVnhMbHNJQzg3eTBZWVo0RWRYV0t6NjgzYWdjRUJJY3ZaTi1pcWIzcWNEWVFZbjdBRTdVNEtSQ2FQOFEifQ..Z2cgYyVwL63IZphRPNjTrQ.-bosK1qU5N0-QH1MlFFZnAw6O1PBTPQcCvv8WE6z1EEQ620hb32Ot3VsWHGHsenWP53v9_wTVDHDXtJH8qTGw3W1WJQa9klQsmE8puQvUTHFZ9LbCmoGWtgMhhCFnbBCIMBPluYzHlcxpydrRKZ-nWOMlZ94pHaTuROE19yxIcUCxxBy7a1QsbV3MXKY4-kf6Dc1ZEbLqCXq_1AwrLMxEYl2gXdkM1fuCI6JFAI226itTWe3Z9rmV6dvflh0wBzRpxs-xLtcYp9bTOhUElyM0sNY0uQ0qAf9a4hcqi3XA-tAlMH7Xq2jQ3ofF219rDuAxuN5x2IGKeeeJkPrihVTBS5ZDEUksQfCfbW-FPwPOIc.Wud4okcAthYNAa5DJgTUO5_5R7aLeYE9tWpjCCc3pAg",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1784324268.684804,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
     }
   ],
-  "origins": []
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "gbFeaturesCache",
+          "value": "[[\"https://destaquesgovbr-growthbook-api-klvx64dufq-rj.a.run.app||sdk-Qr6dxCOBEOvKK2z\",{\"data\":{\"status\":200,\"features\":{\"graphql.clippings\":{\"defaultValue\":false,\"rules\":[{\"id\":\"fr_6y3zli1mprcpf9f\",\"force\":true}]},\"graphql.marketplace\":{\"defaultValue\":false,\"rules\":[{\"id\":\"fr_6y3zli1mprdhjaa\",\"force\":true}]},\"graphql.agent\":{\"defaultValue\":false,\"rules\":[{\"id\":\"fr_6y3zli1mpre099x\",\"force\":true}]},\"graphql.push\":{\"defaultValue\":false,\"rules\":[{\"id\":\"fr_6y3zli1mpre9kq1\",\"force\":true}]},\"graphql.widgets\":{\"defaultValue\":false,\"rules\":[{\"id\":\"fr_6y3zli1mpre9lpc\",\"force\":true}]}},\"experiments\":[],\"dateUpdated\":\"2026-05-29T20:48:37.990Z\"},\"version\":\"2026-05-29T20:48:37.990Z\",\"staleAt\":\"2026-06-17T21:38:48.240Z\",\"sse\":false}]]"
+        }
+      ]
+    }
+  ]
 }
