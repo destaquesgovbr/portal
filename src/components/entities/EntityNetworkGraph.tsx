@@ -6,18 +6,11 @@
  * Componente client-only: `react-force-graph-2d` depende de `window`/canvas e
  * NÃO pode rodar em SSR — por isso é importado dinamicamente (ssr:false) pelo
  * `EntityNetwork.tsx`. Aqui só assumimos que estamos no browser.
- *
- * Estética (frontend-design):
- *   - cor do nó por tipo (reusa `entity-types.ts`, fonte única de verdade);
- *   - a entidade-foco (ego) recebe anel destacado e raio maior;
- *   - espessura da aresta ∝ peso (co-menção); grafo já vem capado pelo backend
- *     (`limit`/threshold) — aqui só ajustamos legibilidade;
- *   - clique no nó navega para a página da entidade.
  */
 
 import { useRouter } from 'next/navigation'
-import { useMemo, useRef } from 'react'
-import ForceGraph2D from 'react-force-graph-2d'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import ForceGraph2D, { type ForceGraphMethods } from 'react-force-graph-2d'
 import type { EntityNetwork } from '@/services/content/types'
 import {
   type GraphLink,
@@ -42,10 +35,37 @@ export default function EntityNetworkGraph({
 }: EntityNetworkGraphProps) {
   const router = useRouter()
   const containerRef = useRef<HTMLDivElement>(null)
+  const graphRef = useRef<ForceGraphMethods | undefined>(undefined)
+  const fitted = useRef(false)
+
+  // Mede a largura real do container para o canvas — sem isso o grafo fica
+  // descentralizado quando o container é menor que o default interno do ForceGraph.
+  const [canvasWidth, setCanvasWidth] = useState(800)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width
+      if (w && w > 0) {
+        setCanvasWidth(w)
+        // Re-fit ao mudar dimensão (ex.: toggle maximizar).
+        fitted.current = false
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Centraliza o grafo assim que a simulação estabiliza.
+  const handleEngineStop = useCallback(() => {
+    if (!fitted.current) {
+      graphRef.current?.zoomToFit(400, 24)
+      fitted.current = true
+    }
+  }, [])
 
   const data = useMemo(() => toGraphData(network, egoId), [network, egoId])
-
-  // Peso máximo p/ normalizar a espessura das arestas (evita divisão por zero).
   const maxWeight = useMemo(() => maxEdgeWeight(data.links), [data.links])
 
   return (
@@ -55,8 +75,11 @@ export default function EntityNetworkGraph({
       style={{ height }}
     >
       <ForceGraph2D
+        ref={graphRef}
         graphData={data}
         height={height}
+        width={canvasWidth}
+        onEngineStop={handleEngineStop}
         nodeRelSize={4}
         nodeColor={(node) => (node as GraphNode).color}
         nodeVal={(node) => (node as GraphNode).val}
@@ -74,7 +97,6 @@ export default function EntityNetworkGraph({
           const n = node as GraphNode & { x?: number; y?: number }
           if (n.x == null || n.y == null) return
 
-          // Anel destacado para a entidade-foco (ego).
           if (n.isEgo) {
             ctx.beginPath()
             ctx.arc(n.x, n.y, n.val + 2, 0, 2 * Math.PI)
@@ -83,7 +105,6 @@ export default function EntityNetworkGraph({
             ctx.stroke()
           }
 
-          // Rótulo só quando há zoom suficiente — evita poluição no overview.
           if (globalScale >= 1.2) {
             const fontSize = 11 / globalScale
             ctx.font = `${fontSize}px sans-serif`

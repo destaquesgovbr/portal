@@ -321,4 +321,45 @@ test.describe('Grafo de entidades (Fase 6c/6d)', () => {
       canvas.or(loadingState).or(emptyState).or(errorState).or(navHint),
     ).toBeVisible({ timeout: 20_000 })
   })
+
+  test('botão "Maximizar" abre overlay e "Fechar" (e Esc) fecham', async ({
+    page,
+  }) => {
+    // Maximizar exige que o grafo esteja carregado (hasGraph=true); a server
+    // action pode ser lenta em dev — timeout generoso.
+    test.setTimeout(60_000)
+    const entity = await deriveEntityWithRelations()
+
+    await page.goto(`/entidades/${encodeURIComponent(entity.id)}`)
+
+    // Abre a rede.
+    const toggleBtn = page.getByRole('button', { name: 'Ver rede' })
+    await expect(toggleBtn).toBeVisible({ timeout: 20_000 })
+    await toggleBtn.click()
+
+    // Aguarda o botão "Maximizar" — aparece só após o grafo carregar (hasGraph).
+    const maximizeBtn = page.getByRole('button', { name: 'Maximizar' })
+    await expect(maximizeBtn).toBeVisible({ timeout: 40_000 })
+
+    // Abre o overlay maximizado.
+    await maximizeBtn.click()
+
+    // Botão "Fechar" deve estar visível (fixed z-[60], acima do canvas).
+    const closeBtn = page.getByRole('button', { name: /fechar/i })
+    await expect(closeBtn).toBeVisible({ timeout: 5_000 })
+
+    // Fechar via botão.
+    await closeBtn.click()
+    await expect(closeBtn).not.toBeVisible({ timeout: 3_000 })
+
+    // Reabre e fecha via Esc.
+    await maximizeBtn.click()
+    await expect(page.getByRole('button', { name: /fechar/i })).toBeVisible({
+      timeout: 5_000,
+    })
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('button', { name: /fechar/i })).not.toBeVisible(
+      { timeout: 3_000 },
+    )
+  })
 })
