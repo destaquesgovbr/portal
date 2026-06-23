@@ -100,6 +100,48 @@ export interface EntityNetworkQueryData {
 }
 
 /**
+ * Artigos de uma entidade canônica via Postgres (`news_entities` → `news`).
+ * Não depende do campo `entityCanonical` no Typesense — funciona sem reprocessamento.
+ */
+export const ENTITY_ARTICLES_QUERY = gql`
+  query EntityArticles($entityId: String!, $page: Int, $limit: Int) {
+    entityArticles(entityId: $entityId, page: $page, limit: $limit) {
+      articles {
+        uniqueId
+        title
+        url
+        image
+        videoUrl
+        agency
+        agencyName
+        publishedAt
+        extractedAt
+        theme1Level1Code
+        theme1Level1Label
+        theme1Level2Code
+        theme1Level2Label
+        theme1Level3Code
+        theme1Level3Label
+        mostSpecificThemeCode
+        mostSpecificThemeLabel
+      }
+      found
+      page
+    }
+  }
+`
+
+export interface EntityArticlesGraphQL {
+  articles: import('./articles').ArticleGraphQL[]
+  found: number
+  page: number
+}
+
+export interface EntityArticlesQueryData {
+  entityArticles: EntityArticlesGraphQL
+}
+
+/**
  * Top entidades NER com maior crescimento de cobertura (pré-computado pelo DAG
  * `compute_entity_trending`). Lê `entity_trending_scores` ordenado por score DESC.
  */

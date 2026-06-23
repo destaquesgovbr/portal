@@ -39,7 +39,9 @@ import {
   type ThemeArticleCountsQueryData,
 } from '@/lib/graphql/queries/articles'
 import {
+  ENTITY_ARTICLES_QUERY,
   ENTITY_NETWORK_QUERY,
+  type EntityArticlesQueryData,
   type EntityNetworkQueryData,
   RELATED_ENTITIES_QUERY,
   type RelatedEntitiesQueryData,
@@ -423,6 +425,25 @@ export function createGraphQLContentService(
         volumeRatio: e.volumeRatio,
         windowCount: e.windowCount,
       }))
+    },
+
+    async getArticlesByEntity(entityId: string, page = 1, limit = 10) {
+      const result = await client
+        .query<EntityArticlesQueryData>(ENTITY_ARTICLES_QUERY, {
+          entityId,
+          page,
+          limit,
+        })
+        .toPromise()
+      if (result.error) {
+        throw unwrapError(result.error, 'Erro ao carregar artigos da entidade')
+      }
+      const data = result.data?.entityArticles
+      return {
+        articles: (data?.articles ?? []).map(mapGraphqlArticleToRow),
+        found: data?.found ?? 0,
+        page: data?.page ?? page,
+      }
     },
   }
 }
