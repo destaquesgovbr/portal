@@ -98,3 +98,36 @@ export interface EntityNetworkGraphQL {
 export interface EntityNetworkQueryData {
   entityNetwork: EntityNetworkGraphQL
 }
+
+/**
+ * Top entidades NER com maior crescimento de cobertura (pré-computado pelo DAG
+ * `compute_entity_trending`). Lê `entity_trending_scores` ordenado por score DESC.
+ */
+export const TRENDING_ENTITIES_QUERY = gql`
+  query TrendingEntities($limit: Int) {
+    trendingEntities(limit: $limit) {
+      entityId
+      canonicalName
+      type
+      trendingScore
+      volumeRatio
+      windowCount
+      computedAt
+    }
+  }
+`
+
+/** Entidade em alta como vem do graphql-api. */
+export interface TrendingEntityGraphQL {
+  entityId: string
+  canonicalName: string | null
+  type: string | null
+  trendingScore: number
+  volumeRatio: number
+  windowCount: number
+  computedAt: string | null
+}
+
+export interface TrendingEntitiesQueryData {
+  trendingEntities: TrendingEntityGraphQL[]
+}
