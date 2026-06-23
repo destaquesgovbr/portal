@@ -164,6 +164,17 @@ type EntityNetwork {
   edges: [EntityNetworkEdge!]!
 }
 
+type TrendingEntityResult {
+  entityId: String!
+  canonicalName: String!
+  type: String!
+  trendingScore: Float!
+  volumeRatio: Float!
+  windowCount: Int!
+  windowAgencies: Int!
+  computedAt: String
+}
+
 enum ArticleSort {
   RELEVANCE
   DATE
@@ -788,6 +799,11 @@ type Query {
     keywords: [String!]!
     sinceHours: Int! = 24
   ): Int!
+
+  """
+  Entidades NER com maior crescimento de cobertura (pre-computado pelo DAG compute_entity_trending). Le entity_trending_scores ordenado por score DESC. PUBLICO.
+  """
+  trendingEntities(limit: Int! = 10): [TrendingEntityResult!]!
 }
 
 type Recorte {
