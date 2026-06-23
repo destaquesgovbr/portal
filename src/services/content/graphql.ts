@@ -43,6 +43,8 @@ import {
   type EntityNetworkQueryData,
   RELATED_ENTITIES_QUERY,
   type RelatedEntitiesQueryData,
+  TRENDING_ENTITIES_QUERY,
+  type TrendingEntitiesQueryData,
 } from '@/lib/graphql/queries/entities'
 import type { ArticleRow } from '@/types/article'
 import type {
@@ -403,6 +405,24 @@ export function createGraphQLContentService(
           kind: e.kind,
         })),
       }
+    },
+
+    async getTrendingEntities(limit = 6) {
+      // Degrada para [] enquanto entity_trending_scores não existir / DAG não rodou.
+      const result = await client
+        .query<TrendingEntitiesQueryData>(TRENDING_ENTITIES_QUERY, { limit })
+        .toPromise()
+      if (result.error) {
+        return []
+      }
+      return (result.data?.trendingEntities ?? []).map((e) => ({
+        entityId: e.entityId,
+        canonicalName: e.canonicalName ?? '',
+        type: e.type ?? '',
+        trendingScore: e.trendingScore,
+        volumeRatio: e.volumeRatio,
+        windowCount: e.windowCount,
+      }))
     },
   }
 }

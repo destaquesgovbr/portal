@@ -135,6 +135,18 @@ export interface EntityNetwork {
   edges: EntityNetworkEdge[]
 }
 
+/** Entidade NER em alta — alimenta a seção "Entidades em Alta" da homepage. */
+export interface TrendingEntity {
+  entityId: string
+  canonicalName: string
+  type: string
+  trendingScore: number
+  /** Multiplicador de volume: window_daily / baseline_daily. Ex: 3.2 → "↑3.2×" */
+  volumeRatio: number
+  /** Artigos na janela de 7 dias. */
+  windowCount: number
+}
+
 export interface EstimateRecorteCountArgs {
   themes: string[]
   agencies: string[]
@@ -200,4 +212,11 @@ export interface ContentService {
     depth?: number,
     limit?: number,
   ): Promise<EntityNetwork>
+
+  /**
+   * Top entidades NER com maior crescimento de cobertura (pré-computado). Lê
+   * `entity_trending_scores` via graphql-api. Degrada para `[]` enquanto a
+   * tabela não existir / o DAG não tiver rodado ainda.
+   */
+  getTrendingEntities(limit?: number): Promise<TrendingEntity[]>
 }
