@@ -85,30 +85,33 @@ export type GetEntityArticlesResult = {
 }
 
 /**
- * Lista paginada de artigos que mencionam a entidade. Reutiliza a busca
- * (`search`) filter-only (dedup por content_hash, sem busca semântica).
+ * Lista paginada de artigos que mencionam a entidade.
  *
- * - **Canônico** (`canonicalId`): filtra por `filter.entityCanonical=[id]` —
- *   dedup'd por `entity_id`, robusto a variantes de texto.
- * - **Legado** (texto): filtra por `filter.entities=[texto]` (migração graciosa).
+ * - **Canônico** (`canonicalId`): usa `entityArticles` (Postgres direto via
+ *   `news_entities`) — não depende do campo `entityCanonical` no Typesense.
+ * - **Legado** (texto): filtra por `filter.entities=[texto]` via Typesense.
  */
 export async function getEntityArticles(
   args: GetEntityArticlesArgs,
 ): Promise<GetEntityArticlesResult> {
   const { entity, canonicalId, page } = args
 
+  if (canonicalId) {
+    const result = await content().getArticlesByEntity(canonicalId, page)
+    return {
+      articles: result.articles,
+      page: page + 1,
+      found: result.found,
+    }
+  }
+
   const result = await content().searchArticles({
-    // Busca filter-only por entidade: o resolver `search` do graphql-api
-    // rejeita query vazia ("Query must not be empty"). `'*'` é o wildcard
-    // filter-only aceito (convenção já usada em outros call-sites).
     query: '*',
     page,
     semantic: false,
     dedup: true,
     sort: 'DATE',
-    filter: canonicalId
-      ? { entityCanonical: [canonicalId] }
-      : { entities: [entity] },
+    filter: { entities: [entity] },
   })
 
   return {

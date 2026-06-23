@@ -219,4 +219,14 @@ export interface ContentService {
    * tabela não existir / o DAG não tiver rodado ainda.
    */
   getTrendingEntities(limit?: number): Promise<TrendingEntity[]>
+
+  /**
+   * Artigos de uma entidade canônica via Postgres (`news_entities`). Não depende
+   * do campo `entityCanonical` no Typesense — funciona sem reprocessamento.
+   */
+  getArticlesByEntity(
+    entityId: string,
+    page?: number,
+    limit?: number,
+  ): Promise<SearchArticlesResult>
 }
