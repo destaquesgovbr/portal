@@ -323,4 +323,51 @@ test.describe('Conteúdo público via GraphQL', () => {
       `órgão "${agency.code}" (${agency.label}) deveria listar artigos`,
     ).toBeGreaterThan(0)
   })
+
+  test('/noticias exibe seção "Entidades em Alta" quando há dados de trending', async ({
+    page,
+  }) => {
+    // Verificar se o graphql-api já tem dados de entity_trending_scores.
+    // A seção não renderiza quando a lista está vazia — isso é esperado enquanto
+    // o DAG `compute_entity_trending` não tiver rodado após a migration 025.
+    type TrendingData = { trendingEntities: Array<{ entityId: string }> }
+    let hasTrendingData = false
+    try {
+      const data = await publicGraphQL<TrendingData>(
+        /* GraphQL */ `query { trendingEntities(limit: 1) { entityId } }`,
+      )
+      hasTrendingData = (data.trendingEntities?.length ?? 0) > 0
+    } catch {
+      // graphql-api pode não ter o resolver ainda (PR 2 pendente)
+      hasTrendingData = false
+    }
+
+    await page.goto('/noticias')
+    await page.waitForLoadState('networkidle')
+
+    if (!hasTrendingData) {
+      // Sem dados ainda — seção não deve aparecer (fallback gracioso)
+      await expect(
+        page.getByTestId('trending-entities-section'),
+      ).not.toBeVisible()
+      return
+    }
+
+    // Com dados — seção e ao menos 1 card devem estar visíveis
+    const section = page.getByTestId('trending-entities-section')
+    await expect(section).toBeVisible({ timeout: 20_000 })
+
+    const entityCards = page.getByTestId('trending-entity-card')
+    expect(
+      await entityCards.count(),
+      'deve haver ao menos 1 card de entidade em alta',
+    ).toBeGreaterThan(0)
+
+    // Card deve linkar para /entidades/[id]
+    const firstLink = entityCards.first().locator('..').or(entityCards.first())
+    const href = await firstLink.getAttribute('href')
+    expect(href ?? '', 'link do card deve apontar para /entidades/').toMatch(
+      /\/entidades\//,
+    )
+  })
 })

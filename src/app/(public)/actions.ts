@@ -202,3 +202,16 @@ const fetchLatestByThemes = cache(
 
 // Public API with Result wrapper
 export const getLatestByThemes = withResult(fetchLatestByThemes)
+
+// Internal function for fetching trending entities
+const fetchTrendingEntities = cache(async (limit = 6) => {
+  try {
+    return await content().getTrendingEntities(limit)
+  } catch (error) {
+    console.error('[getTrendingEntities] Error:', error)
+    return []
+  }
+})
+
+// Public API with Result wrapper
+export const getTrendingEntities = withResult(fetchTrendingEntities)

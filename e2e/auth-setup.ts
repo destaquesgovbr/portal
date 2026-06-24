@@ -11,8 +11,8 @@ setup('authenticate via dev-login', async ({ page }) => {
   await expect(emailInput).toBeVisible({ timeout: 10000 })
   await emailInput.fill('nitaibezerra@gmail.com')
 
-  // Submit the form
-  await page.locator('button[type="submit"]').click()
+  // Submit the form (use #submitButton to avoid ambiguity when Gov.Br is also enabled)
+  await page.locator('#submitButton').click()
 
   // Wait for redirect back to the app (session created)
   await page.waitForURL('/', { timeout: 15000 })

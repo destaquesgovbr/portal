@@ -1,3 +1,4 @@
+import type { Client } from '@urql/core'
 import Link from 'next/link'
 import { auth } from '@/auth'
 import { FollowCard } from '@/components/marketplace/FollowCard'
@@ -7,6 +8,7 @@ import { createSSRClient } from '@/lib/graphql/client'
 import { getHasTelegram } from '@/lib/graphql/user'
 import { createGraphQLClippingService } from '@/services/clipping/graphql'
 import { createGraphQLMarketplaceService } from '@/services/marketplace/graphql'
+import type { FollowedListing } from '@/services/marketplace/types'
 import type { Clipping } from '@/types/clipping'
 import { ClippingListClient } from './ClippingListClient'
 
@@ -25,6 +27,18 @@ export async function getClippings(): Promise<Clipping[]> {
   }
 }
 
+// Degradação graciosa idêntica à de `getClippings`: uma falha de auth/rede no
+// graphql-api não pode derrubar o SSR da página (era a causa do 500 — digest
+// 1082197660, `listFollowedListings` lançando UNAUTHENTICATED sem try/catch).
+async function getFollows(client: Client): Promise<FollowedListing[]> {
+  try {
+    return await createGraphQLMarketplaceService(client).listFollowedListings()
+  } catch (error) {
+    console.error('Error reading follows:', error)
+    return []
+  }
+}
+
 export default async function ClippingPage() {
   const session = await auth()
   const userId = session?.user?.id
@@ -35,9 +49,7 @@ export default async function ClippingPage() {
       getClippings(),
       getThemesWithHierarchy(),
       getAgenciesList(),
-      userId
-        ? createGraphQLMarketplaceService(ssrClient).listFollowedListings()
-        : Promise.resolve([]),
+      userId ? getFollows(ssrClient) : Promise.resolve([]),
       userId ? getHasTelegram(ssrClient) : Promise.resolve(false),
     ],
   )

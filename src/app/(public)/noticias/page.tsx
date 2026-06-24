@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import NewsCard from '@/components/articles/NewsCard'
+import { TrendingEntitiesSection } from '@/components/entities/TrendingEntitiesSection'
 import { Button } from '@/components/ui/button'
 import THEME_ICONS from '@/data/themes'
 import { formatDateTime } from '@/lib/utils'
@@ -11,6 +12,7 @@ import {
   getLatestArticles,
   getLatestByThemes,
   getThemes,
+  getTrendingEntities,
 } from '../actions'
 
 // Revalidate every 10 minutes (600 seconds)
@@ -18,13 +20,19 @@ export const revalidate = 600
 
 export default async function Home() {
   // ===== Fetch principal =====
-  const [latestNewsResult, themesResult, newsThisMonth, totalNews] =
-    await Promise.all([
-      getLatestArticles(),
-      getThemes(),
-      countMonthlyNews(),
-      countTotalNews(),
-    ])
+  const [
+    latestNewsResult,
+    themesResult,
+    _newsThisMonth,
+    _totalNews,
+    trendingEntitiesResult,
+  ] = await Promise.all([
+    getLatestArticles(),
+    getThemes(),
+    countMonthlyNews(),
+    countTotalNews(),
+    getTrendingEntities(6),
+  ])
 
   if (themesResult.type !== 'ok') return <div>Erro ao carregar os temas.</div>
   if (latestNewsResult.type !== 'ok')
@@ -111,7 +119,12 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 2️⃣ ÚLTIMAS NOTÍCIAS — grade */}
+      {/* 2️⃣ ENTIDADES EM ALTA — top NER trending */}
+      {trendingEntitiesResult.type === 'ok' && (
+        <TrendingEntitiesSection entities={trendingEntitiesResult.data} />
+      )}
+
+      {/* 3️⃣ ÚLTIMAS NOTÍCIAS — grade */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
@@ -153,7 +166,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 3️⃣ TEMAS EM FOCO — 3 blocos com 2 notícias cada */}
+      {/* 4️⃣ TEMAS EM FOCO — 3 blocos com 2 notícias cada */}
       <section className="py-12 bg-muted/50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
@@ -261,7 +274,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 4️⃣ TRANSPARÊNCIA / DADOS PÚBLICOS — 3 cards verticais com SVG de fundo */}
+      {/* 5️⃣ TRANSPARÊNCIA / DADOS PÚBLICOS — 3 cards verticais com SVG de fundo */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="flex items-start mb-8">

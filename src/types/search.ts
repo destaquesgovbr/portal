@@ -1,3 +1,4 @@
+import type { ArticleSort } from '@/services/content/types'
 import type { ArticleRow } from './article'
 
 export type QueryArticlesArgs = {
@@ -8,6 +9,14 @@ export type QueryArticlesArgs = {
   agencies?: string[]
   themes?: string[]
   semantic?: boolean
+  /** Ordenação: RELEVANCE (default) / DATE / TRENDING / VIEWS. */
+  sort?: ArticleSort
+  /** Sentimentos: `positive` / `neutral` / `negative`. */
+  sentiment?: string[]
+  /** Textos canônicos de entidades (depende da Fase 0). */
+  entities?: string[]
+  /** Ids canônicos de entidades (`Q…`/`dgb_…`); depende da canonicalização. */
+  entityCanonical?: string[]
 }
 
 export type QueryArticlesResult = {

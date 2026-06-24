@@ -138,6 +138,7 @@ describe('createGraphQLContentService', () => {
         alpha: 0.5,
         dedup: true,
         filter: { themes: ['01'] },
+        sort: null,
       })
       expect(res.page).toBe(3)
       expect(res.found).toBe(7)
@@ -157,6 +158,7 @@ describe('createGraphQLContentService', () => {
         alpha: null,
         dedup: false,
         filter: null,
+        sort: null,
       })
     })
   })
@@ -241,6 +243,90 @@ describe('createGraphQLContentService', () => {
     })
   })
 
+  describe('getEntity', () => {
+    it('envia a query entity com id e mapeia o nó canônico', async () => {
+      const { client, queries } = makeClientStub({
+        onQuery: () => ({
+          entity: {
+            entityId: 'Q216330',
+            canonicalName: 'Ministério da Saúde',
+            type: 'ORG',
+            aliases: ['MS', 'Ministério da Saúde'],
+            wikidataId: 'Q216330',
+            wikidataUrl: 'https://www.wikidata.org/wiki/Q216330',
+            description: 'Órgão do governo federal',
+            agencyKey: 'ministerio-da-saude',
+          },
+        }),
+      })
+      const svc = createGraphQLContentService(client)
+      const res = await svc.getEntity('Q216330')
+      expect(queries[0].query).toContain('query Entity')
+      expect(queries[0].vars).toEqual({ id: 'Q216330' })
+      expect(res).toEqual({
+        entityId: 'Q216330',
+        canonicalName: 'Ministério da Saúde',
+        type: 'ORG',
+        aliases: ['MS', 'Ministério da Saúde'],
+        wikidataId: 'Q216330',
+        wikidataUrl: 'https://www.wikidata.org/wiki/Q216330',
+        description: 'Órgão do governo federal',
+        agencyKey: 'ministerio-da-saude',
+      })
+    })
+
+    it('retorna null quando o id não existe', async () => {
+      const { client } = makeClientStub({ onQuery: () => ({ entity: null }) })
+      const svc = createGraphQLContentService(client)
+      expect(await svc.getEntity('Q0')).toBeNull()
+    })
+
+    it('degrada para null quando a query falha (canonicalização pendente)', async () => {
+      const { client } = makeClientStub({
+        queryError: { graphQLErrors: [{ message: 'no entity resolver' }] },
+      })
+      const svc = createGraphQLContentService(client)
+      expect(await svc.getEntity('Q1')).toBeNull()
+    })
+  })
+
+  describe('getEntitySuggestions', () => {
+    it('faz passthrough de entityId/label quando presentes', async () => {
+      const { client, queries } = makeClientStub({
+        onQuery: () => ({
+          entitySuggestions: [
+            {
+              value: 'Ministério da Saúde',
+              count: 12,
+              entityId: 'Q216330',
+              label: 'Ministério da Saúde',
+            },
+          ],
+        }),
+      })
+      const svc = createGraphQLContentService(client)
+      const res = await svc.getEntitySuggestions('mini', 'ORG', 5)
+      expect(queries[0].query).toContain('query EntitySuggestions')
+      expect(queries[0].vars).toEqual({ query: 'mini', type: 'ORG', limit: 5 })
+      expect(res).toEqual([
+        {
+          value: 'Ministério da Saúde',
+          count: 12,
+          entityId: 'Q216330',
+          label: 'Ministério da Saúde',
+        },
+      ])
+    })
+
+    it('degrada para [] em erro (Fase 0 pendente)', async () => {
+      const { client } = makeClientStub({
+        queryError: { graphQLErrors: [{ message: 'no field entities' }] },
+      })
+      const svc = createGraphQLContentService(client)
+      expect(await svc.getEntitySuggestions('x')).toEqual([])
+    })
+  })
+
   describe('getReleaseArticles', () => {
     it('envia id e mapeia a lista', async () => {
       const { client, queries } = makeClientStub({
@@ -291,6 +377,100 @@ describe('createGraphQLContentService', () => {
         agencies: [],
         keywords: [],
         sinceHours: 24,
+      })
+    })
+  })
+
+  describe('getRelatedEntities', () => {
+    it('envia id/limit e mapeia os vizinhos', async () => {
+      const { client, queries } = makeClientStub({
+        onQuery: () => ({
+          relatedEntities: [
+            {
+              canonicalId: 'Q2',
+              canonicalName: 'MCTI',
+              type: 'ORG',
+              wikidataId: 'Q2',
+              weight: 7,
+              kind: 'co_mention',
+            },
+          ],
+        }),
+      })
+      const svc = createGraphQLContentService(client)
+      const rels = await svc.getRelatedEntities('Q1', 5)
+      expect(queries[0].query).toContain('query RelatedEntities')
+      expect(queries[0].vars).toEqual({ id: 'Q1', limit: 5 })
+      expect(rels).toEqual([
+        {
+          canonicalId: 'Q2',
+          canonicalName: 'MCTI',
+          type: 'ORG',
+          wikidataId: 'Q2',
+          weight: 7,
+          kind: 'co_mention',
+        },
+      ])
+    })
+
+    it('usa limit default 12', async () => {
+      const { client, queries } = makeClientStub({
+        onQuery: () => ({ relatedEntities: [] }),
+      })
+      const svc = createGraphQLContentService(client)
+      await svc.getRelatedEntities('Q1')
+      expect(queries[0].vars).toEqual({ id: 'Q1', limit: 12 })
+    })
+
+    it('degrada para [] em erro (grafo ainda não populado)', async () => {
+      const { client } = makeClientStub({ queryError: new Error('boom') })
+      const svc = createGraphQLContentService(client)
+      expect(await svc.getRelatedEntities('Q1')).toEqual([])
+    })
+  })
+
+  describe('getEntityNetwork', () => {
+    it('envia id/depth/limit e mapeia nós + arestas', async () => {
+      const { client, queries } = makeClientStub({
+        onQuery: () => ({
+          entityNetwork: {
+            nodes: [
+              {
+                entityId: 'Q1',
+                canonicalName: 'Finep',
+                type: 'ORG',
+                wikidataId: 'Q1',
+              },
+            ],
+            edges: [{ src: 'Q1', dst: 'Q2', weight: 3, kind: 'co_mention' }],
+          },
+        }),
+      })
+      const svc = createGraphQLContentService(client)
+      const net = await svc.getEntityNetwork('Q1', 2, 30)
+      expect(queries[0].query).toContain('query EntityNetwork')
+      expect(queries[0].vars).toEqual({ id: 'Q1', depth: 2, limit: 30 })
+      expect(net.nodes).toHaveLength(1)
+      expect(net.edges).toEqual([
+        { src: 'Q1', dst: 'Q2', weight: 3, kind: 'co_mention' },
+      ])
+    })
+
+    it('usa depth=1/limit=50 default', async () => {
+      const { client, queries } = makeClientStub({
+        onQuery: () => ({ entityNetwork: { nodes: [], edges: [] } }),
+      })
+      const svc = createGraphQLContentService(client)
+      await svc.getEntityNetwork('Q1')
+      expect(queries[0].vars).toEqual({ id: 'Q1', depth: 1, limit: 50 })
+    })
+
+    it('degrada para rede vazia em erro', async () => {
+      const { client } = makeClientStub({ queryError: new Error('boom') })
+      const svc = createGraphQLContentService(client)
+      expect(await svc.getEntityNetwork('Q1')).toEqual({
+        nodes: [],
+        edges: [],
       })
     })
   })

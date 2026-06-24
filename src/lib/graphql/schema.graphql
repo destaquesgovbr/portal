@@ -3,6 +3,19 @@ type Agency {
   label: String!
 }
 
+type AgencyPeriodMetrics {
+  period: String!
+  agencyKey: String!
+  agencyName: String
+  articleCount: Int!
+  avgSentimentScore: Float
+  pctPositive: Float
+  pctNegative: Float
+  avgReadabilityFlesch: Float
+  avgWordCount: Float
+  topThemes: [ThemeStats!]!
+}
+
 """
 Agency statistics with article count
 """
@@ -89,6 +102,21 @@ type Article {
   theme1Level3Label: String
   mostSpecificThemeCode: String
   mostSpecificThemeLabel: String
+
+  """
+  Features computadas da notícia (entidades, popularidade/trending, leitura/legibilidade). Carregado sob demanda do Postgres (news_features) por unique_id via DataLoader; None quando não há features. Não onera listas/busca que não selecionam este campo.
+  """
+  features: ArticleFeatures
+}
+
+type ArticleFeatures {
+  entities: [EntityType!]!
+  contentAnnotations: [ContentAnnotation!]!
+  viewCount: Int
+  uniqueSessions: Int
+  trendingScore: Float
+  wordCount: Int
+  readabilityFlesch: Float
 }
 
 input ArticleFilter {
@@ -99,6 +127,24 @@ input ArticleFilter {
   endDate: String = null
   themeLabel: String = null
   dedup: Boolean = null
+  entities: [String!] = null
+  sentiment: [String!] = null
+  entityCanonical: [String!] = null
+}
+
+enum ArticleSort {
+  RELEVANCE
+  DATE
+  TRENDING
+  VIEWS
+}
+
+type ArticleSummary {
+  uniqueId: String!
+  title: String!
+  agencyName: String
+  publishedAt: String
+  trendingScore: Float
 }
 
 type ArticlesResult {
@@ -198,6 +244,14 @@ input ClippingInput {
   deliveryChannels: DeliveryChannelsInput = null
 }
 
+type ContentAnnotation {
+  start: Int!
+  end: Int!
+  type: String!
+  text: String!
+  canonicalId: String
+}
+
 """
 Daily article count
 """
@@ -232,6 +286,82 @@ input DeliveryChannelsInput {
   webhook: Boolean! = false
 }
 
+type EntityCoveragePoint {
+  period: String!
+  agencyKey: String!
+  agencyName: String
+  articleCount: Int!
+  totalMentions: Int!
+  avgSentimentScore: Float
+}
+
+type EntityFacet {
+  value: String!
+  count: Int!
+  entityId: String
+  label: String
+}
+
+enum EntityKind {
+  ORG
+  PER
+  LOC
+  EVENT
+  POLICY
+  LAW
+}
+
+type EntityNetwork {
+  nodes: [EntityNetworkNode!]!
+  edges: [EntityNetworkEdge!]!
+}
+
+type EntityNetworkEdge {
+  src: String!
+  dst: String!
+  weight: Int!
+  kind: String!
+}
+
+type EntityNetworkNode {
+  entityId: String!
+  canonicalName: String
+  type: String
+  wikidataId: String
+}
+
+type EntityNode {
+  entityId: String!
+  canonicalName: String
+  type: String
+  aliases: [String!]!
+  wikidataId: String
+  wikidataUrl: String
+  description: String
+  agencyKey: String
+}
+
+type EntitySearchResult {
+  entityId: String!
+  canonicalName: String!
+  type: String!
+  description: String
+  wikidataUrl: String
+  agencyKey: String
+  aliases: [String!]!
+  articleCount: Int!
+  confidence: Float!
+  matchType: String!
+}
+
+type EntityType {
+  text: String!
+  type: String!
+  count: Int!
+  canonicalId: String
+  salience: Float
+}
+
 type EstimateResult {
   totalEstimate: Int!
 }
@@ -261,6 +391,12 @@ type FollowedListing {
   extraEmails: [String!]!
   webhookUrl: String
   followedAt: DateTime
+}
+
+enum Granularity {
+  DAY
+  WEEK
+  MONTH
 }
 
 type IntegrityCandidateType {
@@ -315,6 +451,13 @@ type MarketplaceRecorte {
   themes: [String!]!
   agencies: [String!]!
   keywords: [String!]!
+}
+
+enum MetricType {
+  VOLUME
+  SENTIMENT
+  READABILITY
+  THEMES
 }
 
 type Mutation {
@@ -484,12 +627,13 @@ type Query {
   ping: String!
 
   """
-  Lista artigos com filtros e paginação
+  Lista artigos com filtros, paginação e ordenação
   """
   articles(
     page: Int! = 1
     limit: Int! = 10
     filter: ArticleFilter = null
+    sort: ArticleSort = null
   ): ArticlesResult!
 
   """
@@ -507,6 +651,7 @@ type Query {
     semantic: Boolean! = false
     alpha: Float = null
     dedup: Boolean! = false
+    sort: ArticleSort = null
   ): ArticlesResult!
 
   """
@@ -548,6 +693,29 @@ type Query {
   Daily article counts for the given date range
   """
   articlesTimeline(range: DateRange!): [DailyCount!]!
+
+  """
+  Métricas de publicação por agência e período
+  """
+  agencyAnalytics(
+    agencies: [String!]!
+    dateFrom: String!
+    dateTo: String!
+    granularity: Granularity! = MONTH
+    metrics: [MetricType!] = null
+  ): [AgencyPeriodMetrics!]!
+
+  """
+  Temas em crescimento comparando janela recente com baseline histórico
+  """
+  trendingThemes(
+    windowDays: Int! = 7
+    baselineDays: Int! = 28
+    minArticles: Int! = 3
+    growthThreshold: Float! = 1.5
+    agencyKey: String = null
+    limit: Int! = 10
+  ): [TrendingThemeResult!]!
 
   """
   Lista todos os clippings do usuario autenticado (autorados + inscritos)
@@ -656,9 +824,33 @@ type Query {
   integrityBatch(batchSize: Int! = 50): [IntegrityCandidateType!]!
 
   """
-  Artigos relacionados a `uniqueId`, baseados no theme-code (Typesense). Replica a logica do portal: usa most_specific_theme_code quando presente, senao theme_1_level_1_code; exclui o proprio artigo; ordena por publishedAt desc; deduplica por content_hash. PUBLICO. (Distinto do `similarArticles` interno, baseado em embedding postgres.)
+  Artigos relacionados a `uniqueId` por similaridade semântica (embedding pgvector via news.content_embedding). O SQL exclui o próprio artigo, aplica threshold de similaridade e ordena por similaridade desc; os vizinhos são hidratados do índice Typesense preservando essa ordem. Retorna [] se o artigo não tiver embedding ou vizinhos. PÚBLICO. (Distinto do `similarArticles` interno, que devolve apenas unique_id/score.)
   """
   relatedArticles(uniqueId: String!, limit: Int! = 4): [Article!]!
+
+  """
+  Sugestões de entidades (facet) para o filtro de busca e as páginas de entidade. `type` (ORG/PER/LOC/EVENT/POLICY) restringe ao campo tipado; ausente usa o campo combinado `entities`. `type: CANONICAL` ativa o modo canônico: faceta `entity_canonical` e retorna `{value/entityId = canonical_id, label = canonical_name, count}` (label resolvido do entity_registry; None se ausente). `query` filtra por prefixo. Ordenado por nº de artigos desc. PÚBLICO.
+  """
+  entitySuggestions(
+    query: String! = ""
+    type: String = null
+    limit: Int! = 10
+  ): [EntityFacet!]!
+
+  """
+  Entidade canônica do entity_registry por `id` (entity_id: QID Wikidata 'Q216330' ou 'dgb_<ulid>'). None quando não existe. PÚBLICO.
+  """
+  entity(id: String!): EntityNode
+
+  """
+  Entidades relacionadas a `id` (entity_id) por co-menção (Fase 6c). Lê a rede de co-menção materializada (`entity_edges`, 1-hop), retorna os vizinhos hidratados do entity_registry, ordenados por `weight` (nº de artigos em co-menção) desc, até `limit`. Retorna [] sem Postgres ou sem vizinhos. PÚBLICO.
+  """
+  relatedEntities(id: String!, limit: Int! = 12): [RelatedEntity!]!
+
+  """
+  Ego-network (nós + arestas) ao redor de `id` (entity_id) para a visualização de rede (Fase 6c). Travessia não-direcionada na rede de co-menção (`entity_edges`) via CTE recursiva até `depth` saltos (CLAMPado a no máx 2; profundidades maiores ficam para o Neo4j futuro). `limit` limita o nº de arestas (cap de tamanho do grafo). Retorna {nodes:[], edges:[]} sem Postgres. PÚBLICO.
+  """
+  entityNetwork(id: String!, depth: Int! = 1, limit: Int! = 50): EntityNetwork!
 
   """
   Contagem de artigos por code de tema (nivel `level`) nos ultimos `days` dias. `label` e None (o portal mapeia pela config). PUBLICO.
@@ -679,6 +871,39 @@ type Query {
     keywords: [String!]!
     sinceHours: Int! = 24
   ): Int!
+
+  """
+  Série temporal de cobertura de uma entidade por agência
+  """
+  entityCoverage(
+    entityId: String!
+    dateFrom: String = null
+    dateTo: String = null
+    granularity: Granularity! = MONTH
+  ): [EntityCoveragePoint!]!
+
+  """
+  Busca fuzzy de entidades por nome ou alias
+  """
+  entitySearch(
+    query: String!
+    entityType: EntityKind = null
+    limit: Int! = 5
+  ): [EntitySearchResult!]!
+
+  """
+  Artigos de uma entidade canônica via news_entities (Postgres direto). Não depende do campo entityCanonical no Typesense.
+  """
+  entityArticles(
+    entityId: String!
+    page: Int! = 1
+    limit: Int! = 10
+  ): ArticlesResult!
+
+  """
+  Entidades NER com maior crescimento de cobertura (pré-computado)
+  """
+  trendingEntities(limit: Int! = 10): [TrendingEntityResult!]!
 }
 
 type Recorte {
@@ -694,6 +919,15 @@ input RecorteInput {
   themes: [String!]! = []
   agencies: [String!]! = []
   keywords: [String!]! = []
+}
+
+type RelatedEntity {
+  canonicalId: String!
+  canonicalName: String
+  type: String
+  wikidataId: String
+  weight: Int!
+  kind: String!
 }
 
 type Release {
@@ -762,6 +996,26 @@ Theme statistics with article count
 type ThemeStats {
   label: String!
   count: Int!
+}
+
+type TrendingEntityResult {
+  entityId: String!
+  canonicalName: String!
+  type: String!
+  trendingScore: Float!
+  volumeRatio: Float!
+  windowCount: Int!
+  windowAgencies: Int!
+  computedAt: String
+}
+
+type TrendingThemeResult {
+  themeLabel: String!
+  themeCode: String
+  windowCount: Int!
+  baselineDailyAvg: Float!
+  growthScore: Float!
+  topArticles: [ArticleSummary!]!
 }
 
 type TypesenseDocRecordType {

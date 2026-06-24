@@ -138,6 +138,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // origens de script. Mitigação futura: proxy GraphQL server-side para
       // manter o Bearer fora do browser.
       session.accessToken = (token.accessToken as string) ?? undefined
+      // Propaga falha de refresh (token Keycloak morto e não renovável) para a
+      // guarda de `(logged-in)`, que força re-login em vez de deixar o usuário
+      // com sessão viva mas token inválido (toda chamada GraphQL → UNAUTHENTICATED).
+      session.error = (token.error as string) ?? undefined
       return session
     },
   },

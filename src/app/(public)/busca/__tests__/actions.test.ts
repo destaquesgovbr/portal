@@ -110,6 +110,40 @@ describe('queryArticles', () => {
     await queryArticles({ page: 1, query: 'x', semantic: false })
     expect(searchArticles.mock.calls[0][0].semantic).toBe(false)
   })
+
+  it('usa wildcard "*" quando não há texto mas há filtro (entidade)', async () => {
+    searchArticles.mockResolvedValue({ articles: [], found: 0, page: 1 })
+    await queryArticles({ page: 1, entities: ['Geraldo Alckmin'] })
+    const arg = searchArticles.mock.calls[0][0]
+    expect(arg.query).toBe('*')
+    expect(arg.filter.entities).toEqual(['Geraldo Alckmin'])
+  })
+
+  it('usa wildcard "*" quando não há texto mas há filtro (agência/sentimento)', async () => {
+    searchArticles.mockResolvedValue({ articles: [], found: 0, page: 1 })
+    await queryArticles({
+      page: 1,
+      agencies: ['min-a'],
+      sentiment: ['positive'],
+    })
+    expect(searchArticles.mock.calls[0][0].query).toBe('*')
+  })
+
+  it('mantém query vazia quando não há texto NEM filtro algum', async () => {
+    searchArticles.mockResolvedValue({ articles: [], found: 0, page: 1 })
+    await queryArticles({ page: 1 })
+    expect(searchArticles.mock.calls[0][0].query).toBe('')
+  })
+
+  it('prioriza o texto sobre o wildcard quando há texto E filtro', async () => {
+    searchArticles.mockResolvedValue({ articles: [], found: 0, page: 1 })
+    await queryArticles({
+      page: 1,
+      query: 'governo',
+      entities: ['Geraldo Alckmin'],
+    })
+    expect(searchArticles.mock.calls[0][0].query).toBe('governo')
+  })
 })
 
 describe('getSearchSuggestions', () => {
