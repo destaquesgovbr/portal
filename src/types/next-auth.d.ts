@@ -12,6 +12,8 @@ declare module 'next-auth' {
     }
     /** Access token (JWT Keycloak) para chamadas autenticadas ao graphql-api. */
     accessToken?: string
+    /** Erro de refresh do token (ex: 'RefreshAccessTokenError') — força re-login. */
+    error?: string
   }
 
   interface User {
