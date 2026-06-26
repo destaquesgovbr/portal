@@ -13,10 +13,12 @@ import type { ArticleRow } from '@/types/article'
 // ---------- Mocks ----------
 
 const searchArticles = vi.fn()
+const listArticles = vi.fn()
 const getSearchSuggestions = vi.fn()
 
 const fakeService = {
   searchArticles,
+  listArticles,
   getSearchSuggestions,
 } as unknown as ContentService
 
@@ -90,19 +92,21 @@ describe('queryArticles', () => {
     })
   })
 
-  it('passa filtros nulos e query vazia quando não fornecidos; semantic default true', async () => {
-    searchArticles.mockResolvedValue({ articles: [], found: 0, page: 1 })
+  it('navega cronologicamente (listArticles) quando não há texto NEM filtro', async () => {
+    listArticles.mockResolvedValue({ articles: [row()], found: 7 })
 
     const result = await queryArticles({ page: 1 })
 
-    const arg = searchArticles.mock.calls[0][0]
-    expect(arg.query).toBe('')
-    expect(arg.semantic).toBe(true)
-    expect(arg.filter.agencies).toBeNull()
-    expect(arg.filter.themes).toBeNull()
-    expect(arg.filter.startDate).toBeNull()
-    expect(arg.filter.endDate).toBeNull()
-    expect(result.page).toBe(2)
+    // Não dispara a busca vazia (que o resolver `search` rejeita).
+    expect(searchArticles).not.toHaveBeenCalled()
+    expect(listArticles).toHaveBeenCalledTimes(1)
+    const arg = listArticles.mock.calls[0][0]
+    expect(arg.page).toBe(1)
+    expect(arg.dedup).toBe(true)
+    expect(arg.limit).toBeGreaterThan(0)
+
+    // Contrato preservado: page é o cursor da PRÓXIMA página (page + 1).
+    expect(result).toEqual({ articles: [row()], page: 2, found: 7 })
   })
 
   it('respeita semantic:false explícito', async () => {
@@ -129,10 +133,11 @@ describe('queryArticles', () => {
     expect(searchArticles.mock.calls[0][0].query).toBe('*')
   })
 
-  it('mantém query vazia quando não há texto NEM filtro algum', async () => {
-    searchArticles.mockResolvedValue({ articles: [], found: 0, page: 1 })
-    await queryArticles({ page: 1 })
-    expect(searchArticles.mock.calls[0][0].query).toBe('')
+  it('não usa o wildcard "*" quando não há texto NEM filtro (navega via listArticles)', async () => {
+    listArticles.mockResolvedValue({ articles: [], found: 0 })
+    await queryArticles({ page: 1, semantic: false })
+    expect(searchArticles).not.toHaveBeenCalled()
+    expect(listArticles).toHaveBeenCalledTimes(1)
   })
 
   it('prioriza o texto sobre o wildcard quando há texto E filtro', async () => {

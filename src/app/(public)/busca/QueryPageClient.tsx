@@ -358,7 +358,7 @@ export default function QueryPageClient({
       {/* Cabeçalho institucional */}
       <div className="container mx-auto px-4 text-center mb-12">
         <h2 className="text-3xl font-bold text-primary">
-          Resultados para "{query}"
+          {query ? `Resultados para "${query}"` : 'Explorar notícias'}
         </h2>
 
         {/* Linha divisória SVG */}
@@ -368,7 +368,9 @@ export default function QueryPageClient({
 
         {/* Frase de apoio */}
         <p className="mt-4 text-base text-primary/80">
-          Veja os artigos e publicações que correspondem à sua busca no portal.
+          {query
+            ? 'Veja os artigos e publicações que correspondem à sua busca no portal.'
+            : 'Navegue pelas notícias mais recentes ou refine com os filtros ao lado.'}
         </p>
 
         <div className="mt-4">

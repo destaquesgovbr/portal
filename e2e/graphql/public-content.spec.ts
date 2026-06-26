@@ -244,6 +244,33 @@ test.describe('Conteúdo público via GraphQL', () => {
     ).toBeGreaterThan(0)
   })
 
+  test('busca /busca SEM query nem filtro navega notícias (não erra)', async ({
+    page,
+  }) => {
+    // Regressão: `/busca` sem `q` e sem filtro disparava `search` com query
+    // vazia (rejeitada pelo resolver) → "Ocorreu um erro ao carregar os
+    // resultados.". Deve navegar cronologicamente via `articles` (listArticles).
+    await page.goto('/busca')
+
+    // Cabeçalho do modo navegação (sem termo).
+    await expect(
+      page.getByRole('heading', { name: 'Explorar notícias' }),
+    ).toBeVisible({ timeout: 20_000 })
+
+    // NÃO deve aparecer a mensagem de erro.
+    await expect(
+      page.getByText('Ocorreu um erro ao carregar os resultados.'),
+    ).not.toBeVisible()
+
+    // Deve listar notícias (ordem cronológica desc, sem filtro).
+    const cards = articleLinks(page)
+    await expect(cards.first()).toBeVisible({ timeout: 20_000 })
+    expect(
+      await cards.count(),
+      '/busca sem query deveria listar notícias recentes',
+    ).toBeGreaterThan(0)
+  })
+
   test('detalhe /artigos/[uniqueId] renderiza título e relacionados', async ({
     page,
   }) => {
