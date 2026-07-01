@@ -904,6 +904,16 @@ type Query {
   Entidades NER com maior crescimento de cobertura (pré-computado)
   """
   trendingEntities(limit: Int! = 10): [TrendingEntityResult!]!
+
+  """
+  Lista entidades POLICY com metadados de ontologia (domínio + fase de ciclo de vida)
+  """
+  policies(
+    domain: String = null
+    lifecyclePhase: String = null
+    limit: Int = 20
+    offset: Int = 0
+  ): [PolicyListItem!]!
 }
 
 type Recorte {
@@ -996,6 +1006,16 @@ Theme statistics with article count
 type ThemeStats {
   label: String!
   count: Int!
+}
+
+type PolicyListItem {
+  entityId: String!
+  canonicalName: String!
+  domain: String
+  lifecyclePhase: String
+  wikidataId: String
+  aliases: [String!]!
+  articleCount: Int!
 }
 
 type TrendingEntityResult {

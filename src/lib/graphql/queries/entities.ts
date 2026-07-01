@@ -173,3 +173,36 @@ export interface TrendingEntityGraphQL {
 export interface TrendingEntitiesQueryData {
   trendingEntities: TrendingEntityGraphQL[]
 }
+
+/**
+ * Lista entidades POLICY com metadados de ontologia (domínio + fase de ciclo de vida).
+ * Alimenta a página `/politicas`.
+ */
+export const POLICIES_QUERY = gql`
+  query Policies($domain: String, $lifecyclePhase: String, $limit: Int, $offset: Int) {
+    policies(domain: $domain, lifecyclePhase: $lifecyclePhase, limit: $limit, offset: $offset) {
+      entityId
+      canonicalName
+      domain
+      lifecyclePhase
+      wikidataId
+      aliases
+      articleCount
+    }
+  }
+`
+
+/** Política pública como vem do graphql-api. */
+export interface PolicyGraphQL {
+  entityId: string
+  canonicalName: string
+  domain: string | null
+  lifecyclePhase: string | null
+  wikidataId: string | null
+  aliases: string[]
+  articleCount: number
+}
+
+export interface PoliciesQueryData {
+  policies: PolicyGraphQL[]
+}
