@@ -43,6 +43,8 @@ import {
   ENTITY_NETWORK_QUERY,
   type EntityArticlesQueryData,
   type EntityNetworkQueryData,
+  POLICIES_QUERY,
+  type PoliciesQueryData,
   RELATED_ENTITIES_QUERY,
   type RelatedEntitiesQueryData,
   TRENDING_ENTITIES_QUERY,
@@ -53,6 +55,7 @@ import type {
   ContentService,
   EstimateRecorteCountArgs,
   ListArticlesArgs,
+  ListPoliciesArgs,
   SearchArticlesArgs,
 } from './types'
 
@@ -444,6 +447,35 @@ export function createGraphQLContentService(
         found: data?.found ?? 0,
         page: data?.page ?? page,
       }
+    },
+
+    async getPolicies(args: ListPoliciesArgs = {}) {
+      const {
+        domain = null,
+        lifecyclePhase = null,
+        limit = 200,
+        offset = 0,
+      } = args
+      const result = await client
+        .query<PoliciesQueryData>(POLICIES_QUERY, {
+          domain,
+          lifecyclePhase,
+          limit,
+          offset,
+        })
+        .toPromise()
+      if (result.error) {
+        return []
+      }
+      return (result.data?.policies ?? []).map((p) => ({
+        entityId: p.entityId,
+        canonicalName: p.canonicalName,
+        domain: p.domain ?? null,
+        lifecyclePhase: p.lifecyclePhase ?? null,
+        wikidataId: p.wikidataId ?? null,
+        aliases: p.aliases,
+        articleCount: p.articleCount,
+      }))
     },
   }
 }

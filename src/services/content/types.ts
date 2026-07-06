@@ -147,6 +147,24 @@ export interface TrendingEntity {
   windowCount: number
 }
 
+/** Política pública listada na página `/politicas`. */
+export interface PolicyItem {
+  entityId: string
+  canonicalName: string
+  domain: string | null
+  lifecyclePhase: string | null
+  wikidataId: string | null
+  aliases: string[]
+  articleCount: number
+}
+
+export interface ListPoliciesArgs {
+  domain?: string | null
+  lifecyclePhase?: string | null
+  limit?: number
+  offset?: number
+}
+
 export interface EstimateRecorteCountArgs {
   themes: string[]
   agencies: string[]
@@ -229,4 +247,10 @@ export interface ContentService {
     page?: number,
     limit?: number,
   ): Promise<SearchArticlesResult>
+
+  /**
+   * Lista políticas públicas com metadados de ontologia (domínio + fase). Alimenta
+   * a página `/politicas`. Degrada para `[]` se nenhuma POLICY estiver cadastrada.
+   */
+  getPolicies(args?: ListPoliciesArgs): Promise<PolicyItem[]>
 }

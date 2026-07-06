@@ -30,6 +30,7 @@ jobs:
 
   deploy:
     needs: validate-tag
+    if: always() && (needs.validate-tag.result == 'success' || needs.validate-tag.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
