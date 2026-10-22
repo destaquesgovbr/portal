@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="t">
+  <title id="t">Tema</title>
+  <!-- Ícone genérico de tema: quatro blocos nas cores do portal -->
+  <rect x="192" y="192" width="300" height="300" rx="72" fill="#169148" />
+  <rect x="532" y="192" width="300" height="300" rx="72" fill="#F9B406" />
+  <rect x="192" y="532" width="300" height="300" rx="72" fill="#EB3A1F" />
+  <rect x="532" y="532" width="300" height="300" rx="72" fill="#015EB3" />
+  <circle cx="512" cy="512" r="92" fill="#123C47" stroke="#FFFFFF" stroke-width="28" />
+</svg>

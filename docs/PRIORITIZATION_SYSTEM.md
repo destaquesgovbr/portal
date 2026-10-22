@@ -182,7 +182,7 @@ themeWeights:
   "05.01": 3.0    # Preservação Ambiental (ainda mais prioritário)
 
 # Excluir outros temas menos relevantes
-excludedThemes: ["22"]  # Eventos Oficiais
+excludedThemes: ["21"]  # Legislação e Regulamentação
 ```
 
 ### Cenário 3: Reduzir Ruído de Veículos de Mídia
@@ -244,7 +244,7 @@ Use `excludedAgencies` ou `excludedThemes`:
 
 ```yaml
 excludedAgencies: ["orgao_bloqueado"]
-excludedThemes: ["22"]  # Eventos Oficiais
+excludedThemes: ["21"]  # Legislação e Regulamentação
 ```
 
 ### Posso ter pesos negativos?

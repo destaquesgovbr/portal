@@ -3,7 +3,7 @@ import Link from 'next/link'
 import NewsCard from '@/components/articles/NewsCard'
 import { TrendingEntitiesSection } from '@/components/entities/TrendingEntitiesSection'
 import { Button } from '@/components/ui/button'
-import THEME_ICONS from '@/data/themes'
+import { getThemeIcon } from '@/data/themes'
 import { formatDateTime } from '@/lib/utils'
 import type { ArticleRow } from '@/types/article'
 import {
@@ -210,7 +210,7 @@ export default async function Home() {
                 <div className="relative flex items-center gap-3">
                   <div className="rounded-md bg-white/90 border">
                     <img
-                      src={THEME_ICONS[theme]?.image}
+                      src={getThemeIcon(theme).image}
                       alt={theme}
                       className="h-10 w-10 object-contain"
                     />
