@@ -143,12 +143,11 @@ export default function EntityPageClient({
           {/* Entidades relacionadas — esconde-se sozinha quando vazio */}
           <RelatedEntities entities={relatedQ.data} />
 
-          {/* Rede ego-centrada (toggle default OFF) */}
+          {/* Rede ego-centrada (toggle default OFF; egoCentered por padrão) */}
           <EntityNetwork
             entityId={canonicalId}
-            depth={1}
-            fetchNetwork={(id, depth, limit) =>
-              getEntityNetwork(id, depth, limit)
+            fetchNetwork={(id, depth, limit, options) =>
+              getEntityNetwork(id, depth, limit, options)
             }
           />
         </div>

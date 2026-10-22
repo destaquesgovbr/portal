@@ -4,8 +4,8 @@
  * Alimentam a página `/entidades/[id]`:
  *   - `relatedEntities(id, limit)`: vizinhos por co-menção (1-hop), ordenados por
  *     peso (nº de artigos em co-menção). Origem da seção "Entidades relacionadas".
- *   - `entityNetwork(id, depth, limit)`: ego-network (nós + arestas) da entidade,
- *     consumida pela visualização de rede (`EntityNetwork.tsx`).
+ *   - `entityNetwork(id, depth, limit, egoCentered, maxNodes)`: rede (nós +
+ *     arestas) da entidade, consumida pela visualização (`EntityNetwork.tsx`).
  *
  * IDs são `String` (scalar do schema, não `ID`). As listas e o `EntityNetwork`
  * são non-null no retorno; o arg `id` é obrigatório, `limit`/`depth` têm default.
@@ -36,12 +36,28 @@ export const RELATED_ENTITIES_QUERY = gql`
 `
 
 /**
- * Rede ego-centrada na entidade `id` (nós + arestas) até `depth` saltos. Usada
- * pela visualização de rede. `depth<=2` roda via CTE recursiva em `entity_edges`.
+ * Rede da entidade `id` (nós + arestas) para a visualização de rede.
+ *
+ * `egoCentered: false` é o modo legado (CTE recursiva até `depth<=2` saltos,
+ * `limit` corta arestas pelo peso global). `egoCentered: true` (GQL-1) devolve
+ * o foco + os `maxNodes` vizinhos mais fortes (weight >= 2) com todas as
+ * arestas do foco; aí `limit` só corta as arestas entre vizinhos.
  */
 export const ENTITY_NETWORK_QUERY = gql`
-  query EntityNetwork($id: String!, $depth: Int!, $limit: Int!) {
-    entityNetwork(id: $id, depth: $depth, limit: $limit) {
+  query EntityNetwork(
+    $id: String!
+    $depth: Int!
+    $limit: Int!
+    $egoCentered: Boolean!
+    $maxNodes: Int!
+  ) {
+    entityNetwork(
+      id: $id
+      depth: $depth
+      limit: $limit
+      egoCentered: $egoCentered
+      maxNodes: $maxNodes
+    ) {
       nodes {
         entityId
         canonicalName

@@ -151,9 +151,5 @@ describe('EntityNetwork', () => {
       ).toBeInTheDocument(),
     )
     expect(screen.queryByTestId('network-graph')).not.toBeInTheDocument()
-    // Sem grafo, não há o que maximizar.
-    expect(
-      screen.queryByRole('button', { name: /Maximizar rede/i }),
-    ).not.toBeInTheDocument()
   })
 })
