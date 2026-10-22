@@ -1,4 +1,15 @@
-const THEME_ICONS: Record<string, { image: string; description: string }> = {
+/**
+ * Ícone e descrição institucional de cada tema L1 (cards de `/temas` e
+ * cabeçalho de `/temas/[label]`), indexados pelo label do L1.
+ *
+ * As chaves espelham os L1 de `src/config/themes.yaml`, na mesma ordem (o
+ * teste `src/data/__tests__/themes.test.ts` garante). Para ler uma entrada a
+ * partir de um label vindo de fora (URL, artigo, API), use `getThemeIcon`,
+ * que nunca devolve `undefined`.
+ */
+export type ThemeIcon = { image: string; description: string }
+
+const THEME_ICONS: Record<string, ThemeIcon> = {
   'Economia e Finanças': {
     image: '/01-economia-e-financas.png',
     description: `Inspirado na moeda de um real, o ícone representa a solidez e a identidade econômica do Brasil em uma leitura moderna e institucional.`,
@@ -167,6 +178,24 @@ Três faixas horizontais representam terra, vida urbana e horizonte, atravessada
 
 No centro, pequenas formas geométricas azuis remetem a edifícios organizados, equilibrando modernidade e acolhimento.`,
   },
+}
+
+/** Ícone genérico para label sem entrada no mapa (sem descrição). */
+export const THEME_ICON_FALLBACK: ThemeIcon = {
+  image: '/tema-generico.svg',
+  description: '',
+}
+
+/**
+ * Entrada de `THEME_ICONS` para o label, ou o ícone genérico quando o label não
+ * tem ícone (tema novo, L1 removido da taxonomia, URL digitada à mão).
+ */
+export function getThemeIcon(themeLabel: string | null | undefined): ThemeIcon {
+  // hasOwn: 'constructor', 'toString' etc. não são temas.
+  if (!themeLabel || !Object.hasOwn(THEME_ICONS, themeLabel)) {
+    return THEME_ICON_FALLBACK
+  }
+  return THEME_ICONS[themeLabel]
 }
 
 export default THEME_ICONS

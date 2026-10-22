@@ -10,7 +10,7 @@ import NewsCard from '@/components/articles/NewsCard'
 import { FeedLink } from '@/components/common/FeedLink'
 import { MarkdownRenderer } from '@/components/common/MarkdownRenderer'
 import type { AgencyOption } from '@/data/agencies-utils'
-import THEME_ICONS from '@/data/themes'
+import { getThemeIcon } from '@/data/themes'
 import { getArticles } from './actions'
 
 type ThemePageClientProps = {
@@ -143,7 +143,9 @@ export default function ThemePageClient({
     )
   }
 
-  const themeData = THEME_ICONS[themeLabel]
+  // Nunca indexar THEME_ICONS direto: label fora do mapa (tema novo, L1
+  // removido, URL digitada) derrubava a página inteira.
+  const themeData = getThemeIcon(themeLabel)
 
   return (
     <section className="py-16">
@@ -169,7 +171,7 @@ export default function ThemePageClient({
           )}
 
           {/* Descrição do tema */}
-          {themeData?.description && (
+          {themeData.description && (
             <div className="mt-6 text-base text-primary/80 leading-relaxed max-w-3xl mx-auto">
               <MarkdownRenderer content={themeData.description} />
             </div>
