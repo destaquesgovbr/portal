@@ -1,4 +1,15 @@
-const THEME_ICONS: Record<string, { image: string; description: string }> = {
+/**
+ * Ícone e descrição institucional de cada tema L1 (cards de `/temas` e
+ * cabeçalho de `/temas/[label]`), indexados pelo label do L1.
+ *
+ * As chaves espelham os L1 de `src/config/themes.yaml`, na mesma ordem (o
+ * teste `src/data/__tests__/themes.test.ts` garante). Para ler uma entrada a
+ * partir de um label vindo de fora (URL, artigo, API), use `getThemeIcon`,
+ * que nunca devolve `undefined`.
+ */
+export type ThemeIcon = { image: string; description: string }
+
+const THEME_ICONS: Record<string, ThemeIcon> = {
   'Economia e Finanças': {
     image: '/01-economia-e-financas.png',
     description: `Inspirado na moeda de um real, o ícone representa a solidez e a identidade econômica do Brasil em uma leitura moderna e institucional.`,
@@ -143,18 +154,6 @@ Um emblema que expressa o papel do Estado em dar direção e equilíbrio aos flu
     description: `Este ícone representa a balança viva da justiça, símbolo da harmonia entre as forças sociais.
 A haste azul traduz a estrutura firme do Estado, o eixo vermelho expressa a energia da convivência coletiva, e os pratos verde e amarelo evocam o equilíbrio entre diversidade e liberdade — o resultado de uma regulação justa e de uma legislação que sustenta o bem comum.`,
   },
-  'Eventos Oficiais e Cerimônias': {
-    image: '/22-eventos-oficiais-e-cerimonias.png',
-    description: `O ícone expressa a solenidade e a continuidade da vida pública brasileira — momentos em que o país se reúne em torno de seus ritos cívicos e celebra o pacto democrático que o sustenta.
-Inspirado na subida da rampa do Palácio do Planalto — uma das cerimônias mais simbólicas da República — ele representa a ordem, a dignidade e a presença coletiva que marcam os grandes atos oficiais do Brasil.`,
-  },
-  'Estatísticas e Dados Públicos': {
-    image: '/23-estatisticas-e-dados-publicos.png',
-    description: `O ícone representa o compromisso nacional com a transparência e a escuta pública.
-A prancheta azul simboliza o registro oficial e a coleta de informações, enquanto as três casas — vermelha, verde e amarela — representam a diversidade dos lares brasileiros, protagonistas dos levantamentos de dados que fundamentam políticas públicas.
-
-A composição é sólida, equilibrada e minimalista, evocando o espírito do Censo e o papel do Estado em garantir acesso público e confiável às informações da sociedade.`,
-  },
   'Minorias e Grupos Especiais': {
     image: '/24-minorias-e-grupos-especiais.png',
     description: `O ícone reflete a horizontalidade do acolhimento brasileiro, onde todos se reconhecem como parte de um mesmo corpo social.
@@ -167,6 +166,31 @@ Três faixas horizontais representam terra, vida urbana e horizonte, atravessada
 
 No centro, pequenas formas geométricas azuis remetem a edifícios organizados, equilibrando modernidade e acolhimento.`,
   },
+  'Defesa Civil e Gestão de Desastres': {
+    image: '/26-defesa-civil-e-gestao-de-desastres.svg',
+    description: `Inspirado no gesto de proteger quem está em risco, o ícone representa a Defesa Civil como a rede que se ergue antes, durante e depois de um desastre.
+A cúpula nas cores verde, amarela, vermelha e azul forma um abrigo comum sobre a casa, enquanto a chuva e as águas lembram os riscos que o país aprende a prevenir e a enfrentar.
+
+É a gestão de desastres como cuidado coletivo — **prevenir, preparar, responder e reconstruir**, para que ninguém fique desamparado.`,
+  },
+}
+
+/** Ícone genérico para label sem entrada no mapa (sem descrição). */
+export const THEME_ICON_FALLBACK: ThemeIcon = {
+  image: '/tema-generico.svg',
+  description: '',
+}
+
+/**
+ * Entrada de `THEME_ICONS` para o label, ou o ícone genérico quando o label não
+ * tem ícone (tema novo, L1 removido da taxonomia, URL digitada à mão).
+ */
+export function getThemeIcon(themeLabel: string | null | undefined): ThemeIcon {
+  // hasOwn: 'constructor', 'toString' etc. não são temas.
+  if (!themeLabel || !Object.hasOwn(THEME_ICONS, themeLabel)) {
+    return THEME_ICON_FALLBACK
+  }
+  return THEME_ICONS[themeLabel]
 }
 
 export default THEME_ICONS

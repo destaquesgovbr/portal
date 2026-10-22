@@ -43,6 +43,8 @@ import {
   ENTITY_NETWORK_QUERY,
   type EntityArticlesQueryData,
   type EntityNetworkQueryData,
+  POLICIES_QUERY,
+  type PoliciesQueryData,
   RELATED_ENTITIES_QUERY,
   type RelatedEntitiesQueryData,
   TRENDING_ENTITIES_QUERY,
@@ -51,8 +53,10 @@ import {
 import type { ArticleRow } from '@/types/article'
 import type {
   ContentService,
+  EntityNetworkOptions,
   EstimateRecorteCountArgs,
   ListArticlesArgs,
+  ListPoliciesArgs,
   SearchArticlesArgs,
 } from './types'
 
@@ -379,7 +383,12 @@ export function createGraphQLContentService(
       }))
     },
 
-    async getEntityNetwork(id: string, depth = 1, limit = 50) {
+    async getEntityNetwork(
+      id: string,
+      depth = 1,
+      limit = 50,
+      options: EntityNetworkOptions = {},
+    ) {
       // Degrada para uma rede vazia quando o grafo não estiver disponível — a
       // visualização não renderiza nós. Não propagamos o erro.
       const result = await client
@@ -387,6 +396,8 @@ export function createGraphQLContentService(
           id,
           depth,
           limit,
+          egoCentered: options.egoCentered ?? false,
+          maxNodes: options.maxNodes ?? 30,
         })
         .toPromise()
       if (result.error) {
@@ -444,6 +455,35 @@ export function createGraphQLContentService(
         found: data?.found ?? 0,
         page: data?.page ?? page,
       }
+    },
+
+    async getPolicies(args: ListPoliciesArgs = {}) {
+      const {
+        domain = null,
+        lifecyclePhase = null,
+        limit = 200,
+        offset = 0,
+      } = args
+      const result = await client
+        .query<PoliciesQueryData>(POLICIES_QUERY, {
+          domain,
+          lifecyclePhase,
+          limit,
+          offset,
+        })
+        .toPromise()
+      if (result.error) {
+        return []
+      }
+      return (result.data?.policies ?? []).map((p) => ({
+        entityId: p.entityId,
+        canonicalName: p.canonicalName,
+        domain: p.domain ?? null,
+        lifecyclePhase: p.lifecyclePhase ?? null,
+        wikidataId: p.wikidataId ?? null,
+        aliases: p.aliases,
+        articleCount: p.articleCount,
+      }))
     },
   }
 }

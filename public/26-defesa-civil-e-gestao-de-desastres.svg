@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="t">
+  <title id="t">Defesa Civil e Gestão de Desastres</title>
+  <!-- Chuva -->
+  <g fill="#015EB3">
+    <path d="M382 100 C391.5 133.6 409 159.7 409 184 A27 27 0 0 1 355 184 C355 159.7 372.6 133.6 382 100 Z" />
+    <path d="M512 70 C522.9 110 543 142.1 543 170 A31 31 0 0 1 481 170 C481 142.1 501.2 110 512 70 Z" />
+    <path d="M642 100 C651.5 133.6 669 159.7 669 184 A27 27 0 0 1 615 184 C615 159.7 632.6 133.6 642 100 Z" />
+  </g>
+  <!-- Cúpula de proteção: as quatro cores do portal formando o abrigo comum -->
+  <g fill="none" stroke-width="84" stroke-linecap="round">
+  <path d="M172 640 A340 340 0 0 1 226.9 454.8" stroke="#169148" />
+  <path d="M288.9 383.4 A340 340 0 0 1 464.7 303.3" stroke="#F9B406" />
+  <path d="M559.3 303.3 A340 340 0 0 1 735.1 383.4" stroke="#EB3A1F" />
+  <path d="M797.1 454.8 A340 340 0 0 1 852 640" stroke="#015EB3" />
+  </g>
+  <!-- Casa protegida -->
+  <path d="M512 404 L690 552 L642 552 L642 712 L382 712 L382 552 L334 552 Z" fill="#123C47" />
+  <path d="M482 712 L482 636 A30 30 0 0 1 542 636 L542 712 Z" fill="#F9B406" />
+  <!-- Águas: a enchente contida sob o abrigo -->
+  <path d="M150 742 C258 698 366 698 474 742 S690 786 874 742 L874 800 C766 844 690 844 582 800 S366 756 150 800 Z" fill="#015EB3" />
+  <path d="M150 830 C258 786 366 786 474 830 S690 874 874 830 L874 888 C766 932 690 932 582 888 S366 844 150 888 Z" fill="#169148" />
+</svg>
