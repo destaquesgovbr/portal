@@ -11,6 +11,7 @@
  * Cobre:
  *   - `relatedEntities`: query retorna vizinhos com shape correto
  *   - `entityNetwork`: query retorna nós + arestas coerentes
+ *   - `entityNetwork(egoCentered: true)` (GQL-1): rede centrada no foco
  *   - `/entidades/[id]`: h1, seção "Entidades relacionadas" com chips, botão "Ver rede"
  *   - toggle "Ver rede": abre a seção e renderiza o grafo (ou estado vazio)
  */
@@ -85,6 +86,22 @@ const RELATED_ENTITIES_QUERY = /* GraphQL */ `
 const ENTITY_NETWORK_QUERY = /* GraphQL */ `
   query DeriveEntityNetwork($id: String!, $depth: Int!, $limit: Int!) {
     entityNetwork(id: $id, depth: $depth, limit: $limit) {
+      nodes { entityId canonicalName type }
+      edges { src dst weight kind }
+    }
+  }
+`
+
+// Modo usado pela página /entidades (GQL-1): foco + `maxNodes` vizinhos mais
+// fortes (weight >= 2), com todas as arestas do foco.
+const ENTITY_NETWORK_EGO_QUERY = /* GraphQL */ `
+  query DeriveEntityNetworkEgo($id: String!, $maxNodes: Int!, $limit: Int!) {
+    entityNetwork(
+      id: $id
+      egoCentered: true
+      maxNodes: $maxNodes
+      limit: $limit
+    ) {
       nodes { entityId canonicalName type }
       edges { src dst weight kind }
     }
@@ -228,6 +245,52 @@ test.describe('Grafo de entidades (Fase 6c/6d)', () => {
       nodeIds.has(entity.id),
       `nó ego (${entity.id}) deve estar presente na rede`,
     ).toBe(true)
+  })
+
+  test('entityNetwork(egoCentered: true) é centrada na entidade-foco', async () => {
+    const entity = await deriveEntityWithRelations()
+    const maxNodes = 10
+
+    const { entityNetwork } = await publicGraphQL<{
+      entityNetwork: {
+        nodes: Array<{ entityId: string }>
+        edges: Array<{ src: string; dst: string; weight: number; kind: string }>
+      }
+    }>(ENTITY_NETWORK_EGO_QUERY, { id: entity.id, maxNodes, limit: 50 })
+
+    const nodeIds = new Set(entityNetwork.nodes.map((n) => n.entityId))
+    expect(
+      nodeIds.has(entity.id),
+      `nó-foco (${entity.id}) deve estar presente na rede`,
+    ).toBe(true)
+    expect(
+      entityNetwork.nodes.length,
+      `no máximo foco + ${maxNodes} vizinhos`,
+    ).toBeLessThanOrEqual(maxNodes + 1)
+
+    // Todo vizinho entra por uma aresta com o foco (nada de nó solto ou de
+    // 2º salto), e toda aresta liga nós presentes com weight >= 2.
+    const egoNeighbors = new Set(
+      entityNetwork.edges
+        .filter((e) => e.src === entity.id || e.dst === entity.id)
+        .map((e) => (e.src === entity.id ? e.dst : e.src)),
+    )
+    for (const node of entityNetwork.nodes) {
+      if (node.entityId === entity.id) continue
+      expect(
+        egoNeighbors.has(node.entityId),
+        `vizinho ${node.entityId} deve ter aresta com o foco`,
+      ).toBe(true)
+    }
+    for (const edge of entityNetwork.edges) {
+      expect(
+        nodeIds.has(edge.src) && nodeIds.has(edge.dst),
+        `aresta ${edge.src}→${edge.dst} deve ligar nós presentes`,
+      ).toBe(true)
+      expect(edge.weight, 'modo ego só usa weight >= 2').toBeGreaterThanOrEqual(
+        2,
+      )
+    }
   })
 
   test('página /entidades/[id] renderiza h1, seção relacionadas e botão Ver rede', async ({
