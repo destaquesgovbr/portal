@@ -47,7 +47,11 @@ describe('EntityNetwork', () => {
     await waitFor(() =>
       expect(screen.getByTestId('network-graph')).toBeInTheDocument(),
     )
-    expect(fetchNetwork).toHaveBeenCalledWith('Q1', 1, 50)
+    // Default: rede ego-centrada (GQL-1) com até 30 vizinhos.
+    expect(fetchNetwork).toHaveBeenCalledWith('Q1', 1, 50, {
+      egoCentered: true,
+      maxNodes: 30,
+    })
     expect(screen.getByTestId('network-graph')).toHaveTextContent('graph:Q1')
     // O botão passa a oferecer ocultar.
     expect(
@@ -99,6 +103,57 @@ describe('EntityNetwork', () => {
 
     await user.click(screen.getByRole('button', { name: /Ver rede/i }))
 
-    await waitFor(() => expect(fetchNetwork).toHaveBeenCalledWith('Q9', 2, 30))
+    await waitFor(() =>
+      expect(fetchNetwork).toHaveBeenCalledWith('Q9', 2, 30, {
+        egoCentered: true,
+        maxNodes: 30,
+      }),
+    )
+  })
+
+  it('permite voltar ao modo legado e ajustar maxNodes', async () => {
+    const fetchNetwork = vi.fn().mockResolvedValue(NETWORK)
+    const { user } = render(
+      <EntityNetwork
+        entityId="Q9"
+        egoCentered={false}
+        maxNodes={12}
+        fetchNetwork={fetchNetwork}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /Ver rede/i }))
+
+    await waitFor(() =>
+      expect(fetchNetwork).toHaveBeenCalledWith('Q9', 1, 50, {
+        egoCentered: false,
+        maxNodes: 12,
+      }),
+    )
+  })
+
+  it('trata a entidade sozinha (sem arestas) como rede vazia', async () => {
+    // No modo ego só entram vizinhos com weight >= 2: uma entidade com apenas
+    // co-menções únicas volta como o nó-foco isolado, sem arestas.
+    const fetchNetwork = vi.fn().mockResolvedValue({
+      nodes: [NETWORK.nodes[0]],
+      edges: [],
+    } satisfies EntityNetworkData)
+    const { user } = render(
+      <EntityNetwork entityId="Q1" fetchNetwork={fetchNetwork} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /Ver rede/i }))
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Ainda não há conexões suficientes/i),
+      ).toBeInTheDocument(),
+    )
+    expect(screen.queryByTestId('network-graph')).not.toBeInTheDocument()
+    // Sem grafo, não há o que maximizar.
+    expect(
+      screen.queryByRole('button', { name: /Maximizar rede/i }),
+    ).not.toBeInTheDocument()
   })
 })

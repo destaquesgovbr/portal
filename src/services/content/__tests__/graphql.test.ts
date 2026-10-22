@@ -449,7 +449,14 @@ describe('createGraphQLContentService', () => {
       const svc = createGraphQLContentService(client)
       const net = await svc.getEntityNetwork('Q1', 2, 30)
       expect(queries[0].query).toContain('query EntityNetwork')
-      expect(queries[0].vars).toEqual({ id: 'Q1', depth: 2, limit: 30 })
+      // Sem opções: modo legado (egoCentered=false), maxNodes no default da API.
+      expect(queries[0].vars).toEqual({
+        id: 'Q1',
+        depth: 2,
+        limit: 30,
+        egoCentered: false,
+        maxNodes: 30,
+      })
       expect(net.nodes).toHaveLength(1)
       expect(net.edges).toEqual([
         { src: 'Q1', dst: 'Q2', weight: 3, kind: 'co_mention' },
@@ -462,7 +469,33 @@ describe('createGraphQLContentService', () => {
       })
       const svc = createGraphQLContentService(client)
       await svc.getEntityNetwork('Q1')
-      expect(queries[0].vars).toEqual({ id: 'Q1', depth: 1, limit: 50 })
+      expect(queries[0].vars).toEqual({
+        id: 'Q1',
+        depth: 1,
+        limit: 50,
+        egoCentered: false,
+        maxNodes: 30,
+      })
+    })
+
+    it('modo ego: repassa egoCentered/maxNodes para a query (GQL-1)', async () => {
+      const { client, queries } = makeClientStub({
+        onQuery: () => ({ entityNetwork: { nodes: [], edges: [] } }),
+      })
+      const svc = createGraphQLContentService(client)
+      await svc.getEntityNetwork('Q1', 1, 50, {
+        egoCentered: true,
+        maxNodes: 20,
+      })
+      expect(queries[0].query).toContain('egoCentered: $egoCentered')
+      expect(queries[0].query).toContain('maxNodes: $maxNodes')
+      expect(queries[0].vars).toEqual({
+        id: 'Q1',
+        depth: 1,
+        limit: 50,
+        egoCentered: true,
+        maxNodes: 20,
+      })
     })
 
     it('degrada para rede vazia em erro', async () => {
