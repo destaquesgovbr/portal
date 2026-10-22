@@ -9,6 +9,7 @@ import { createSSRClient } from '@/lib/graphql/client'
 import { createGraphQLContentService } from '@/services/content/graphql'
 import type {
   EntityNetwork,
+  EntityNetworkOptions,
   EntityNode,
   RelatedEntity,
 } from '@/services/content/types'
@@ -136,15 +137,16 @@ export async function getRelatedEntities(
 }
 
 /**
- * Rede ego-centrada (nós + arestas) de uma entidade canônica, para a
- * visualização de rede. Retorna rede vazia para entradas não-canônicas ou
- * enquanto o grafo não estiver disponível.
+ * Rede (nós + arestas) de uma entidade canônica, para a visualização de rede
+ * (legado ou ego-centrada, ver `EntityNetworkOptions`). Retorna rede vazia para
+ * entradas não-canônicas ou enquanto o grafo não estiver disponível.
  */
 export async function getEntityNetwork(
   id: string,
   depth = 1,
   limit = 50,
+  options: EntityNetworkOptions = {},
 ): Promise<EntityNetwork> {
   if (!isCanonicalEntityId(id)) return { nodes: [], edges: [] }
-  return content().getEntityNetwork(id, depth, limit)
+  return content().getEntityNetwork(id, depth, limit, options)
 }

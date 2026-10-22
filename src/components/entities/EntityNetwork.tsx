@@ -10,7 +10,10 @@
  *
  * A query (`entityNetwork`) roda via react-query através da server action
  * `getEntityNetwork`. Toda a rede (nós + arestas) já vem capada pelo backend
- * (`limit` + threshold de peso) para evitar hairball.
+ * para evitar hairball. Por padrão pede a rede ego-centrada (GQL-1): o foco +
+ * seus `maxNodes` vizinhos mais fortes (weight >= 2), com todas as arestas do
+ * foco; `limit` corta só as arestas entre vizinhos. Foco sem nenhuma aresta
+ * conta como rede vazia.
  */
 
 import { useQuery } from '@tanstack/react-query'
@@ -18,6 +21,10 @@ import { Maximize2, Minimize2, Network, X } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import type {
+  EntityNetwork as EntityNetworkData,
+  EntityNetworkOptions,
+} from '@/services/content/types'
 
 const EntityNetworkGraph = dynamic(() => import('./EntityNetworkGraph'), {
   ssr: false,
@@ -33,8 +40,15 @@ export type EntityNetworkProps = {
   entityId: string
   /** Profundidade da rede (saltos). Default 1 (vizinhos imediatos). */
   depth?: number
-  /** Limite de nós retornados pelo backend. Default 50. */
+  /**
+   * Cap de arestas do backend. Default 50. No modo ego corta só as arestas
+   * entre vizinhos (as do foco entram todas).
+   */
   limit?: number
+  /** Rede centrada na entidade (GQL-1). Default `true`. */
+  egoCentered?: boolean
+  /** Vizinhos no modo ego (1–100). Default 30. */
+  maxNodes?: number
   /**
    * Busca a rede. Injetável para testes; default usa a server action
    * `getEntityNetwork` (resolvida no consumidor para evitar acoplar este
@@ -44,13 +58,16 @@ export type EntityNetworkProps = {
     id: string,
     depth: number,
     limit: number,
-  ) => Promise<import('@/services/content/types').EntityNetwork>
+    options: Required<EntityNetworkOptions>,
+  ) => Promise<EntityNetworkData>
 }
 
 export default function EntityNetwork({
   entityId,
   depth = 1,
   limit = 50,
+  egoCentered = true,
+  maxNodes = 30,
   fetchNetwork,
 }: EntityNetworkProps) {
   const [open, setOpen] = useState(false)
@@ -80,14 +97,18 @@ export default function EntityNetwork({
   }, [expanded])
 
   const networkQ = useQuery({
-    queryKey: ['entity-network', entityId, depth, limit],
-    queryFn: () => fetchNetwork(entityId, depth, limit),
+    queryKey: ['entity-network', entityId, depth, limit, egoCentered, maxNodes],
+    queryFn: () =>
+      fetchNetwork(entityId, depth, limit, { egoCentered, maxNodes }),
     enabled: open,
     staleTime: 5 * 60 * 1000,
   })
 
   const network = networkQ.data
-  const hasGraph = (network?.nodes.length ?? 0) > 0
+  // Sem arestas não há rede: no modo ego, entidade só com co-menções únicas
+  // (weight 1) volta como o nó-foco isolado.
+  const hasGraph =
+    (network?.nodes.length ?? 0) > 0 && (network?.edges.length ?? 0) > 0
 
   function handleToggle() {
     const next = !open

@@ -53,6 +53,7 @@ import {
 import type { ArticleRow } from '@/types/article'
 import type {
   ContentService,
+  EntityNetworkOptions,
   EstimateRecorteCountArgs,
   ListArticlesArgs,
   ListPoliciesArgs,
@@ -382,7 +383,12 @@ export function createGraphQLContentService(
       }))
     },
 
-    async getEntityNetwork(id: string, depth = 1, limit = 50) {
+    async getEntityNetwork(
+      id: string,
+      depth = 1,
+      limit = 50,
+      options: EntityNetworkOptions = {},
+    ) {
       // Degrada para uma rede vazia quando o grafo não estiver disponível — a
       // visualização não renderiza nós. Não propagamos o erro.
       const result = await client
@@ -390,6 +396,8 @@ export function createGraphQLContentService(
           id,
           depth,
           limit,
+          egoCentered: options.egoCentered ?? false,
+          maxNodes: options.maxNodes ?? 30,
         })
         .toPromise()
       if (result.error) {

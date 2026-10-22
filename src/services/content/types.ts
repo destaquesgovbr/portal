@@ -135,6 +135,23 @@ export interface EntityNetwork {
   edges: EntityNetworkEdge[]
 }
 
+/**
+ * Modo da rede de entidades (`entityNetwork`, GQL-1).
+ *
+ * - `egoCentered: false` (legado): travessia até `depth` saltos; `limit` corta
+ *   as arestas pelo peso global, então arestas fortes entre vizinhos podem
+ *   expulsar as do próprio foco.
+ * - `egoCentered: true`: o foco + seus `maxNodes` (1–100) vizinhos mais fortes
+ *   (weight >= 2), com TODAS as arestas do foco; `limit` corta só as arestas
+ *   entre vizinhos e `depth` é ignorado.
+ */
+export interface EntityNetworkOptions {
+  /** Default `false` (modo legado). */
+  egoCentered?: boolean
+  /** Vizinhos no modo ego (1–100). Default 30, o mesmo da API. */
+  maxNodes?: number
+}
+
 /** Entidade NER em alta — alimenta a seção "Entidades em Alta" da homepage. */
 export interface TrendingEntity {
   entityId: string
@@ -222,13 +239,15 @@ export interface ContentService {
   getRelatedEntities(id: string, limit?: number): Promise<RelatedEntity[]>
 
   /**
-   * Rede ego-centrada (nós + arestas) de uma entidade canônica, até `depth`
-   * saltos. Degrada para uma rede vazia quando o grafo não estiver disponível.
+   * Rede (nós + arestas) de uma entidade canônica: legado até `depth` saltos
+   * ou ego-centrada (`options.egoCentered`, ver `EntityNetworkOptions`).
+   * Degrada para uma rede vazia quando o grafo não estiver disponível.
    */
   getEntityNetwork(
     id: string,
     depth?: number,
     limit?: number,
+    options?: EntityNetworkOptions,
   ): Promise<EntityNetwork>
 
   /**
