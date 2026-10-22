@@ -154,18 +154,6 @@ Um emblema que expressa o papel do Estado em dar direção e equilíbrio aos flu
     description: `Este ícone representa a balança viva da justiça, símbolo da harmonia entre as forças sociais.
 A haste azul traduz a estrutura firme do Estado, o eixo vermelho expressa a energia da convivência coletiva, e os pratos verde e amarelo evocam o equilíbrio entre diversidade e liberdade — o resultado de uma regulação justa e de uma legislação que sustenta o bem comum.`,
   },
-  'Eventos Oficiais e Cerimônias': {
-    image: '/22-eventos-oficiais-e-cerimonias.png',
-    description: `O ícone expressa a solenidade e a continuidade da vida pública brasileira — momentos em que o país se reúne em torno de seus ritos cívicos e celebra o pacto democrático que o sustenta.
-Inspirado na subida da rampa do Palácio do Planalto — uma das cerimônias mais simbólicas da República — ele representa a ordem, a dignidade e a presença coletiva que marcam os grandes atos oficiais do Brasil.`,
-  },
-  'Estatísticas e Dados Públicos': {
-    image: '/23-estatisticas-e-dados-publicos.png',
-    description: `O ícone representa o compromisso nacional com a transparência e a escuta pública.
-A prancheta azul simboliza o registro oficial e a coleta de informações, enquanto as três casas — vermelha, verde e amarela — representam a diversidade dos lares brasileiros, protagonistas dos levantamentos de dados que fundamentam políticas públicas.
-
-A composição é sólida, equilibrada e minimalista, evocando o espírito do Censo e o papel do Estado em garantir acesso público e confiável às informações da sociedade.`,
-  },
   'Minorias e Grupos Especiais': {
     image: '/24-minorias-e-grupos-especiais.png',
     description: `O ícone reflete a horizontalidade do acolhimento brasileiro, onde todos se reconhecem como parte de um mesmo corpo social.
@@ -177,6 +165,13 @@ As figuras que compõem a cena se inclinam umas às outras, simbolizando o gesto
 Três faixas horizontais representam terra, vida urbana e horizonte, atravessadas por linhas brancas que evocam ruas, fluxos e conexões humanas.
 
 No centro, pequenas formas geométricas azuis remetem a edifícios organizados, equilibrando modernidade e acolhimento.`,
+  },
+  'Defesa Civil e Gestão de Desastres': {
+    image: '/26-defesa-civil-e-gestao-de-desastres.svg',
+    description: `Inspirado no gesto de proteger quem está em risco, o ícone representa a Defesa Civil como a rede que se ergue antes, durante e depois de um desastre.
+A cúpula nas cores verde, amarela, vermelha e azul forma um abrigo comum sobre a casa, enquanto a chuva e as águas lembram os riscos que o país aprende a prevenir e a enfrentar.
+
+É a gestão de desastres como cuidado coletivo — **prevenir, preparar, responder e reconstruir**, para que ninguém fique desamparado.`,
   },
 }
 

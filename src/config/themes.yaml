@@ -1035,32 +1035,6 @@ themes:
             code: "19.02.04"
           - label: Operações Antidrogas
             code: "19.02.05"
-      - label: Defesa Civil
-        code: "19.03"
-        children:
-          - label: Preparação para Desastres
-            code: "19.03.01"
-          - label: Planejamento de Evacuação
-            code: "19.03.02"
-          - label: Resposta a Desastres
-            code: "19.03.03"
-          - label: Monitoramento de Riscos Naturais
-            code: "19.03.04"
-          - label: Gestão de Abrigos
-            code: "19.03.05"
-      - label: Situações de Emergência
-        code: "19.04"
-        children:
-          - label: Resgate e Salvamento
-            code: "19.04.01"
-          - label: Logística de Emergência
-            code: "19.04.02"
-          - label: Ações Humanitárias
-            code: "19.04.03"
-          - label: Reconstrução Pós-Desastre
-            code: "19.04.04"
-          - label: Assistência a Deslocados Internos
-            code: "19.04.05"
       - label: Políticas e Estratégias de Defesa
         code: "19.05"
         children:
@@ -1178,121 +1152,6 @@ themes:
             code: "21.05.03"
           - label: Cooperação Internacional em Regulação
             code: "21.05.04"
-  - label: Eventos Oficiais e Cerimônias
-    code: "22"
-    children:
-      - label: Discursos Oficiais
-        code: "22.01"
-        children:
-          - label: Pronunciamento em Rede Nacional
-            code: "22.01.01"
-          - label: Discursos em Cerimônias Públicas
-            code: "22.01.02"
-          - label: Entrevistas e Coletivas de Imprensa
-            code: "22.01.03"
-          - label: Discursos em Eventos Internacionais
-            code: "22.01.04"
-          - label: Mensagens de Fim de Ano e Comemorações
-            code: "22.01.05"
-      - label: Inaugurações
-        code: "22.02"
-        children:
-          - label: Inauguração de Obras Públicas
-            code: "22.02.01"
-          - label: Lançamento de Programas e Projetos
-            code: "22.02.02"
-          - label: Inauguração de Equipamentos Públicos
-            code: "22.02.03"
-          - label: Eventos de Entrega de Infraestrutura
-            code: "22.02.04"
-          - label: Cerimônias de Descerramento de Placas
-            code: "22.02.05"
-      - label: Visitas Oficiais
-        code: "22.03"
-        children:
-          - label: Visitas Internacionais de Chefes de Estado
-            code: "22.03.01"
-          - label: Visitas a Estados e Municípios
-            code: "22.03.02"
-          - label: Recepção de Dignitários Estrangeiros
-            code: "22.03.03"
-          - label: Encontros Bilaterais e Multilaterais
-            code: "22.03.04"
-          - label: Inspeções e Visitas Técnicas
-            code: "22.03.05"
-      - label: Luto Oficial
-        code: "22.04"
-        children:
-          - label: Declarações de Luto Nacional
-            code: "22.04.01"
-          - label: Homenagens Oficiais
-            code: "22.04.02"
-          - label: Cerimônias de Condolências
-            code: "22.04.03"
-      - label: Comemorações e Datas Festivas
-        code: "22.05"
-        children:
-          - label: Comemoração de Datas Cívicas
-            code: "22.05.01"
-          - label: Celebrações de Efemérides
-            code: "22.05.02"
-          - label: Eventos Comemorativos de Instituições Públicas
-            code: "22.05.03"
-          - label: Cerimônias de Posse e Aniversários de Instituições
-            code: "22.05.04"
-          - label: Homenagens e Reconhecimentos Públicos
-            code: "22.05.05"
-  - label: Estatísticas e Dados Públicos
-    code: "23"
-    children:
-      - label: Censos e Pesquisas
-        code: "23.01"
-        children:
-          - label: Censo Demográfico
-            code: "23.01.01"
-          - label: Censo Agropecuário
-            code: "23.01.02"
-          - label: Pesquisa de Emprego e Renda
-            code: "23.01.03"
-          - label: Pesquisa de Saúde
-            code: "23.01.04"
-          - label: Pesquisa de Educação
-            code: "23.01.05"
-      - label: Indicadores Econômicos e Sociais
-        code: "23.02"
-        children:
-          - label: Índice de Preços
-            code: "23.02.01"
-          - label: Indicadores de Pobreza
-            code: "23.02.02"
-          - label: Índice de Desenvolvimento Humano (IDH)
-            code: "23.02.03"
-          - label: Taxa de Desemprego
-            code: "23.02.04"
-          - label: Taxa de Escolaridade
-            code: "23.02.05"
-      - label: Interoperabilidade
-        code: "23.03"
-        children:
-          - label: Dados Abertos
-            code: "23.03.01"
-          - label: Infraestrutura de Dados Públicos (IDP)
-            code: "23.03.02"
-          - label: Integração de Bases de Dados
-            code: "23.03.03"
-      - label: Transparência e Acesso à Informação
-        code: "23.04"
-        children:
-          - label: Portal da Transparência
-            code: "23.04.01"
-          - label: Lei de Acesso à Informação (LAI)
-            code: "23.04.02"
-          - label: Relatórios de Prestação de Contas
-            code: "23.04.03"
-          - label: Auditorias e Fiscalizações Públicas
-            code: "23.04.04"
-          - label: Dados sobre Licitações e Contratos Públicos
-            code: "23.04.05"
   - label: Minorias e Grupos Especiais
     code: "24"
     children:
@@ -1419,3 +1278,32 @@ themes:
             code: "25.05.04"
           - label: Conservação e Manutenção Urbana
             code: "25.05.05"
+  - label: Defesa Civil e Gestão de Desastres
+    code: "26"
+    children:
+      - label: Defesa Civil
+        code: "26.01"
+        children:
+          - label: Preparação para Desastres
+            code: "26.01.01"
+          - label: Planejamento de Evacuação
+            code: "26.01.02"
+          - label: Resposta a Desastres
+            code: "26.01.03"
+          - label: Monitoramento de Riscos Naturais
+            code: "26.01.04"
+          - label: Gestão de Abrigos
+            code: "26.01.05"
+      - label: Situações de Emergência
+        code: "26.02"
+        children:
+          - label: Resgate e Salvamento
+            code: "26.02.01"
+          - label: Logística de Emergência
+            code: "26.02.02"
+          - label: Ações Humanitárias
+            code: "26.02.03"
+          - label: Reconstrução Pós-Desastre
+            code: "26.02.04"
+          - label: Assistência a Deslocados Internos
+            code: "26.02.05"

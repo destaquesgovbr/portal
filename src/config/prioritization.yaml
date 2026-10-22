@@ -80,7 +80,7 @@ excludedAgencies: []
 
 # Lista de temas (qualquer nível) a serem excluídos da home
 excludedThemes: []
-# Exemplo: excludedThemes: ["22", "22.01"]  # Exclui "Eventos Oficiais"
+# Exemplo: excludedThemes: ["21", "20.01"]  # Exclui "Legislação e Regulamentação" e "Transparência e Prestação de Contas"
 
 # ==============================================================================
 # CONFIGURAÇÃO DE "TEMAS EM FOCO"
